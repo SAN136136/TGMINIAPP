@@ -76,10 +76,7 @@
             gap: 10px;
             margin-bottom: 10px;
         }
-        .header h1 {
-            color: #58A6FF;
-            font-size: 24px;
-        }
+        .header h1 { color: #58A6FF; font-size: 24px; }
         .header .status { font-size: 18px; }
         
         /* ========== ПРИВЕТСТВИЕ ========== */
@@ -244,13 +241,26 @@
 </div>
 
 <script>
-    // ==================== КОНФИГ ====================
-    const BOT_TOKEN = "8810081207:AAFkzl4B9vwocKFhjbk04Dt8rRqjWb5jcro";
-    const CHANNEL_ID = "-1003933721766";
-    const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
+    // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+    let BOT_TOKEN = "";
+    let CHANNEL_ID = "";
+    let API_URL = "";
+    let activeTab = "main";
     const PASSWORD = "пельмень";
     
-    let activeTab = "main";
+    // ==================== ЗАГРУЗКА КОНФИГА ====================
+    fetch('config.json')
+        .then(response => response.json())
+        .then(config => {
+            BOT_TOKEN = config.telegram.client_bot_token;
+            CHANNEL_ID = config.telegram.channel_id;
+            API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
+            console.log('Конфиг загружен');
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки конфига:', err);
+            document.getElementById('log').innerHTML = '❌ Ошибка загрузки конфига';
+        });
     
     // ==================== ЭКРАН ВХОДА ====================
     function checkPassword() {
@@ -266,7 +276,6 @@
         }
     }
     
-    // Обработка Enter на экране входа
     document.getElementById("pinInput").addEventListener("keydown", function(e) {
         if (e.key === "Enter") checkPassword();
     });
@@ -285,9 +294,7 @@
     // ==================== ВКЛАДКИ ====================
     function switchTab(tab) {
         activeTab = tab;
-        document.querySelectorAll(".nav-btn").forEach((btn, i) => {
-            btn.classList.remove("active");
-        });
+        document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
         event.target.classList.add("active");
         renderTab(tab);
     }
@@ -343,6 +350,10 @@
     // ==================== ОТПРАВКА КОМАНД ====================
     function sendCommand(command) {
         if (!command || !command.trim()) return;
+        if (!API_URL) {
+            document.getElementById("log").innerHTML = "❌ Конфиг ещё не загружен";
+            return;
+        }
         
         fetch(`${API_URL}/sendMessage`, {
             method: "POST",
