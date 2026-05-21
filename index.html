@@ -246,21 +246,53 @@
     let CHANNEL_ID = "";
     let API_URL = "";
     let activeTab = "main";
+    let lastUpdateId = 0; // Переменная для отслеживания новых сообщений
     const PASSWORD = "пельмень";
     
     // ==================== ЗАГРУЗКА КОНФИГА ====================
-    fetch('gitconfig.json')
+    fetch('config.json')
         .then(response => response.json())
         .then(config => {
             BOT_TOKEN = config.telegram.client_bot_token;
             CHANNEL_ID = config.telegram.channel_id;
             API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
             console.log('Конфиг загружен');
+            setInterval(checkMessages, 3000); // Запускаем проверку каждые 3 секунды
         })
         .catch(err => {
             console.error('Ошибка загрузки конфига:', err);
             document.getElementById('log').innerHTML = '❌ Ошибка загрузки конфига';
         });
+    
+    // ==================== ПРОВЕРКА ОТВЕТОВ ОТ СЕРВЕРА ====================
+    function checkMessages() {
+        if (!API_URL) return;
+        
+        fetch(`${API_URL}/getUpdates`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                offset: lastUpdateId + 1,
+                timeout: 2
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok && data.result.length > 0) {
+                data.result.forEach(update => {
+                    lastUpdateId = update.update_id;
+                    // Ищем сообщение из нашего канала
+                    if (update.channel_post && update.channel_post.chat.id === CHANNEL_ID) {
+                        const text = update.channel_post.text;
+                        const sender = update.channel_post.sender_chat?.title || "";
+                        // Показываем ответ в логе
+                        document.getElementById("log").innerHTML = `📥 ${text}`;
+                    }
+                });
+            }
+        })
+        .catch(err => console.error("Ошибка проверки сообщений:", err));
+    }
     
     // ==================== ЭКРАН ВХОДА ====================
     function checkPassword() {
@@ -381,6 +413,5 @@
         });
     });
 </script>
-
 </body>
 </html>
