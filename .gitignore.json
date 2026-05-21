@@ -1,0 +1,10 @@
+{
+  "telegram": {
+    "client_bot_token": "8810081207:AAFkzl4B9vwocKFhjbk04Dt8rRqjWb5jcro",
+    "channel_id": -1003711559686
+  },
+  "app": {
+    "password": "пельмень",
+    "greeting": "Доброе утро, сэр!"
+  }
+}
