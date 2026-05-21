@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis Client</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0D0D14;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 15px;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .header h1 {
+            color: #58A6FF;
+            font-size: 24px;
+        }
+        .status { font-size: 18px; }
+        .log {
+            background: #1A1A2E;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #B0B0B0;
+            min-height: 30px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-ping { background: #2D8A4E; }
+        .btn-status { background: #2D5F8A; }
+        .btn-weather { background: #5B8A2D; }
+        .btn-news { background: #6B4C8A; }
+        .btn-ue5 { background: #C75B2A; }
+        .btn-shutdown { background: #C72A2A; }
+        .btn-cancel { background: #555; }
+        .cmd-bar {
+            display: flex;
+            gap: 8px;
+        }
+        .cmd-bar input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: #1A1A2E;
+            color: white;
+            font-size: 14px;
+        }
+        .cmd-bar button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #58A6FF;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .section-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>JARVIS</h1>
+        <span class="status">🟢</span>
+    </div>
+
+    <div class="log" id="log">[Готов к работе]</div>
+
+    <div class="section-title">УПРАВЛЕНИЕ</div>
+    <div class="buttons">
+        <button class="btn btn-ping" onclick="sendCommand('ping')">🟢 Пинг</button>
+        <button class="btn btn-status" onclick="sendCommand('status')">📊 Статус ПК</button>
+        <button class="btn btn-weather" onclick="sendCommand('weather')">🌤 Погода</button>
+        <button class="btn btn-news" onclick="sendCommand('news')">📰 Новости</button>
+        <button class="btn btn-ue5" onclick="sendCommand('launch_ue5')">🚀 Анрил</button>
+        <button class="btn btn-shutdown" onclick="sendCommand('shutdown')">⏻ Выкл ПК</button>
+        <button class="btn btn-cancel" onclick="sendCommand('cancel_shutdown')">❌ Отмена</button>
+    </div>
+
+    <div class="cmd-bar">
+        <input type="text" id="cmdInput" placeholder="Своя команда...">
+        <button onclick="sendCommand(document.getElementById('cmdInput').value)">▶</button>
+    </div>
+
+   <script>
+    const BOT_TOKEN = "8810081207:AAFkzl4B9vwocKFhjbk04Dt8rRqjWb5jcro";
+    const CHANNEL_ID = -1003711559686;
+    const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+    function sendCommand(command) {
+        if (!command || !command.trim()) return;
+
+        fetch(`${API_URL}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHANNEL_ID,
+                text: command
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                document.getElementById('log').innerHTML = `📤 ${command}`;
+                document.getElementById('cmdInput').value = '';
+            } else {
+                document.getElementById('log').innerHTML = `❌ Ошибка: ${data.description}`;
+            }
+        })
+        .catch(err => {
+            document.getElementById('log').innerHTML = `❌ Нет связи: ${err.message}`;
+        });
+    }
+</script>
+</body>
+</html>
