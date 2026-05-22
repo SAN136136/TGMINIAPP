@@ -613,3 +613,4 @@ function calcEquation() {
     if (eqType === "quadratic") {
         if (a === 0) { document.getElementById("calcResult").textContent = "❌ a ≠ 0 для квадратного уравнения"; return; }
         const D = b*b - 4*a
+}
