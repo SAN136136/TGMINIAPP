@@ -195,78 +195,79 @@ function switchCalcMode(mode) {
     calcClear();
 }
 
-// ==================== ГЕОМЕТРИЯ v2.1 ====================
-let geoData = {}; 
-let geoActiveCell = null; 
+// ==================== ГЕОМЕТРИЯ v3.0 ====================
+let geoData = {};
+let geoActiveCell = null;
 let geoCalcExpr = "";
 
 function switchGeoShape() {
     const shape = document.getElementById("geoShape").value;
-    
-    // Скрываем калькулятор ввода
-    document.getElementById("geoCalcPad").style.display = "none";
-    geoActiveCell = null;
-    
     if (!shape) {
         document.getElementById("geoTable").style.display = "none";
+        document.getElementById("geoCalcPad").style.display = "none";
         document.getElementById("geoError").textContent = "";
+        geoActiveCell = null;
         return;
     }
-    
-    // Создаём хранилище для фигуры, если его нет
     if (!geoData[shape]) geoData[shape] = {};
-    
     document.getElementById("geoTable").style.display = "block";
+    document.getElementById("geoCalcPad").style.display = "block";
+    document.getElementById("geoError").textContent = "";
+    geoActiveCell = null;
+    geoCalcExpr = "";
+    document.getElementById("geoCalcDisplay").textContent = "0";
     renderGeoTable(shape);
 }
 
 function renderGeoTable(shape) {
     const table = document.getElementById("geoTable");
     const fields = getGeoFields(shape);
-    let html = "<table class='geo-table'>";
-    html += "<tr><th>Параметр</th><th>Значение</th><th></th></tr>";
+    const cols = (shape === "triangle") ? 2 : 1;
     
-    fields.forEach(f => {
-        // Получаем текущее значение (либо вычисленное, либо введённое, либо "н/д")
-        const rawVal = geoData[shape][f.key];
-        const computed = computeGeoField(shape, f.key);
-        let displayVal;
-        let isComputed = false;
-        
-        if (computed !== null) {
-            displayVal = computed;
-            isComputed = true;
-        } else if (rawVal !== undefined && rawVal !== "") {
-            displayVal = rawVal;
-        } else {
-            displayVal = "н/д";
+    let html = `<table class="geo-table" style="width:100%;">`;
+    html += "<tr><th>Параметр</th><th>Значение</th><th></th>";
+    if (cols === 2) html += "<th>Параметр</th><th>Значение</th><th></th>";
+    html += "</tr>";
+    
+    for (let i = 0; i < fields.length; i += cols) {
+        html += "<tr>";
+        for (let j = 0; j < cols; j++) {
+            const f = fields[i + j];
+            if (f) {
+                const rawVal = geoData[shape][f.key];
+                const computed = computeGeoField(shape, f.key);
+                let displayVal;
+                let isComputed = false;
+                
+                if (computed !== null) {
+                    displayVal = computed;
+                    isComputed = true;
+                } else if (rawVal !== undefined && rawVal !== "") {
+                    displayVal = rawVal;
+                } else {
+                    displayVal = "н/д";
+                }
+                
+                html += `<td style="padding:6px 8px;">${f.label}</td>
+                    <td class="geo-val ${isComputed ? 'geo-computed' : ''}" 
+                        onclick="${isComputed ? '' : `editGeoCell('${shape}', '${f.key}')`}"
+                        style="padding:6px 8px; ${isComputed ? 'color:#58A6FF;font-weight:bold;' : 'cursor:pointer;color:#CCC;'}">
+                        ${displayVal}
+                    </td>
+                    <td style="padding:6px 4px;">
+                        <button class="geo-info-btn" onclick="showGeoFormula('${shape}', '${f.key}')">!</button>
+                    </td>`;
+            } else {
+                html += "<td></td><td></td><td></td>";
+            }
         }
-        
-        html += `<tr>
-            <td>${f.label}</td>
-            <td class="geo-val ${isComputed ? 'geo-computed' : ''}" 
-                onclick="${isComputed ? '' : `editGeoCell('${shape}', '${f.key}')`}"
-                style="${isComputed ? 'color:#58A6FF;' : 'cursor:pointer;'}">
-                ${displayVal}
-            </td>
-            <td>
-                <button class="geo-info-btn" onclick="showGeoFormula('${shape}', '${f.key}')">!</button>
-            </td>
-        </tr>`;
-    });
-    
+        html += "</tr>";
+    }
     html += "</table>";
     table.innerHTML = html;
     
-    // Проверка на невозможность фигуры
     const error = checkGeoImpossible(shape);
     document.getElementById("geoError").textContent = error || "";
-    
-    // Если калькулятор был открыт для ячейки, которой больше нет (сменили фигуру), закрываем его
-    if (geoActiveCell && geoActiveCell.shape !== shape) {
-        document.getElementById("geoCalcPad").style.display = "none";
-        geoActiveCell = null;
-    }
 }
 
 function editGeoCell(shape, field) {
@@ -276,12 +277,20 @@ function editGeoCell(shape, field) {
     document.getElementById("geoCalcDisplay").textContent = geoCalcExpr || "0";
 }
 
-function geoCalcConfirm() {
+function geoCalcInput(val) {
+    if (geoCalcExpr === "" && "0123456789".includes(val)) geoCalcExpr = val;
+    else geoCalcExpr += val;
+    document.getElementById("geoCalcDisplay").textContent = geoCalcExpr || "0";
+    liveGeoUpdate();
+}
+
+function geoCalcClear() { geoCalcExpr = ""; document.getElementById("geoCalcDisplay").textContent = "0"; liveGeoUpdate(); }
+function geoCalcBackspace() { geoCalcExpr = geoCalcExpr.slice(0, -1); document.getElementById("geoCalcDisplay").textContent = geoCalcExpr || "0"; liveGeoUpdate(); }
+
+function liveGeoUpdate() {
     if (!geoActiveCell) return;
-    
     let val = geoCalcExpr.trim();
     
-    // Пробуем вычислить выражение
     try {
         let expr = val.replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-")
             .replace(/π/g, String(Math.PI)).replace(/²/g, "**2").replace(/\^/g, "**");
@@ -290,22 +299,182 @@ function geoCalcConfirm() {
         if (result !== undefined && !isNaN(result) && isFinite(result)) {
             val = Math.round(result * 1000000) / 1000000;
         }
-    } catch (e) {
-        // Оставляем как есть, если не вычислилось
+    } catch (e) {}
+    
+    if (val !== "" && val !== undefined) {
+        geoData[geoActiveCell.shape][geoActiveCell.field] = val;
+    } else if (geoCalcExpr === "") {
+        delete geoData[geoActiveCell.shape][geoActiveCell.field];
     }
-    
-    // Сохраняем значение
-    geoData[geoActiveCell.shape][geoActiveCell.field] = val;
-    
-    // Сбрасываем и перерисовываем
-    geoActiveCell = null;
-    document.getElementById("geoCalcPad").style.display = "none";
     renderGeoTable(document.getElementById("geoShape").value);
 }
 
-// ... (функции getGeoFields, computeGeoField, checkGeoImpossible, showGeoFormula остаются без изменений)
-// ... (вспомогательные функции geoCalcInput, geoCalcClear, geoCalcBackspace тоже без изменений)
+function getGeoFields(shape) {
+    if (shape === "circle") return [
+        { key: "R", label: "Радиус (R)" },
+        { key: "D", label: "Диаметр (D)" },
+        { key: "S", label: "Площадь (S)" },
+        { key: "C", label: "Длина окр. (C)" }
+    ];
+    if (shape === "triangle") return [
+        { key: "a", label: "Сторона a" },
+        { key: "b", label: "Сторона b" },
+        { key: "c", label: "Сторона c" },
+        { key: "A", label: "Угол A (°)" },
+        { key: "B", label: "Угол B (°)" },
+        { key: "C", label: "Угол C (°)" },
+        { key: "S", label: "Площадь (S)" },
+        { key: "P", label: "Периметр (P)" }
+    ];
+    if (shape === "rectangle") return [
+        { key: "a", label: "Длина (a)" },
+        { key: "b", label: "Ширина (b)" },
+        { key: "S", label: "Площадь (S)" },
+        { key: "P", label: "Периметр (P)" }
+    ];
+    if (shape === "cylinder") return [
+        { key: "R", label: "Радиус (R)" },
+        { key: "h", label: "Высота (h)" },
+        { key: "V", label: "Объём (V)" },
+        { key: "S_side", label: "Боковая пов-ть"},
+        { key: "S_full", label: "Полная пов-ть"}
+    ];
+    return [];
+}
 
+function computeGeoField(shape, field) {
+    const d = geoData[shape];
+    if (!d) return null;
+    
+    if (shape === "circle") {
+        const R = d.R !== undefined ? parseFloat(d.R) : null;
+        if (field === "R") return R !== null ? R : null;
+        if (field === "D" && R !== null) return (2 * R).toFixed(4);
+        if (field === "S" && R !== null) return (Math.PI * R * R).toFixed(4);
+        if (field === "C" && R !== null) return (2 * Math.PI * R).toFixed(4);
+    }
+    if (shape === "triangle") {
+        const a = d.a !== undefined ? parseFloat(d.a) : null;
+        const b = d.b !== undefined ? parseFloat(d.b) : null;
+        const c = d.c !== undefined ? parseFloat(d.c) : null;
+        
+        if (field === "a") return a;
+        if (field === "b") return b;
+        if (field === "c") return c;
+        if (field === "P" && a !== null && b !== null && c !== null) return (a + b + c).toFixed(4);
+        if (field === "S" && a !== null && b !== null && c !== null) {
+            const p = (a + b + c) / 2;
+            const S = Math.sqrt(p * (p - a) * (p - b) * (p - c));
+            return isNaN(S) ? null : S.toFixed(4);
+        }
+        // Углы не вычисляем (для этого нужны формулы косинусов/синусов)
+        if (field === "A" || field === "B" || field === "C") return null;
+    }
+    if (shape === "rectangle") {
+        const a = d.a !== undefined ? parseFloat(d.a) : null;
+        const b = d.b !== undefined ? parseFloat(d.b) : null;
+        if (field === "a") return a;
+        if (field === "b") return b;
+        if (field === "S" && a !== null && b !== null) return (a * b).toFixed(4);
+        if (field === "P" && a !== null && b !== null) return (2 * (a + b)).toFixed(4);
+    }
+    if (shape === "cylinder") {
+        const R = d.R !== undefined ? parseFloat(d.R) : null;
+        const h = d.h !== undefined ? parseFloat(d.h) : null;
+        if (field === "R") return R;
+        if (field === "h") return h;
+        if (field === "V" && R !== null && h !== null) return (Math.PI * R * R * h).toFixed(4);
+        if (field === "S_side" && R !== null && h !== null) return (2 * Math.PI * R * h).toFixed(4);
+        if (field === "S_full" && R !== null && h !== null) return (2 * Math.PI * R * (R + h)).toFixed(4);
+    }
+    return null;
+}
+
+function checkGeoImpossible(shape) {
+    const d = geoData[shape];
+    if (!d) return null;
+    
+    if (shape === "triangle") {
+        const a = d.a !== undefined ? parseFloat(d.a) : null;
+        const b = d.b !== undefined ? parseFloat(d.b) : null;
+        const c = d.c !== undefined ? parseFloat(d.c) : null;
+        if (a !== null && b !== null && c !== null) {
+            if (a + b <= c || a + c <= b || b + c <= a) return "❌ Такого треугольника не существует";
+        }
+        const A = d.A !== undefined ? parseFloat(d.A) : null;
+        const B = d.B !== undefined ? parseFloat(d.B) : null;
+        const C = d.C !== undefined ? parseFloat(d.C) : null;
+        if (A !== null && (A <= 0 || A >= 180)) return "❌ Угол должен быть от 0 до 180°";
+        if (B !== null && (B <= 0 || B >= 180)) return "❌ Угол должен быть от 0 до 180°";
+        if (C !== null && (C <= 0 || C >= 180)) return "❌ Угол должен быть от 0 до 180°";
+        if (A !== null && B !== null && C !== null && Math.abs(A + B + C - 180) > 0.01) return "❌ Сумма углов ≠ 180°";
+    }
+    if (shape === "circle" || shape === "cylinder") {
+        const R = d.R !== undefined ? parseFloat(d.R) : null;
+        if (R !== null && R <= 0) return "❌ Радиус должен быть > 0";
+    }
+    if (shape === "rectangle") {
+        const a = d.a !== undefined ? parseFloat(d.a) : null;
+        const b = d.b !== undefined ? parseFloat(d.b) : null;
+        if (a !== null && a <= 0) return "❌ Сторона должна быть > 0";
+        if (b !== null && b <= 0) return "❌ Сторона должна быть > 0";
+    }
+    return null;
+}
+
+function showGeoFormula(shape, field) {
+    const d = geoData[shape];
+    let formulaText = "";
+    let appliedText = "";
+    
+    if (shape === "circle") {
+        const formulas = { D: "D = 2R", S: "S = πR²", C: "C = 2πR" };
+        formulaText = formulas[field] || "";
+        const R = d?.R !== undefined ? parseFloat(d.R) : null;
+        if (R !== null) {
+            if (field === "D") appliedText = `D = 2 × ${R} = ${(2*R).toFixed(4)}`;
+            else if (field === "S") appliedText = `S = π × ${R}² = ${(Math.PI*R*R).toFixed(4)}`;
+            else if (field === "C") appliedText = `C = 2 × π × ${R} = ${(2*Math.PI*R).toFixed(4)}`;
+        }
+    } else if (shape === "triangle") {
+        const formulas = { P: "P = a + b + c", S: "S = √(p(p-a)(p-b)(p-c)), p = (a+b+c)/2" };
+        formulaText = formulas[field] || "";
+        const a = d?.a !== undefined ? parseFloat(d.a) : null;
+        const b = d?.b !== undefined ? parseFloat(d.b) : null;
+        const c = d?.c !== undefined ? parseFloat(d.c) : null;
+        if (field === "P" && a!==null && b!==null && c!==null) appliedText = `P = ${a} + ${b} + ${c} = ${(a+b+c).toFixed(4)}`;
+        else if (field === "S" && a!==null && b!==null && c!==null) {
+            const p = (a+b+c)/2;
+            appliedText = `p = (${a}+${b}+${c})/2 = ${p.toFixed(2)}\nS = √(${p.toFixed(2)} × ${(p-a).toFixed(2)} × ${(p-b).toFixed(2)} × ${(p-c).toFixed(2)}) = ${(Math.sqrt(p*(p-a)*(p-b)*(p-c))).toFixed(4)}`;
+        }
+    } else if (shape === "rectangle") {
+        const formulas = { S: "S = a × b", P: "P = 2(a + b)" };
+        formulaText = formulas[field] || "";
+        const a = d?.a !== undefined ? parseFloat(d.a) : null;
+        const b = d?.b !== undefined ? parseFloat(d.b) : null;
+        if (field === "S" && a!==null && b!==null) appliedText = `S = ${a} × ${b} = ${(a*b).toFixed(4)}`;
+        else if (field === "P" && a!==null && b!==null) appliedText = `P = 2 × (${a} + ${b}) = ${(2*(a+b)).toFixed(4)}`;
+    } else if (shape === "cylinder") {
+        const formulas = { V: "V = πR²h", S_side: "S(бок) = 2πRh", S_full: "S(полн) = 2πR(R+h)" };
+        formulaText = formulas[field] || "";
+        const R = d?.R !== undefined ? parseFloat(d.R) : null;
+        const h = d?.h !== undefined ? parseFloat(d.h) : null;
+        if (field === "V" && R!==null && h!==null) appliedText = `V = π × ${R}² × ${h} = ${(Math.PI*R*R*h).toFixed(4)}`;
+        else if (field === "S_side" && R!==null && h!==null) appliedText = `S(бок) = 2 × π × ${R} × ${h} = ${(2*Math.PI*R*h).toFixed(4)}`;
+        else if (field === "S_full" && R!==null && h!==null) appliedText = `S(полн) = 2 × π × ${R} × (${R} + ${h}) = ${(2*Math.PI*R*(R+h)).toFixed(4)}`;
+    }
+    
+    if (!formulaText) formulaText = "Нет формулы для этого параметра";
+    if (!appliedText) appliedText = "Недостаточно данных для расчёта";
+    
+    const content = `
+        <div style="margin-bottom:10px; color:#FFD700; font-size:14px;">${formulaText}</div>
+        <div style="color:#58A6FF; font-size:14px; white-space:pre-line;">${appliedText}</div>
+    `;
+    
+    document.getElementById("cheatsheetContent").innerHTML = content;
+    document.getElementById("cheatsheetModal").style.display = "flex";
+}
 // ==================== ФИЗИКА ====================
 function updatePhysFormula() {
     const formula = document.getElementById("physFormula").value;
