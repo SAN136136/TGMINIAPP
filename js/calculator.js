@@ -1,8 +1,9 @@
-// ==================== КАЛЬКУЛЯТОР ====================
+// ==================== КАЛЬКУЛЯТОР v3.0 ====================
 let calcExpression = "";
 let calcHistory = [];
 let calcShowHistory = false;
-let calcMode = "basic"; // basic | equations | geometry | physics | converter
+let calcMode = "basic";
+let calcShowTrig = false;
 
 function openCalculator() {
     document.getElementById("calcModal").style.display = "flex";
@@ -10,7 +11,16 @@ function openCalculator() {
     document.getElementById("calcResult").textContent = "";
     calcExpression = "";
     calcShowHistory = false;
+    calcShowTrig = false;
     document.getElementById("calcHistory").style.display = "none";
+    document.getElementById("calcTrigRow").style.display = "none";
+    document.getElementById("calcGeoInputs").style.display = "none";
+    document.getElementById("calcPhysInputs").style.display = "none";
+    document.getElementById("calcEqInputs").style.display = "none";
+    document.getElementById("calcConverterOutput").style.display = "none";
+    document.getElementById("calcMainButtons").style.display = "grid";
+    document.getElementById("calcExtraBtns").style.display = "grid";
+    document.getElementById("calcEquationBtns").style.display = "none";
     switchCalcMode("basic");
 }
 
@@ -103,6 +113,7 @@ function calcClear() {
 }
 
 function calcBackspace() {
+    // Удаляем как обычный бэкспейс — по одному символу
     calcExpression = calcExpression.slice(0, -1);
     updateCalcDisplay();
     liveCalcResult();
@@ -112,10 +123,11 @@ function calcBrackets() {
     calcExpression += "()";
     updateCalcDisplay();
     liveCalcResult();
-    // Установить курсор между скобками
-    let display = document.getElementById("calcDisplay");
-    // Фокус на дисплее
-    display.focus();
+}
+
+function calcToggleTrig() {
+    calcShowTrig = !calcShowTrig;
+    document.getElementById("calcTrigRow").style.display = calcShowTrig ? "grid" : "none";
 }
 
 function calcToggleHistory() {
@@ -140,64 +152,173 @@ function renderCalcHistory() {
         return;
     }
     let html = "<button class='calc-history-clear' onclick='calcClearHistory()'>🗑 Очистить историю</button>";
-    calcHistory.forEach((item, i) => {
+    calcHistory.forEach((item) => {
         html += `<div class="calc-history-item" onclick="calcExpression='${item.result}'; updateCalcDisplay(); liveCalcResult();">${item.expr} = ${item.result}</div>`;
     });
     container.innerHTML = html;
 }
 
+// ==================== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ====================
 function switchCalcMode(mode) {
     calcMode = mode;
     document.querySelectorAll(".calc-mode-btn").forEach(btn => btn.classList.remove("active"));
     let activeBtn = document.querySelector(`[data-mode="${mode}"]`);
     if (activeBtn) activeBtn.classList.add("active");
     
-    let container = document.getElementById("calcExamples");
-    if (!container) return;
+    // Скрываем всё
+    document.getElementById("calcMainButtons").style.display = "none";
+    document.getElementById("calcExtraBtns").style.display = "none";
+    document.getElementById("calcEquationBtns").style.display = "none";
+    document.getElementById("calcGeoInputs").style.display = "none";
+    document.getElementById("calcPhysInputs").style.display = "none";
+    document.getElementById("calcEqInputs").style.display = "none";
+    document.getElementById("calcConverterOutput").style.display = "none";
+    document.getElementById("calcTrigRow").style.display = "none";
+    calcShowTrig = false;
     
-    const examples = {
-        "basic": [
-            "2 + 2 × 3",
-            "(5 + 3) × 2",
-            "15% от 340 = 15/100 × 340",
-            "√(144)",
-            "sin(30)",
-            "log(1000)"
-        ],
-        "equations": [
-            "x² + 5x + 6 = 0 → D = 5² − 4·1·6 = 1",
-            "x₁,₂ = (−5 ± √1) / 2",
-            "x₁ = −2, x₂ = −3"
-        ],
-        "geometry": [
-            "Круг: S = πR², R=5 → π×25 ≈ 78.54",
-            "Треугольник (Герон): a=3, b=4, c=5",
-            "p = 6, S = √(6×3×2×1) = 6",
-            "Цилиндр: V = πR²h, R=3, h=10"
-        ],
-        "physics": [
-            "F = ma, m=10, a=2 → F = 20 Н",
-            "P = F/S, F=100, S=2 → P = 50 Па",
-            "I = U/R, U=12, R=4 → I = 3 А"
-        ],
-        "converter": [
-            "1 км = 1000 м",
-            "1 кг = 1000 г",
-            "°F = °C × 9/5 + 32",
-            "100 км/ч = 27.78 м/с"
-        ]
-    };
-    
-    let html = "";
-    if (examples[mode]) {
-        examples[mode].forEach(ex => {
-            html += `<div class="calc-example-item" onclick="calcExpression='${ex.replace(/'/g, "\\'")}'; updateCalcDisplay(); liveCalcResult();">${ex}</div>`;
-        });
+    if (mode === "basic") {
+        document.getElementById("calcMainButtons").style.display = "grid";
+        document.getElementById("calcExtraBtns").style.display = "grid";
+    } else if (mode === "equations") {
+        document.getElementById("calcEqInputs").style.display = "block";
+        document.getElementById("calcEquationBtns").style.display = "grid";
+    } else if (mode === "geometry") {
+        document.getElementById("calcGeoInputs").style.display = "block";
+        updateGeoShape();
+    } else if (mode === "physics") {
+        document.getElementById("calcPhysInputs").style.display = "block";
+        updatePhysFormula();
+    } else if (mode === "converter") {
+        document.getElementById("calcConverterOutput").style.display = "block";
     }
-    container.innerHTML = html;
+    
+    calcClear();
 }
 
-// Ввод с клавиатуры
+// ==================== ГЕОМЕТРИЯ ====================
+function updateGeoShape() {
+    const shape = document.getElementById("geoShape").value;
+    let fields = "";
+    if (shape === "circle") fields = "Радиус (R): <input id='geoR' type='number' step='any' class='calc-input'>";
+    else if (shape === "triangle") fields = "Сторона a: <input id='geoA' type='number' step='any' class='calc-input'> Сторона b: <input id='geoB' type='number' step='any' class='calc-input'> Сторона c: <input id='geoC' type='number' step='any' class='calc-input'>";
+    else if (shape === "rectangle") fields = "Длина (a): <input id='geoA' type='number' step='any' class='calc-input'> Ширина (b): <input id='geoB' type='number' step='any' class='calc-input'>";
+    else if (shape === "cylinder") fields = "Радиус (R): <input id='geoR' type='number' step='any' class='calc-input'> Высота (h): <input id='geoH' type='number' step='any' class='calc-input'>";
+    document.getElementById("geoFields").innerHTML = fields;
+}
+
+function calcGeo() {
+    const shape = document.getElementById("geoShape").value;
+    let output = "";
+    if (shape === "circle") {
+        const R = parseFloat(document.getElementById("geoR")?.value);
+        if (isNaN(R)) { output = "❌ Нужен радиус (R)"; }
+        else {
+            output = `S = πR² = π×${R}² = ${(Math.PI*R*R).toFixed(4)}\nC = 2πR = 2π×${R} = ${(2*Math.PI*R).toFixed(4)}\nD = 2R = ${2*R}`;
+        }
+    } else if (shape === "triangle") {
+        const a = parseFloat(document.getElementById("geoA")?.value);
+        const b = parseFloat(document.getElementById("geoB")?.value);
+        const c = parseFloat(document.getElementById("geoC")?.value);
+        if (isNaN(a)||isNaN(b)||isNaN(c)) { output = "❌ Нужны все три стороны"; }
+        else if (a+b<=c||a+c<=b||b+c<=a) { output = "❌ Такого треугольника не существует"; }
+        else {
+            const p = (a+b+c)/2;
+            const S = Math.sqrt(p*(p-a)*(p-b)*(p-c));
+            output = `p = (a+b+c)/2 = ${p.toFixed(2)}\nS = √(p(p-a)(p-b)(p-c)) = ${S.toFixed(4)}\nP = a+b+c = ${(a+b+c).toFixed(2)}`;
+        }
+    } else if (shape === "rectangle") {
+        const a = parseFloat(document.getElementById("geoA")?.value);
+        const b = parseFloat(document.getElementById("geoB")?.value);
+        if (isNaN(a)||isNaN(b)) { output = "❌ Нужны длина и ширина"; }
+        else { output = `S = a×b = ${a}×${b} = ${(a*b).toFixed(2)}\nP = 2(a+b) = 2×${(a+b).toFixed(2)} = ${(2*(a+b)).toFixed(2)}`; }
+    } else if (shape === "cylinder") {
+        const R = parseFloat(document.getElementById("geoR")?.value);
+        const h = parseFloat(document.getElementById("geoH")?.value);
+        if (isNaN(R)||isNaN(h)) { output = "❌ Нужны радиус и высота"; }
+        else { output = `V = πR²h = π×${R}²×${h} = ${(Math.PI*R*R*h).toFixed(4)}\nS(бок) = 2πRh = ${(2*Math.PI*R*h).toFixed(4)}\nS(полн) = 2πR(R+h) = ${(2*Math.PI*R*(R+h)).toFixed(4)}`; }
+    }
+    document.getElementById("calcResult").textContent = output;
+}
+
+// ==================== ФИЗИКА ====================
+function updatePhysFormula() {
+    const formula = document.getElementById("physFormula").value;
+    let fields = "";
+    if (formula === "F=ma") fields = "Масса (m, кг): <input id='phys1' type='number' step='any' class='calc-input'> Ускорение (a, м/с²): <input id='phys2' type='number' step='any' class='calc-input'>";
+    else if (formula === "P=F/S") fields = "Сила (F, Н): <input id='phys1' type='number' step='any' class='calc-input'> Площадь (S, м²): <input id='phys2' type='number' step='any' class='calc-input'>";
+    else if (formula === "I=U/R") fields = "Напряжение (U, В): <input id='phys1' type='number' step='any' class='calc-input'> Сопротивление (R, Ом): <input id='phys2' type='number' step='any' class='calc-input'>";
+    else if (formula === "v=S/t") fields = "Путь (S, м): <input id='phys1' type='number' step='any' class='calc-input'> Время (t, с): <input id='phys2' type='number' step='any' class='calc-input'>";
+    document.getElementById("physFields").innerHTML = fields;
+}
+
+function calcPhys() {
+    const formula = document.getElementById("physFormula").value;
+    const v1 = parseFloat(document.getElementById("phys1")?.value);
+    const v2 = parseFloat(document.getElementById("phys2")?.value);
+    if (isNaN(v1)||isNaN(v2)) { document.getElementById("calcResult").textContent = "❌ Нужны оба значения"; return; }
+    let result, expl;
+    if (formula === "F=ma") { result = v1*v2; expl = `F = m×a = ${v1}×${v2} = ${result.toFixed(2)} Н`; }
+    else if (formula === "P=F/S") { result = v1/v2; expl = `P = F/S = ${v1}/${v2} = ${result.toFixed(2)} Па`; }
+    else if (formula === "I=U/R") { result = v1/v2; expl = `I = U/R = ${v1}/${v2} = ${result.toFixed(2)} А`; }
+    else if (formula === "v=S/t") { result = v1/v2; expl = `v = S/t = ${v1}/${v2} = ${result.toFixed(2)} м/с`; }
+    document.getElementById("calcResult").textContent = expl;
+}
+
+// ==================== УРАВНЕНИЯ ====================
+function calcEquation() {
+    const a = parseFloat(document.getElementById("eqA")?.value) || 0;
+    const b = parseFloat(document.getElementById("eqB")?.value) || 0;
+    const c = parseFloat(document.getElementById("eqC")?.value) || 0;
+    const eqType = document.getElementById("eqType").value;
+    
+    if (eqType === "quadratic") {
+        if (a === 0) { document.getElementById("calcResult").textContent = "❌ a ≠ 0 для квадратного уравнения"; return; }
+        const D = b*b - 4*a*c;
+        let steps = `${a}x² + ${b}x + ${c} = 0\n`;
+        steps += `D = b² − 4ac = ${b}² − 4×${a}×${c} = ${D}\n`;
+        if (D > 0) {
+            const x1 = (-b + Math.sqrt(D)) / (2*a);
+            const x2 = (-b - Math.sqrt(D)) / (2*a);
+            steps += `D > 0 → два корня:\nx₁ = (−b + √D) / 2a = ${x1.toFixed(4)}\nx₂ = (−b − √D) / 2a = ${x2.toFixed(4)}`;
+        } else if (D === 0) {
+            const x = -b / (2*a);
+            steps += `D = 0 → один корень:\nx = −b / 2a = ${x.toFixed(4)}`;
+        } else {
+            steps += `D < 0 → нет действительных корней`;
+        }
+        document.getElementById("calcResult").textContent = steps;
+        document.getElementById("calcMainButtons").style.display = "none";
+        document.getElementById("calcExtraBtns").style.display = "none";
+        document.getElementById("calcEquationBtns").style.display = "none";
+    } else if (eqType === "linear") {
+        if (a === 0) { document.getElementById("calcResult").textContent = "❌ a ≠ 0"; return; }
+        const x = -c / a;
+        document.getElementById("calcResult").textContent = `${a}x + ${c} = 0\nx = −${c}/${a} = ${x.toFixed(4)}`;
+    }
+}
+
+// ==================== КОНВЕРТЕР ====================
+function calcConvert() {
+    const type = document.getElementById("convType").value;
+    const value = parseFloat(document.getElementById("convValue")?.value);
+    if (isNaN(value)) { document.getElementById("calcResult").textContent = "❌ Введи число"; return; }
+    
+    let out = "";
+    if (type === "length") {
+        out = `мм: ${(value*1000).toFixed(2)}\nсм: ${(value*100).toFixed(2)}\nдм: ${(value*10).toFixed(2)}\nм: ${value}\nкм: ${(value/1000).toFixed(6)}\nдюймы: ${(value*39.3701).toFixed(2)}\nфуты: ${(value*3.28084).toFixed(2)}`;
+    } else if (type === "mass") {
+        out = `мг: ${(value*1e6).toFixed(0)}\nг: ${(value*1000).toFixed(0)}\nкг: ${value}\nц: ${(value/100).toFixed(4)}\nт: ${(value/1000).toFixed(6)}\nфунты: ${(value*2.20462).toFixed(2)}`;
+    } else if (type === "speed") {
+        out = `м/с: ${(value/3.6).toFixed(2)}\nкм/ч: ${value}\nмиль/ч: ${(value*0.621371).toFixed(2)}`;
+    } else if (type === "temp") {
+        out = `°C: ${value}\n°F: ${(value*9/5+32).toFixed(2)}\nK: ${(value+273.15).toFixed(2)}`;
+    }
+    document.getElementById("calcResult").textContent = out;
+    document.getElementById("calcMainButtons").style.display = "none";
+    document.getElementById("calcExtraBtns").style.display = "none";
+}
+
+// ==================== КЛАВИАТУРНЫЙ ВВОД ====================
 document.addEventListener("keydown", function(e) {
     if (document.getElementById("calcModal").style.display !== "flex") return;
     
@@ -207,10 +328,11 @@ document.addEventListener("keydown", function(e) {
     else if (key === "-") calcInput("−");
     else if (key === "*") calcInput("×");
     else if (key === "/") calcInput("÷");
-    else if (key === ".") calcInput(".");
+    else if (key === "." || key === ",") calcInput(".");
     else if (key === "(") calcBrackets();
     else if (key === "Enter" || key === "=") { e.preventDefault(); calcCalculate(); }
     else if (key === "Backspace") calcBackspace();
-    else if (key === "Escape" || key === "Delete") calcClear();
+    else if (key === "Delete" || key === "Escape") calcClear();
     else if (key === "h" && e.ctrlKey) { e.preventDefault(); calcToggleHistory(); }
+    else if (key === "t" && e.ctrlKey) { e.preventDefault(); calcToggleTrig(); }
 });
