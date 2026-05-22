@@ -53,6 +53,14 @@
             font-size: 13px; color: #B0B0B0; min-height: 30px; margin-bottom: 10px; flex-shrink: 0;
         }
         
+        .current-lesson {
+            background: #1A2E3A; border-radius: 8px; padding: 10px;
+            margin-bottom: 10px; font-size: 13px; color: #58A6FF;
+            display: none;
+        }
+        .current-lesson .lesson-subject { font-size: 16px; font-weight: bold; color: #FFD700; }
+        .current-lesson .lesson-details { color: #B0B0B0; margin-top: 4px; }
+        
         .tab-content { flex: 1; overflow-y: auto; margin-bottom: 10px; }
         .section-title {
             font-size: 11px; color: #666; margin-bottom: 8px;
@@ -137,6 +145,13 @@
     </div>
     
     <div class="greeting" id="greeting">Доброе утро, сэр!</div>
+    
+    <!-- Блок текущего урока -->
+    <div class="current-lesson" id="currentLesson">
+        <div class="lesson-subject" id="lessonSubject"></div>
+        <div class="lesson-details" id="lessonDetails"></div>
+    </div>
+    
     <div class="log" id="log">[Готов к работе]</div>
     
     <div class="tab-content" id="tabContent"></div>
@@ -156,14 +171,17 @@
 </div>
 
 <script>
+    // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
     let BOT_TOKEN = "";
     let CHANNEL_ID = "";
     let API_URL = "";
     let activeTab = "main";
     let lastUpdateId = 0;
+    let scheduleData = null;
     const PASSWORD = "пельмень";
     
-    fetch('gitconfig.json')
+    // ==================== ЗАГРУЗКА КОНФИГА И РАСПИСАНИЯ ====================
+    fetch('config.json')
         .then(response => response.json())
         .then(config => {
             BOT_TOKEN = config.telegram.client_bot_token;
@@ -176,49 +194,16 @@
             console.error('Ошибка загрузки конфига:', err);
             document.getElementById('log').innerHTML = '❌ Ошибка загрузки конфига';
         });
-    // Загружаем расписание
-let scheduleData = null;
-
-fetch('schedule.json')
-    .then(response => response.json())
-    .then(data => {
-        scheduleData = data;
-        console.log('Расписание загружено');
-    })
-    .catch(err => console.error('Ошибка загрузки расписания:', err));
-
-function getCurrentLesson() {
-    if (!scheduleData) return null;
     
-    const now = new Date();
-    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const day = days[now.getDay()];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
+    fetch('schedule.json')
+        .then(response => response.json())
+        .then(data => {
+            scheduleData = data;
+            console.log('Расписание загружено');
+        })
+        .catch(err => console.error('Ошибка загрузки расписания:', err));
     
-    const daySchedule = scheduleData[day];
-    if (!daySchedule) return null;
-    
-    for (let [num, lesson] of Object.entries(daySchedule)) {
-        const bell = scheduleData.bells[num];
-        if (!bell) continue;
-        
-        const [startH, startM] = bell.start.split(":").map(Number);
-        const [endH, endM] = bell.end.split(":").map(Number);
-        const startTime = startH * 60 + startM;
-        const endTime = endH * 60 + endM;
-        
-        if (currentTime >= startTime && currentTime <= endTime) {
-            return {
-                num: num,
-                subject: lesson.subject,
-                room: lesson.room,
-                teacher: lesson.teacher,
-                end: bell.end
-            };
-        }
-    }
-    return null;
-}
+    // ==================== ПРОВЕРКА ОТВЕТОВ ОТ СЕРВЕРА ====================
     function checkMessages() {
         if (!API_URL) return;
         fetch(`${API_URL}/getUpdates`, {
@@ -241,13 +226,17 @@ function getCurrentLesson() {
         .catch(err => console.error("Ошибка проверки сообщений:", err));
     }
     
+    // ==================== ВХОД ====================
     function checkPassword() {
         const pin = document.getElementById("pinInput").value;
         if (pin === PASSWORD) {
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("mainScreen").style.display = "flex";
             setGreeting();
+            updateCurrentLesson();
             renderTab("main");
+            // Обновляем текущий урок каждые 30 секунд
+            setInterval(updateCurrentLesson, 30000);
         } else {
             document.getElementById("loginError").textContent = "Неверный пароль";
             document.getElementById("pinInput").value = "";
@@ -258,6 +247,7 @@ function getCurrentLesson() {
         if (e.key === "Enter") checkPassword();
     });
     
+    // ==================== ПРИВЕТСТВИЕ ====================
     function setGreeting() {
         const hour = new Date().getHours();
         let text;
@@ -268,6 +258,90 @@ function getCurrentLesson() {
         document.getElementById("greeting").textContent = text;
     }
     
+    // ==================== ТЕКУЩИЙ УРОК ====================
+    function getCurrentLesson() {
+        if (!scheduleData) return null;
+        
+        const now = new Date();
+        const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const day = days[now.getDay()];
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        const daySchedule = scheduleData[day];
+        if (!daySchedule) return null;
+        
+        for (let [num, lesson] of Object.entries(daySchedule)) {
+            const bell = scheduleData.bells[num];
+            if (!bell) continue;
+            
+            const [startH, startM] = bell.start.split(":").map(Number);
+            const [endH, endM] = bell.end.split(":").map(Number);
+            const startTime = startH * 60 + startM;
+            const endTime = endH * 60 + endM;
+            
+            if (currentTime >= startTime && currentTime <= endTime) {
+                return {
+                    num: num,
+                    subject: lesson.subject,
+                    room: lesson.room,
+                    teacher: lesson.teacher,
+                    end: bell.end
+                };
+            }
+        }
+        return null;
+    }
+    
+    function getNextLesson() {
+        if (!scheduleData) return null;
+        
+        const now = new Date();
+        const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const day = days[now.getDay()];
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        const daySchedule = scheduleData[day];
+        if (!daySchedule) return null;
+        
+        for (let [num, lesson] of Object.entries(daySchedule)) {
+            const bell = scheduleData.bells[num];
+            if (!bell) continue;
+            
+            const [startH, startM] = bell.start.split(":").map(Number);
+            const startTime = startH * 60 + startM;
+            
+            if (currentTime < startTime) {
+                return {
+                    num: num,
+                    subject: lesson.subject,
+                    room: lesson.room,
+                    teacher: lesson.teacher,
+                    start: bell.start
+                };
+            }
+        }
+        return null;
+    }
+    
+    function updateCurrentLesson() {
+        const current = getCurrentLesson();
+        const next = getNextLesson();
+        const container = document.getElementById("currentLesson");
+        
+        if (current && current.subject !== "---") {
+            container.style.display = "block";
+            document.getElementById("lessonSubject").textContent = `📚 ${current.num}-й урок: ${current.subject}`;
+            document.getElementById("lessonDetails").textContent = `Каб. ${current.room} | ${current.teacher} | До ${current.end}`;
+        } else if (next && next.subject !== "---") {
+            container.style.display = "block";
+            document.getElementById("lessonSubject").textContent = `⏰ Далее: ${next.subject}`;
+            document.getElementById("lessonDetails").textContent = `${next.num}-й урок | Каб. ${next.room} | В ${next.start}`;
+        } else {
+            container.style.display = "none";
+        }
+    }
+    
+    // ==================== ВКЛАДКИ ====================
     function switchTab(tab) {
         activeTab = tab;
         document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
@@ -349,6 +423,7 @@ function getCurrentLesson() {
         container.innerHTML = html;
     }
     
+    // ==================== ОТПРАВКА КОМАНД ====================
     function sendCommand(command) {
         if (!command || !command.trim()) return;
         if (!API_URL) {
