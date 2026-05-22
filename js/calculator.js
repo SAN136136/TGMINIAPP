@@ -1,4 +1,4 @@
-// ==================== КАЛЬКУЛЯТОР v3.2 ====================
+// ==================== КАЛЬКУЛЯТОР v3.3 ====================
 let calcExpression = "";
 let calcHistory = [];
 let calcShowHistory = false;
@@ -166,7 +166,6 @@ function switchCalcMode(mode) {
     let activeBtn = document.querySelector(`[data-mode="${mode}"]`);
     if (activeBtn) activeBtn.classList.add("active");
     
-    // Скрываем всё
     document.getElementById("calcMainButtons").style.display = "none";
     document.getElementById("calcExtraBtns").style.display = "none";
     document.getElementById("calcEquationBtns").style.display = "none";
@@ -332,7 +331,6 @@ function liveGeoUpdate() {
     
     if (val !== "" && val !== undefined) {
         geoData[geoActiveCell.shape][geoActiveCell.field] = val;
-        // Если пользователь вводит угол вручную, ставим пометку
         if (geoActiveCell.field === "A" || geoActiveCell.field === "B" || geoActiveCell.field === "C") {
             geoData[geoActiveCell.shape][geoActiveCell.field + "_manual"] = val;
         }
