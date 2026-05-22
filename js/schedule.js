@@ -213,4 +213,8 @@ function showCheatsheetModal(subjectKey) {
 
 function closeCheatsheet() {
     document.getElementById("cheatsheetModal").style.display = "none";
+    // Если калькулятор был открыт до показа формул — возвращаем его
+    if (calcMode === "geometry" || calcMode === "basic" || calcMode === "equations" || calcMode === "physics" || calcMode === "converter") {
+        document.getElementById("calcModal").style.display = "flex";
+    }
 }
