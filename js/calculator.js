@@ -578,4 +578,4 @@ document.addEventListener("keydown", function(e) {
     else if (key === "Delete" || key === "Escape") calcClear();
     else if (key === "h" && e.ctrlKey) { e.preventDefault(); calcToggleHistory(); }
     else if (key === "t" && e.ctrlKey) { e.preventDefault(); calcToggleTrig(); }
-});
+};
