@@ -482,7 +482,6 @@ function showGeoFormula(shape, field) {
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
 }
-}
 // ==================== ФИЗИКА ====================
 function updatePhysFormula() {
     const formula = document.getElementById("physFormula").value;
@@ -578,4 +577,4 @@ document.addEventListener("keydown", function(e) {
     else if (key === "Delete" || key === "Escape") calcClear();
     else if (key === "h" && e.ctrlKey) { e.preventDefault(); calcToggleHistory(); }
     else if (key === "t" && e.ctrlKey) { e.preventDefault(); calcToggleTrig(); }
-};
+});
