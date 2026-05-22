@@ -97,6 +97,34 @@
             from { opacity: 0; } to { opacity: 1; }
         }
         
+        /* Модальное окно */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            z-index: 100; justify-content: center; align-items: center;
+        }
+        .modal {
+            background: #1A1A2E; border-radius: 12px; padding: 20px;
+            width: 90%; max-width: 450px; max-height: 80vh;
+            overflow-y: auto; color: white;
+        }
+        .modal h2 { color: #58A6FF; margin-bottom: 15px; text-align: center; }
+        .modal .day-block { margin-bottom: 15px; }
+        .modal .day-title { color: #FFD700; font-weight: bold; margin-bottom: 5px; }
+        .modal .lesson-row {
+            display: flex; justify-content: space-between;
+            padding: 5px 0; border-bottom: 1px solid #2A2A3E;
+            font-size: 13px;
+        }
+        .modal .lesson-num { color: #666; width: 30px; }
+        .modal .lesson-subj { flex: 1; }
+        .modal .lesson-room { color: #B0B0B0; width: 50px; text-align: right; }
+        .modal-close {
+            display: block; margin: 15px auto 0; padding: 10px 30px;
+            background: #C72A2A; border: none; border-radius: 8px;
+            color: white; font-size: 16px; cursor: pointer;
+        }
+        
         .cmd-bar { display: flex; gap: 8px; flex-shrink: 0; }
         .cmd-bar input {
             flex: 1; padding: 10px; border-radius: 8px; border: none;
@@ -146,7 +174,6 @@
     
     <div class="greeting" id="greeting">Доброе утро, сэр!</div>
     
-    <!-- Блок текущего урока -->
     <div class="current-lesson" id="currentLesson">
         <div class="lesson-subject" id="lessonSubject"></div>
         <div class="lesson-details" id="lessonDetails"></div>
@@ -170,6 +197,15 @@
     </div>
 </div>
 
+<!-- МОДАЛЬНОЕ ОКНО РАСПИСАНИЯ -->
+<div class="modal-overlay" id="scheduleModal">
+    <div class="modal">
+        <h2>📅 Расписание</h2>
+        <div id="scheduleContent"></div>
+        <button class="modal-close" onclick="closeSchedule()">Закрыть</button>
+    </div>
+</div>
+
 <script>
     // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
     let BOT_TOKEN = "";
@@ -178,10 +214,12 @@
     let activeTab = "main";
     let lastUpdateId = 0;
     let scheduleData = null;
+    let offlineTimers = {};
     const PASSWORD = "пельмень";
+    const OFFLINE_TIMEOUT = 7000; // 7 секунд
     
     // ==================== ЗАГРУЗКА КОНФИГА И РАСПИСАНИЯ ====================
-    fetch('gitconfig.json')
+    fetch('config.json')
         .then(response => response.json())
         .then(config => {
             BOT_TOKEN = config.telegram.client_bot_token;
@@ -203,7 +241,7 @@
         })
         .catch(err => console.error('Ошибка загрузки расписания:', err));
     
-    // ==================== ПРОВЕРКА ОТВЕТОВ ОТ СЕРВЕРА ====================
+    // ==================== ПРОВЕРКА ОТВЕТОВ ====================
     function checkMessages() {
         if (!API_URL) return;
         fetch(`${API_URL}/getUpdates`, {
@@ -219,6 +257,11 @@
                     if (update.channel_post && update.channel_post.chat.id === CHANNEL_ID) {
                         const text = update.channel_post.text;
                         document.getElementById("log").innerHTML = `📥 ${text}`;
+                        // Сбрасываем таймер офлайна
+                        if (offlineTimers["last"]) {
+                            clearTimeout(offlineTimers["last"]);
+                            delete offlineTimers["last"];
+                        }
                     }
                 });
             }
@@ -235,7 +278,6 @@
             setGreeting();
             updateCurrentLesson();
             renderTab("main");
-            // Обновляем текущий урок каждые 30 секунд
             setInterval(updateCurrentLesson, 30000);
         } else {
             document.getElementById("loginError").textContent = "Неверный пароль";
@@ -247,7 +289,6 @@
         if (e.key === "Enter") checkPassword();
     });
     
-    // ==================== ПРИВЕТСТВИЕ ====================
     function setGreeting() {
         const hour = new Date().getHours();
         let text;
@@ -261,32 +302,21 @@
     // ==================== ТЕКУЩИЙ УРОК ====================
     function getCurrentLesson() {
         if (!scheduleData) return null;
-        
         const now = new Date();
         const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
         const day = days[now.getDay()];
         const currentTime = now.getHours() * 60 + now.getMinutes();
-        
         const daySchedule = scheduleData[day];
         if (!daySchedule) return null;
-        
         for (let [num, lesson] of Object.entries(daySchedule)) {
             const bell = scheduleData.bells[num];
             if (!bell) continue;
-            
             const [startH, startM] = bell.start.split(":").map(Number);
             const [endH, endM] = bell.end.split(":").map(Number);
             const startTime = startH * 60 + startM;
             const endTime = endH * 60 + endM;
-            
             if (currentTime >= startTime && currentTime <= endTime) {
-                return {
-                    num: num,
-                    subject: lesson.subject,
-                    room: lesson.room,
-                    teacher: lesson.teacher,
-                    end: bell.end
-                };
+                return { num, subject: lesson.subject, room: lesson.room, teacher: lesson.teacher, end: bell.end };
             }
         }
         return null;
@@ -294,30 +324,19 @@
     
     function getNextLesson() {
         if (!scheduleData) return null;
-        
         const now = new Date();
         const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
         const day = days[now.getDay()];
         const currentTime = now.getHours() * 60 + now.getMinutes();
-        
         const daySchedule = scheduleData[day];
         if (!daySchedule) return null;
-        
         for (let [num, lesson] of Object.entries(daySchedule)) {
             const bell = scheduleData.bells[num];
             if (!bell) continue;
-            
             const [startH, startM] = bell.start.split(":").map(Number);
             const startTime = startH * 60 + startM;
-            
             if (currentTime < startTime) {
-                return {
-                    num: num,
-                    subject: lesson.subject,
-                    room: lesson.room,
-                    teacher: lesson.teacher,
-                    start: bell.start
-                };
+                return { num, subject: lesson.subject, room: lesson.room, teacher: lesson.teacher, start: bell.start };
             }
         }
         return null;
@@ -327,7 +346,6 @@
         const current = getCurrentLesson();
         const next = getNextLesson();
         const container = document.getElementById("currentLesson");
-        
         if (current && current.subject !== "---") {
             container.style.display = "block";
             document.getElementById("lessonSubject").textContent = `📚 ${current.num}-й урок: ${current.subject}`;
@@ -339,6 +357,55 @@
         } else {
             container.style.display = "none";
         }
+    }
+    
+    // ==================== ПОЛНОЕ РАСПИСАНИЕ (МОДАЛЬНОЕ ОКНО) ====================
+    function showFullSchedule() {
+        if (!scheduleData) {
+            document.getElementById("log").innerHTML = "❌ Расписание не загружено";
+            return;
+        }
+        
+        const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const dayNames = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+        let html = "";
+        
+        // Определяем, какой сегодня день
+        const now = new Date();
+        const todayIndex = (now.getDay() + 6) % 7; // Пн=0, Вт=1, ...
+        const tomorrowIndex = (todayIndex + 1) % 6;
+        
+        // Показываем сегодня и завтра
+        const daysToShow = [todayIndex, tomorrowIndex];
+        
+        for (let idx of daysToShow) {
+            if (idx >= 6) continue; // Воскресенье пропускаем
+            const dayKey = days[idx];
+            const daySchedule = scheduleData[dayKey];
+            if (!daySchedule) continue;
+            
+            html += `<div class="day-block"><div class="day-title">${dayNames[idx]}</div>`;
+            
+            for (let [num, lesson] of Object.entries(daySchedule)) {
+                const bell = scheduleData.bells[num];
+                const timeStr = bell ? `${bell.start}-${bell.end}` : "???";
+                if (lesson.subject === "---") continue;
+                html += `
+                    <div class="lesson-row">
+                        <span class="lesson-num">${num}</span>
+                        <span class="lesson-subj">${lesson.subject}</span>
+                        <span class="lesson-room">${lesson.room}</span>
+                    </div>`;
+            }
+            html += `</div>`;
+        }
+        
+        document.getElementById("scheduleContent").innerHTML = html;
+        document.getElementById("scheduleModal").style.display = "flex";
+    }
+    
+    function closeSchedule() {
+        document.getElementById("scheduleModal").style.display = "none";
     }
     
     // ==================== ВКЛАДКИ ====================
@@ -368,7 +435,7 @@
                 </div>
                 <div class="section-title" style="margin-top:15px;">ШКОЛА</div>
                 <div class="buttons">
-                    <button class="btn btn-schedule" onclick="showWip('Расписание')">📅 Расписание<span class="wip-badge">WIP</span></button>
+                    <button class="btn btn-schedule" onclick="showFullSchedule()">📅 Расписание</button>
                     <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
                     <button class="btn btn-cheatsheet" onclick="showWip('Шпаргалки')">📝 Шпаргалки<span class="wip-badge">WIP</span></button>
                 </div>
@@ -390,12 +457,12 @@
             html = `
                 <div class="section-title">📚 ШКОЛА И УЧЁБА</div>
                 <div class="buttons">
-                    <button class="btn btn-schedule" onclick="showWip('Расписание')">📅 Расписание<span class="wip-badge">WIP</span></button>
+                    <button class="btn btn-schedule" onclick="showFullSchedule()">📅 Расписание</button>
                     <button class="btn btn-cheatsheet" onclick="showWip('Шпаргалки')">📝 Шпаргалки<span class="wip-badge">WIP</span></button>
                     <button class="btn btn-calc" onclick="showWip('Калькулятор')">🧮 Калькулятор<span class="wip-badge">WIP</span></button>
                     <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
                 </div>
-                <p class="music-hint">Скоро здесь будут:<br>расписание уроков, шпаргалки по предметам,<br>калькулятор и трамваи</p>
+                <p class="music-hint">Скоро здесь будут:<br>шпаргалки по предметам,<br>калькулятор и трамваи</p>
             `;
         } else if (tab === "music") {
             html = `
@@ -431,6 +498,10 @@
             return;
         }
         
+        // Показываем, что команда отправлена, но не дублируем её в лог
+        document.getElementById("log").innerHTML = `⏳ Выполняется...`;
+        document.getElementById("cmdInput").value = "";
+        
         fetch(`${API_URL}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -439,14 +510,17 @@
         .then(res => res.json())
         .then(data => {
             if (data.ok) {
-                document.getElementById("log").innerHTML = `📤 ${command}`;
-                document.getElementById("cmdInput").value = "";
+                // Команда отправлена успешно, ждём ответа
+                // Запускаем таймер офлайна
+                offlineTimers["last"] = setTimeout(() => {
+                    document.getElementById("log").innerHTML = "⚠️ ПК офлайн";
+                }, OFFLINE_TIMEOUT);
             } else {
                 document.getElementById("log").innerHTML = `❌ Ошибка: ${data.description}`;
             }
         })
         .catch(err => {
-            document.getElementById("log").innerHTML = `❌ Нет связи: ${err.message}`;
+            document.getElementById("log").innerHTML = "⚠️ ПК офлайн";
         });
     }
     
