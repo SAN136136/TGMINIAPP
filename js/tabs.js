@@ -28,7 +28,7 @@ function renderTab(tab) {
             <div class="buttons">
                 <button class="btn btn-schedule" onclick="showFullSchedule()">📅 Расписание</button>
                 <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
-                <button class="btn btn-cheatsheet" onclick="showWip('Шпаргалки')">📝 Шпаргалки<span class="wip-badge">WIP</span></button>
+                <button class="btn btn-cheatsheet" onclick="openCheatsheetMenu()">📝 Шпаргалки</button>
             </div>
         `;
     } else if (tab === "control") {
@@ -49,11 +49,11 @@ function renderTab(tab) {
             <div class="section-title">📚 ШКОЛА И УЧЁБА</div>
             <div class="buttons">
                 <button class="btn btn-schedule" onclick="showFullSchedule()">📅 Расписание</button>
-                <button class="btn btn-cheatsheet" onclick="showWip('Шпаргалки')">📝 Шпаргалки<span class="wip-badge">WIP</span></button>
+                <button class="btn btn-cheatsheet" onclick="openCheatsheetMenu()">📝 Шпаргалки</button>
                 <button class="btn btn-calc" onclick="showWip('Калькулятор')">🧮 Калькулятор<span class="wip-badge">WIP</span></button>
                 <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
             </div>
-            <p class="music-hint">Скоро здесь будут:<br>шпаргалки по предметам,<br>калькулятор и трамваи</p>
+            <p class="music-hint">Скоро здесь будут:<br>калькулятор и трамваи</p>
         `;
     } else if (tab === "music") {
         html = `
@@ -79,4 +79,49 @@ function renderTab(tab) {
     }
     
     container.innerHTML = html;
+}
+
+// ==================== МЕНЮ ШПАРГАЛОК ====================
+function openCheatsheetMenu() {
+    if (!window.cheatsheetData) {
+        document.getElementById("log").innerHTML = "📝 Загружаю шпаргалки...";
+        fetch('cheatsheets.json')
+            .then(res => res.json())
+            .then(data => {
+                window.cheatsheetData = data;
+                showCheatsheetMenuModal();
+            })
+            .catch(err => {
+                document.getElementById("log").innerHTML = "❌ Ошибка загрузки шпаргалок";
+            });
+    } else {
+        showCheatsheetMenuModal();
+    }
+}
+
+function showCheatsheetMenuModal() {
+    const data = window.cheatsheetData;
+    if (!data) {
+        document.getElementById("log").innerHTML = "❌ Шпаргалки не загружены";
+        return;
+    }
+    
+    let html = `<h2>📝 Шпаргалки</h2>`;
+    html += `<p style="color:#888; font-size:12px; margin-bottom:15px; text-align:center;">Выбери предмет</p>`;
+    html += `<div class="buttons" style="grid-template-columns: 1fr 1fr;">`;
+    
+    for (let [key, subject] of Object.entries(data)) {
+        const hasContent = subject.sections && subject.sections.length > 0;
+        const badge = hasContent ? "" : `<span class="wip-badge">WIP</span>`;
+        html += `
+            <button class="btn" style="background:#3A5A6B;" 
+                onclick="openCheatsheet('${key}')">
+                ${subject.icon} ${subject.name}${badge}
+            </button>`;
+    }
+    
+    html += `</div>`;
+    
+    document.getElementById("cheatsheetContent").innerHTML = html;
+    document.getElementById("cheatsheetModal").style.display = "flex";
 }
