@@ -81,19 +81,67 @@
         <h2>🧮 Калькулятор</h2>
         
         <div class="calc-mode-bar">
-            <button class="calc-mode-btn active" data-mode="basic" onclick="switchCalcMode('basic')">Обычный</button>
-            <button class="calc-mode-btn" data-mode="equations" onclick="switchCalcMode('equations')">Уравнения</button>
-            <button class="calc-mode-btn" data-mode="geometry" onclick="switchCalcMode('geometry')">Геометрия</button>
-            <button class="calc-mode-btn" data-mode="physics" onclick="switchCalcMode('physics')">Физика</button>
-            <button class="calc-mode-btn" data-mode="converter" onclick="switchCalcMode('converter')">Конвертер</button>
+            <button class="calc-mode-btn active" data-mode="basic" onclick="switchCalcMode('basic')">🧮</button>
+            <button class="calc-mode-btn" data-mode="equations" onclick="switchCalcMode('equations')">❌</button>
+            <button class="calc-mode-btn" data-mode="geometry" onclick="switchCalcMode('geometry')">📐</button>
+            <button class="calc-mode-btn" data-mode="physics" onclick="switchCalcMode('physics')">⚡</button>
+            <button class="calc-mode-btn" data-mode="converter" onclick="switchCalcMode('converter')">📏</button>
         </div>
         
         <div class="calc-display" id="calcDisplay" contenteditable="false">0</div>
         <div class="calc-result" id="calcResult"></div>
         
-        <div class="calc-examples" id="calcExamples"></div>
+        <!-- ГЕОМЕТРИЯ -->
+        <div id="calcGeoInputs" style="display:none;">
+            <select id="geoShape" onchange="updateGeoShape()" class="calc-select">
+                <option value="circle">Круг</option>
+                <option value="triangle">Треугольник</option>
+                <option value="rectangle">Прямоугольник</option>
+                <option value="cylinder">Цилиндр</option>
+            </select>
+            <div id="geoFields" style="margin:8px 0;"></div>
+            <button class="calc-btn calc-btn-eq" onclick="calcGeo()" style="width:100%;">Посчитать</button>
+        </div>
         
-        <div class="calc-buttons">
+        <!-- ФИЗИКА -->
+        <div id="calcPhysInputs" style="display:none;">
+            <select id="physFormula" onchange="updatePhysFormula()" class="calc-select">
+                <option value="F=ma">F = ma</option>
+                <option value="P=F/S">P = F/S</option>
+                <option value="I=U/R">I = U/R</option>
+                <option value="v=S/t">v = S/t</option>
+            </select>
+            <div id="physFields" style="margin:8px 0;"></div>
+            <button class="calc-btn calc-btn-eq" onclick="calcPhys()" style="width:100%;">Посчитать</button>
+        </div>
+        
+        <!-- УРАВНЕНИЯ -->
+        <div id="calcEqInputs" style="display:none;">
+            <select id="eqType" class="calc-select">
+                <option value="linear">Линейное (ax + c = 0)</option>
+                <option value="quadratic">Квадратное (ax² + bx + c = 0)</option>
+            </select>
+            <div style="margin:8px 0;">
+                <input id="eqA" type="number" step="any" placeholder="a" class="calc-input" style="width:30%;">
+                <input id="eqB" type="number" step="any" placeholder="b" class="calc-input" style="width:30%;">
+                <input id="eqC" type="number" step="any" placeholder="c" class="calc-input" style="width:30%;">
+            </div>
+        </div>
+        
+        <!-- КОНВЕРТЕР -->
+        <div id="calcConverterOutput" style="display:none;">
+            <select id="convType" class="calc-select">
+                <option value="length">Длина (м)</option>
+                <option value="mass">Масса (кг)</option>
+                <option value="speed">Скорость (км/ч)</option>
+                <option value="temp">Температура (°C)</option>
+            </select>
+            <input id="convValue" type="number" step="any" placeholder="Значение" class="calc-input" style="width:100%; margin:8px 0;">
+            <button class="calc-btn calc-btn-eq" onclick="calcConvert()" style="width:100%;">Перевести</button>
+        </div>
+        
+        <!-- ОСНОВНЫЕ КНОПКИ -->
+        <div class="calc-buttons" id="calcMainButtons">
             <button class="calc-btn calc-btn-clear" onclick="calcClear()">C</button>
             <button class="calc-btn calc-btn-clear" onclick="calcBackspace()">⌫</button>
             <button class="calc-btn" onclick="calcBrackets()">( )</button>
@@ -118,18 +166,32 @@
             <button class="calc-btn" onclick="calcInput('.')">.</button>
             <button class="calc-btn calc-btn-eq" onclick="calcCalculate()">=</button>
             <button class="calc-btn calc-btn-op" onclick="calcInput('+')">+</button>
-            
+        </div>
+        
+        <!-- ДОП. ФУНКЦИИ -->
+        <div class="calc-buttons" id="calcExtraBtns" style="margin-top:5px;">
+            <button class="calc-btn calc-btn-func" onclick="calcToggleTrig()">📐 Триг</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('sqrt(')">√</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('^2')">x²</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('pi')">π</button>
+        </div>
+        
+        <!-- ТРИГОНОМЕТРИЯ (скрытая) -->
+        <div class="calc-buttons" id="calcTrigRow" style="display:none; margin-top:5px;">
             <button class="calc-btn calc-btn-func" onclick="calcInput('sin(')">sin</button>
             <button class="calc-btn calc-btn-func" onclick="calcInput('cos(')">cos</button>
             <button class="calc-btn calc-btn-func" onclick="calcInput('tan(')">tan</button>
             <button class="calc-btn calc-btn-func" onclick="calcInput('log(')">log</button>
-            
-            <button class="calc-btn calc-btn-func" onclick="calcInput('sqrt(')">√</button>
-            <button class="calc-btn calc-btn-func" onclick="calcInput('^2')">x²</button>
-            <button class="calc-btn calc-btn-func" onclick="calcInput('^')">xⁿ</button>
-            <button class="calc-btn calc-btn-func" onclick="calcInput('pi')">π</button>
         </div>
         
+        <!-- КНОПКИ УРАВНЕНИЙ -->
+        <div class="calc-buttons" id="calcEquationBtns" style="display:none; margin-top:5px;">
+            <button class="calc-btn calc-btn-func" onclick="calcInput('x')">x</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('y')">y</button>
+            <button class="calc-btn calc-btn-eq" onclick="calcEquation()" style="grid-column: span 2;">Решить</button>
+        </div>
+        
+        <!-- История -->
         <div class="calc-history" id="calcHistory" style="display:none;"></div>
         
         <button class="modal-close" onclick="closeCalc()" style="margin-top:10px;">Закрыть</button>
