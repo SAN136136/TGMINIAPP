@@ -73,6 +73,52 @@
         <button class="modal-close" onclick="closeCheatsheet()">Закрыть</button>
     </div>
 </div>
+
+<!-- МОДАЛЬНОЕ ОКНО КАЛЬКУЛЯТОРА -->
+<div class="modal-overlay" id="calcModal">
+    <div class="modal calc-modal">
+        <h2>🧮 Калькулятор</h2>
+        <div class="calc-display" id="calcDisplay">0</div>
+        <div class="calc-buttons">
+            <button class="calc-btn calc-btn-func" onclick="calcInput('sin(')">sin</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('cos(')">cos</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('tan(')">tan</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('log(')">log</button>
+            
+            <button class="calc-btn calc-btn-func" onclick="calcInput('sqrt(')">√</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('^2')">x²</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('^')">xⁿ</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('pi')">π</button>
+            
+            <button class="calc-btn" onclick="calcInput('7')">7</button>
+            <button class="calc-btn" onclick="calcInput('8')">8</button>
+            <button class="calc-btn" onclick="calcInput('9')">9</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('/')">÷</button>
+            
+            <button class="calc-btn" onclick="calcInput('4')">4</button>
+            <button class="calc-btn" onclick="calcInput('5')">5</button>
+            <button class="calc-btn" onclick="calcInput('6')">6</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('*')">×</button>
+            
+            <button class="calc-btn" onclick="calcInput('1')">1</button>
+            <button class="calc-btn" onclick="calcInput('2')">2</button>
+            <button class="calc-btn" onclick="calcInput('3')">3</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('-')">−</button>
+            
+            <button class="calc-btn" onclick="calcInput('0')">0</button>
+            <button class="calc-btn" onclick="calcInput('.')">.</button>
+            <button class="calc-btn calc-btn-eq" onclick="calcCalculate()">=</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('+')">+</button>
+            
+            <button class="calc-btn calc-btn-clear" onclick="calcClear()">C</button>
+            <button class="calc-btn calc-btn-clear" onclick="calcBackspace()">⌫</button>
+            <button class="calc-btn" onclick="calcInput('(')">(</button>
+            <button class="calc-btn" onclick="calcInput(')')">)</button>
+        </div>
+        <div class="calc-history" id="calcHistory"></div>
+        <button class="modal-close" onclick="closeCalc()" style="margin-top:10px;">Закрыть</button>
+    </div>
+</div>
 <!-- Скрипты -->
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
