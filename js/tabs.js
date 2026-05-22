@@ -50,7 +50,6 @@ function renderTab(tab) {
             <div class="buttons">
                 <button class="btn btn-schedule" onclick="showFullSchedule()">📅 Расписание</button>
                 <button class="btn btn-cheatsheet" onclick="openCheatsheetMenu()">📝 Шпаргалки</button>
-                <button class="btn btn-calc" onclick="showWip('Калькулятор')">🧮 Калькулятор<span class="wip-badge">WIP</span></button>
                 <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
                 <button class="btn btn-calc" onclick="openCalculator()">🧮 Калькулятор</button>
             </div>
@@ -70,7 +69,6 @@ function renderTab(tab) {
         html = `
             <div class="section-title">ИНСТРУМЕНТЫ</div>
             <div class="buttons">
-                <button class="btn btn-calc" onclick="showWip('Калькулятор')">🧮 Калькулятор<span class="wip-badge">WIP</span></button>
                 <button class="btn btn-weather" onclick="sendCommand('weather')">🌤 Погода</button>
                 <button class="btn btn-news" onclick="sendCommand('news')">📰 Новости</button>
                 <button class="btn btn-wip" onclick="showWip('Заметки')">📋 Заметки<span class="wip-badge">WIP</span></button>
