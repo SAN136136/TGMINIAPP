@@ -176,7 +176,49 @@
             console.error('Ошибка загрузки конфига:', err);
             document.getElementById('log').innerHTML = '❌ Ошибка загрузки конфига';
         });
+    // Загружаем расписание
+let scheduleData = null;
+
+fetch('schedule.json')
+    .then(response => response.json())
+    .then(data => {
+        scheduleData = data;
+        console.log('Расписание загружено');
+    })
+    .catch(err => console.error('Ошибка загрузки расписания:', err));
+
+function getCurrentLesson() {
+    if (!scheduleData) return null;
     
+    const now = new Date();
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const day = days[now.getDay()];
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    
+    const daySchedule = scheduleData[day];
+    if (!daySchedule) return null;
+    
+    for (let [num, lesson] of Object.entries(daySchedule)) {
+        const bell = scheduleData.bells[num];
+        if (!bell) continue;
+        
+        const [startH, startM] = bell.start.split(":").map(Number);
+        const [endH, endM] = bell.end.split(":").map(Number);
+        const startTime = startH * 60 + startM;
+        const endTime = endH * 60 + endM;
+        
+        if (currentTime >= startTime && currentTime <= endTime) {
+            return {
+                num: num,
+                subject: lesson.subject,
+                room: lesson.room,
+                teacher: lesson.teacher,
+                end: bell.end
+            };
+        }
+    }
+    return null;
+}
     function checkMessages() {
         if (!API_URL) return;
         fetch(`${API_URL}/getUpdates`, {
