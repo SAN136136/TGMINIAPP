@@ -1,0 +1,186 @@
+{
+  "algebra": {
+    "name": "Алгебра",
+    "icon": "📐",
+    "sections": [
+      {
+        "title": "Формулы сокращённого умножения",
+        "type": "formula",
+        "content": [
+          {"name": "Квадрат суммы", "formula": "(a+b)² = a² + 2ab + b²"},
+          {"name": "Квадрат разности", "formula": "(a−b)² = a² − 2ab + b²"},
+          {"name": "Разность квадратов", "formula": "a² − b² = (a−b)(a+b)"},
+          {"name": "Сумма кубов", "formula": "a³ + b³ = (a+b)(a²−ab+b²)"},
+          {"name": "Разность кубов", "formula": "a³ − b³ = (a−b)(a²+ab+b²)"},
+          {"name": "Куб суммы", "formula": "(a+b)³ = a³ + 3a²b + 3ab² + b³"},
+          {"name": "Куб разности", "formula": "(a−b)³ = a³ − 3a²b + 3ab² − b³"}
+        ]
+      },
+      {
+        "title": "Квадратные уравнения",
+        "type": "formula",
+        "content": [
+          {"name": "Дискриминант", "formula": "D = b² − 4ac"},
+          {"name": "Корни", "formula": "x₁,₂ = (−b ± √D) / 2a"},
+          {"name": "D > 0", "formula": "Два различных действительных корня"},
+          {"name": "D = 0", "formula": "Один действительный корень (кратный)"},
+          {"name": "D < 0", "formula": "Нет действительных корней"}
+        ]
+      },
+      {
+        "title": "Теорема Виета",
+        "type": "theorem",
+        "content": [
+          {"name": "Формулировка", "formula": "Для x² + px + q = 0: x₁ + x₂ = −p, x₁·x₂ = q"}
+        ]
+      },
+      {
+        "title": "Степени",
+        "type": "formula",
+        "content": [
+          {"name": "Умножение", "formula": "aⁿ · aᵐ = aⁿ⁺ᵐ"},
+          {"name": "Деление", "formula": "aⁿ / aᵐ = aⁿ⁻ᵐ"},
+          {"name": "Возведение в степень", "formula": "(aⁿ)ᵐ = aⁿᵐ"},
+          {"name": "Нулевая степень", "formula": "a⁰ = 1 (a ≠ 0)"},
+          {"name": "Отрицательная степень", "formula": "a⁻ⁿ = 1/aⁿ"}
+        ]
+      },
+      {
+        "title": "Корни",
+        "type": "formula",
+        "content": [
+          {"name": "Определение", "formula": "ⁿ√a = b, если bⁿ = a"},
+          {"name": "Свойство умножения", "formula": "√(a·b) = √a · √b"},
+          {"name": "Свойство деления", "formula": "√(a/b) = √a / √b"}
+        ]
+      }
+    ]
+  },
+  "geometry": {
+    "name": "Геометрия",
+    "icon": "📏",
+    "sections": [
+      {
+        "title": "Теорема Пифагора",
+        "type": "theorem",
+        "content": [
+          {"name": "Формулировка", "formula": "a² + b² = c²"},
+          {"name": "Где", "formula": "a, b — катеты, c — гипотенуза"}
+        ]
+      },
+      {
+        "title": "Площади фигур",
+        "type": "formula",
+        "content": [
+          {"name": "Квадрат", "formula": "S = a²"},
+          {"name": "Прямоугольник", "formula": "S = a·b"},
+          {"name": "Треугольник", "formula": "S = ½·a·h"},
+          {"name": "Треугольник (Герон)", "formula": "S = √(p(p−a)(p−b)(p−c)), p = (a+b+c)/2"},
+          {"name": "Круг", "formula": "S = πR²"},
+          {"name": "Трапеция", "formula": "S = ½(a+b)·h"}
+        ]
+      },
+      {
+        "title": "Объёмы",
+        "type": "formula",
+        "content": [
+          {"name": "Куб", "formula": "V = a³"},
+          {"name": "Прямоугольный параллелепипед", "formula": "V = a·b·c"},
+          {"name": "Цилиндр", "formula": "V = πR²h"},
+          {"name": "Конус", "formula": "V = ⅓πR²h"},
+          {"name": "Шар", "formula": "V = ⁴⁄₃πR³"}
+        ]
+      },
+      {
+        "title": "Признаки равенства треугольников",
+        "type": "theorem",
+        "content": [
+          {"name": "1 признак", "formula": "По двум сторонам и углу между ними"},
+          {"name": "2 признак", "formula": "По стороне и двум прилежащим углам"},
+          {"name": "3 признак", "formula": "По трём сторонам"}
+        ]
+      }
+    ]
+  },
+  "physics": {
+    "name": "Физика",
+    "icon": "⚡",
+    "sections": [
+      {
+        "title": "Механика",
+        "type": "formula",
+        "content": [
+          {"name": "Скорость", "formula": "v = S/t"},
+          {"name": "Ускорение", "formula": "a = (v−v₀)/t"},
+          {"name": "Путь при равноускоренном", "formula": "S = v₀t + at²/2"},
+          {"name": "Второй закон Ньютона", "formula": "F = ma"},
+          {"name": "Сила тяжести", "formula": "F = mg"},
+          {"name": "Давление", "formula": "P = F/S"}
+        ]
+      },
+      {
+        "title": "Электричество",
+        "type": "formula",
+        "content": [
+          {"name": "Закон Ома", "formula": "I = U/R"},
+          {"name": "Мощность", "formula": "P = UI"},
+          {"name": "Работа тока", "formula": "A = UIt"}
+        ]
+      }
+    ]
+  },
+  "informatics": {
+    "name": "Информатика",
+    "icon": "💻",
+    "sections": [
+      {
+        "title": "Системы счисления",
+        "type": "reference",
+        "content": [
+          {"name": "Двоичная → Десятичная", "formula": "1011₂ = 1·2³ + 0·2² + 1·2¹ + 1·2⁰ = 11₁₀"},
+          {"name": "Десятичная → Двоичная", "formula": "Делить на 2, записывать остатки"}
+        ]
+      },
+      {
+        "title": "Логические операции",
+        "type": "reference",
+        "content": [
+          {"name": "И (AND)", "formula": "1 AND 1 = 1, иначе 0"},
+          {"name": "ИЛИ (OR)", "formula": "0 OR 0 = 0, иначе 1"},
+          {"name": "НЕ (NOT)", "formula": "NOT 1 = 0, NOT 0 = 1"},
+          {"name": "Исключающее ИЛИ (XOR)", "formula": "0 XOR 0 = 0, 1 XOR 1 = 0, иначе 1"}
+        ]
+      }
+    ]
+  },
+  "chemistry": {
+    "name": "Химия",
+    "icon": "🧪",
+    "sections": []
+  },
+  "history": {
+    "name": "История",
+    "icon": "📜",
+    "sections": []
+  },
+  "biology": {
+    "name": "Биология",
+    "icon": "🧬",
+    "sections": []
+  },
+  "geography": {
+    "name": "География",
+    "icon": "🌍",
+    "sections": []
+  },
+  "russian": {
+    "name": "Русский язык",
+    "icon": "📝",
+    "sections": []
+  },
+  "english": {
+    "name": "Английский",
+    "icon": "🇬🇧",
+    "sections": []
+  }
+}
