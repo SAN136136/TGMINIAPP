@@ -163,7 +163,54 @@ function closeLessonDetail() {
 function openCheatsheet(subjectKey) {
     closeSchedule();
     closeLessonDetail();
-    document.getElementById("log").innerHTML = `📝 Шпаргалки: ${subjectKey} (в разработке)`;
-    // Переключаем на вкладку "Школа"
-    switchTab('school');
+    
+    if (!window.cheatsheetData) {
+        document.getElementById("log").innerHTML = "📝 Шпаргалки загружаются...";
+        fetch('cheatsheets.json')
+            .then(res => res.json())
+            .then(data => {
+                window.cheatsheetData = data;
+                showCheatsheetModal(subjectKey);
+            })
+            .catch(err => {
+                document.getElementById("log").innerHTML = "❌ Ошибка загрузки шпаргалок";
+            });
+    } else {
+        showCheatsheetModal(subjectKey);
+    }
+}
+
+function showCheatsheetModal(subjectKey) {
+    const data = window.cheatsheetData;
+    if (!data || !data[subjectKey]) {
+        document.getElementById("log").innerHTML = "📝 Шпаргалки по этому предмету пока не добавлены";
+        return;
+    }
+    
+    const subject = data[subjectKey];
+    let html = `<h2>${subject.icon} ${subject.name}</h2>`;
+    
+    if (subject.sections.length === 0) {
+        html += `<p style="color:#888; text-align:center; margin:20px 0;">Шпаргалки по этому предмету пока не добавлены</p>`;
+    }
+    
+    subject.sections.forEach(section => {
+        html += `<div class="cheatsheet-section">`;
+        html += `<div class="cheatsheet-section-title">${section.title}</div>`;
+        section.content.forEach(item => {
+            html += `
+                <div class="cheatsheet-item">
+                    <div class="cheatsheet-item-name">${item.name}</div>
+                    <div class="cheatsheet-item-formula">${item.formula}</div>
+                </div>`;
+        });
+        html += `</div>`;
+    });
+    
+    document.getElementById("cheatsheetContent").innerHTML = html;
+    document.getElementById("cheatsheetModal").style.display = "flex";
+}
+
+function closeCheatsheet() {
+    document.getElementById("cheatsheetModal").style.display = "none";
 }
