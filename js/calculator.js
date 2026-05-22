@@ -441,7 +441,7 @@ function showGeoFormula(shape, field) {
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
 }
-}
+
 
 // ==================== ФИЗИКА ====================
 function updatePhysFormula() {
