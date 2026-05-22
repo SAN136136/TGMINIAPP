@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis Client</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ЭКРАН ВХОДА -->
+<div id="loginScreen">
+    <h1>JARVIS</h1>
+    <input type="password" id="pinInput" placeholder="Пароль" maxlength="20">
+    <br>
+    <button onclick="checkPassword()">ВОЙТИ</button>
+    <div id="loginError"></div>
+</div>
+
+<!-- ОСНОВНОЙ ЭКРАН -->
+<div id="mainScreen">
+    <div class="header">
+        <h1>JARVIS</h1>
+        <span class="status" id="statusIndicator">🟢</span>
+    </div>
+    
+    <div class="greeting" id="greeting">Доброе утро, сэр!</div>
+    
+    <div class="current-lesson" id="currentLesson">
+        <div class="lesson-subject" id="lessonSubject"></div>
+        <div class="lesson-details" id="lessonDetails"></div>
+    </div>
+    
+    <div class="log" id="log">[Готов к работе]</div>
+    
+    <div class="tab-content" id="tabContent"></div>
+    
+    <div class="cmd-bar">
+        <input type="text" id="cmdInput" placeholder="Своя команда...">
+        <button onclick="sendCommand(document.getElementById('cmdInput').value)">▶</button>
+    </div>
+    
+    <div class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('main')">🏠</button>
+        <button class="nav-btn" onclick="switchTab('control')">🎮</button>
+        <button class="nav-btn" onclick="switchTab('school')">📚</button>
+        <button class="nav-btn" onclick="switchTab('music')">🎵</button>
+        <button class="nav-btn" onclick="switchTab('tools')">⚙️</button>
+    </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО РАСПИСАНИЯ -->
+<div class="modal-overlay" id="scheduleModal">
+    <div class="modal">
+        <h2>📅 Расписание</h2>
+        <div id="scheduleContent"></div>
+        <button class="modal-close" onclick="closeSchedule()">Закрыть</button>
+    </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО ПОДРОБНОСТЕЙ УРОКА -->
+<div class="modal-overlay" id="lessonDetailModal">
+    <div class="modal">
+        <h2 id="lessonDetailTitle"></h2>
+        <div id="lessonDetailContent"></div>
+        <button class="modal-close" onclick="closeLessonDetail()">Закрыть</button>
+    </div>
+</div>
+
+<!-- Скрипты -->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/schedule.js"></script>
+<script src="js/tabs.js"></script>
+<script src="js/commands.js"></script>
+
+</body>
+</html>
