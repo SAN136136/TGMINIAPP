@@ -197,7 +197,7 @@ function switchCalcMode(mode) {
     calcClear();
 }
 
-// ==================== ГЕОМЕТРИЯ v3.0 ====================
+// ==================== ГЕОМЕТРИЯ v3.1 ====================
 let geoData = {};
 let geoActiveCell = null;
 let geoCalcExpr = "";
@@ -208,18 +208,35 @@ function switchGeoShape() {
         document.getElementById("geoTable").style.display = "none";
         document.getElementById("geoCalcPad").style.display = "none";
         document.getElementById("geoError").textContent = "";
-         document.getElementById("calcDisplay").style.display = "block";   // ← добавь
-        document.getElementById("calcResult").style.display = "block";    // ← добавь
+        document.getElementById("calcDisplay").style.display = "block";
+        document.getElementById("calcResult").style.display = "block";
+        document.getElementById("calcMainButtons").style.display = "grid";
+        document.getElementById("calcExtraBtns").style.display = "grid";
         geoActiveCell = null;
         return;
     }
     if (!geoData[shape]) geoData[shape] = {};
     document.getElementById("geoTable").style.display = "block";
     document.getElementById("geoCalcPad").style.display = "block";
+    document.getElementById("calcDisplay").style.display = "none";
+    document.getElementById("calcResult").style.display = "none";
+    document.getElementById("calcMainButtons").style.display = "none";
+    document.getElementById("calcExtraBtns").style.display = "none";
     document.getElementById("geoError").textContent = "";
     geoActiveCell = null;
     geoCalcExpr = "";
     document.getElementById("geoCalcDisplay").textContent = "0";
+    renderGeoTable(shape);
+}
+
+function clearGeoTable() {
+    const shape = document.getElementById("geoShape").value;
+    if (!shape) return;
+    geoData[shape] = {};
+    geoActiveCell = null;
+    geoCalcExpr = "";
+    document.getElementById("geoCalcDisplay").textContent = "0";
+    document.getElementById("geoError").textContent = "";
     renderGeoTable(shape);
 }
 
@@ -228,7 +245,11 @@ function renderGeoTable(shape) {
     const fields = getGeoFields(shape);
     const cols = (shape === "triangle") ? 2 : 1;
     
-    let html = `<table class="geo-table" style="width:100%;">`;
+    let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+        <span style="color:#888; font-size:11px;">Введи известные данные</span>
+        <button class="calc-btn calc-btn-clear" onclick="clearGeoTable()" style="padding:6px 10px; font-size:11px;">🗑 Очистить</button>
+    </div>`;
+    html += `<table class="geo-table" style="width:100%;">`;
     html += "<tr><th>Параметр</th><th>Значение</th><th></th>";
     if (cols === 2) html += "<th>Параметр</th><th>Значение</th><th></th>";
     html += "</tr>";
@@ -252,10 +273,11 @@ function renderGeoTable(shape) {
                     displayVal = "н/д";
                 }
                 
+                // Разрешаем кликать и на вычисленные значения (чтобы перезаписать)
                 html += `<td style="padding:6px 8px;">${f.label}</td>
                     <td class="geo-val ${isComputed ? 'geo-computed' : ''}" 
-                        onclick="${isComputed ? '' : `editGeoCell('${shape}', '${f.key}')`}"
-                        style="padding:6px 8px; ${isComputed ? 'color:#58A6FF;font-weight:bold;' : 'cursor:pointer;color:#CCC;'}">
+                        onclick="editGeoCell('${shape}', '${f.key}')"
+                        style="padding:6px 8px; cursor:pointer; ${isComputed ? 'color:#58A6FF;font-weight:bold;' : 'color:#CCC;'}">
                         ${displayVal}
                     </td>
                     <td style="padding:6px 4px;">
@@ -361,18 +383,63 @@ function computeGeoField(shape, field) {
         const a = d.a !== undefined ? parseFloat(d.a) : null;
         const b = d.b !== undefined ? parseFloat(d.b) : null;
         const c = d.c !== undefined ? parseFloat(d.c) : null;
+        const A = d.A !== undefined ? parseFloat(d.A) : null;
+        const B = d.B !== undefined ? parseFloat(d.B) : null;
+        const C = d.C !== undefined ? parseFloat(d.C) : null;
         
         if (field === "a") return a;
         if (field === "b") return b;
         if (field === "c") return c;
+        if (field === "A") {
+            if (A !== null) return A;
+            // Вычисляем по двум другим углам
+            if (B !== null && C !== null) {
+                const calcA = 180 - B - C;
+                if (calcA > 0 && calcA < 180) return calcA.toFixed(4);
+            }
+            // Вычисляем по теореме косинусов: cos A = (b² + c² - a²) / (2bc)
+            if (a !== null && b !== null && c !== null) {
+                const cosA = (b*b + c*c - a*a) / (2*b*c);
+                if (cosA >= -1 && cosA <= 1) {
+                    return (Math.acos(cosA) * 180 / Math.PI).toFixed(4);
+                }
+            }
+            return null;
+        }
+        if (field === "B") {
+            if (B !== null) return B;
+            if (A !== null && C !== null) {
+                const calcB = 180 - A - C;
+                if (calcB > 0 && calcB < 180) return calcB.toFixed(4);
+            }
+            if (a !== null && b !== null && c !== null) {
+                const cosB = (a*a + c*c - b*b) / (2*a*c);
+                if (cosB >= -1 && cosB <= 1) {
+                    return (Math.acos(cosB) * 180 / Math.PI).toFixed(4);
+                }
+            }
+            return null;
+        }
+        if (field === "C") {
+            if (C !== null) return C;
+            if (A !== null && B !== null) {
+                const calcC = 180 - A - B;
+                if (calcC > 0 && calcC < 180) return calcC.toFixed(4);
+            }
+            if (a !== null && b !== null && c !== null) {
+                const cosC = (a*a + b*b - c*c) / (2*a*b);
+                if (cosC >= -1 && cosC <= 1) {
+                    return (Math.acos(cosC) * 180 / Math.PI).toFixed(4);
+                }
+            }
+            return null;
+        }
         if (field === "P" && a !== null && b !== null && c !== null) return (a + b + c).toFixed(4);
         if (field === "S" && a !== null && b !== null && c !== null) {
             const p = (a + b + c) / 2;
             const S = Math.sqrt(p * (p - a) * (p - b) * (p - c));
             return isNaN(S) ? null : S.toFixed(4);
         }
-        // Углы не вычисляем (для этого нужны формулы косинусов/синусов)
-        if (field === "A" || field === "B" || field === "C") return null;
     }
     if (shape === "rectangle") {
         const a = d.a !== undefined ? parseFloat(d.a) : null;
@@ -411,7 +478,7 @@ function checkGeoImpossible(shape) {
         if (A !== null && (A <= 0 || A >= 180)) return "❌ Угол должен быть от 0 до 180°";
         if (B !== null && (B <= 0 || B >= 180)) return "❌ Угол должен быть от 0 до 180°";
         if (C !== null && (C <= 0 || C >= 180)) return "❌ Угол должен быть от 0 до 180°";
-        if (A !== null && B !== null && C !== null && Math.abs(A + B + C - 180) > 0.01) return "❌ Сумма углов ≠ 180°";
+        if (A !== null && B !== null && C !== null && Math.abs(A + B + C - 180) > 0.5) return "❌ Сумма углов ≠ 180°";
     }
     if (shape === "circle" || shape === "cylinder") {
         const R = d.R !== undefined ? parseFloat(d.R) : null;
@@ -441,15 +508,43 @@ function showGeoFormula(shape, field) {
             else if (field === "C") appliedText = `C = 2 × π × ${R} = ${(2*Math.PI*R).toFixed(4)}`;
         }
     } else if (shape === "triangle") {
-        const formulas = { P: "P = a + b + c", S: "S = √(p(p-a)(p-b)(p-c)), p = (a+b+c)/2" };
+        const formulas = { 
+            P: "P = a + b + c", 
+            S: "S = √(p(p-a)(p-b)(p-c)), p = (a+b+c)/2",
+            A: "A = 180° − B − C (по двум углам)\ncos A = (b² + c² − a²) / (2bc) (по сторонам)",
+            B: "B = 180° − A − C (по двум углам)\ncos B = (a² + c² − b²) / (2ac) (по сторонам)",
+            C: "C = 180° − A − B (по двум углам)\ncos C = (a² + b² − c²) / (2ab) (по сторонам)"
+        };
         formulaText = formulas[field] || "";
         const a = d?.a !== undefined ? parseFloat(d.a) : null;
         const b = d?.b !== undefined ? parseFloat(d.b) : null;
         const c = d?.c !== undefined ? parseFloat(d.c) : null;
+        const A = d?.A !== undefined ? parseFloat(d.A) : null;
+        const B = d?.B !== undefined ? parseFloat(d.B) : null;
+        const C = d?.C !== undefined ? parseFloat(d.C) : null;
+        
         if (field === "P" && a!==null && b!==null && c!==null) appliedText = `P = ${a} + ${b} + ${c} = ${(a+b+c).toFixed(4)}`;
         else if (field === "S" && a!==null && b!==null && c!==null) {
             const p = (a+b+c)/2;
             appliedText = `p = (${a}+${b}+${c})/2 = ${p.toFixed(2)}\nS = √(${p.toFixed(2)} × ${(p-a).toFixed(2)} × ${(p-b).toFixed(2)} × ${(p-c).toFixed(2)}) = ${(Math.sqrt(p*(p-a)*(p-b)*(p-c))).toFixed(4)}`;
+        } else if (field === "A") {
+            if (B !== null && C !== null) appliedText = `A = 180° − ${B} − ${C} = ${(180-B-C).toFixed(4)}°`;
+            else if (a !== null && b !== null && c !== null) {
+                const cosA = (b*b + c*c - a*a) / (2*b*c);
+                appliedText = `cos A = (${b}² + ${c}² − ${a}²) / (2×${b}×${c}) = ${cosA.toFixed(4)}\nA = arccos(${cosA.toFixed(4)}) = ${(Math.acos(cosA)*180/Math.PI).toFixed(4)}°`;
+            }
+        } else if (field === "B") {
+            if (A !== null && C !== null) appliedText = `B = 180° − ${A} − ${C} = ${(180-A-C).toFixed(4)}°`;
+            else if (a !== null && b !== null && c !== null) {
+                const cosB = (a*a + c*c - b*b) / (2*a*c);
+                appliedText = `cos B = (${a}² + ${c}² − ${b}²) / (2×${a}×${c}) = ${cosB.toFixed(4)}\nB = arccos(${cosB.toFixed(4)}) = ${(Math.acos(cosB)*180/Math.PI).toFixed(4)}°`;
+            }
+        } else if (field === "C") {
+            if (A !== null && B !== null) appliedText = `C = 180° − ${A} − ${B} = ${(180-A-B).toFixed(4)}°`;
+            else if (a !== null && b !== null && c !== null) {
+                const cosC = (a*a + b*b - c*c) / (2*a*b);
+                appliedText = `cos C = (${a}² + ${b}² − ${c}²) / (2×${a}×${b}) = ${cosC.toFixed(4)}\nC = arccos(${cosC.toFixed(4)}) = ${(Math.acos(cosC)*180/Math.PI).toFixed(4)}°`;
+            }
         }
     } else if (shape === "rectangle") {
         const formulas = { S: "S = a × b", P: "P = 2(a + b)" };
@@ -476,9 +571,7 @@ function showGeoFormula(shape, field) {
         <div style="color:#58A6FF; font-size:14px; white-space:pre-line;">${appliedText}</div>
     `;
     
-    // Скрываем калькулятор перед показом формул
     document.getElementById("calcModal").style.display = "none";
-    
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
 }
