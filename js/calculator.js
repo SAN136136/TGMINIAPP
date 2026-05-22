@@ -612,5 +612,61 @@ function calcEquation() {
     
     if (eqType === "quadratic") {
         if (a === 0) { document.getElementById("calcResult").textContent = "❌ a ≠ 0 для квадратного уравнения"; return; }
-        const D = b*b - 4*a
+        const D = b*b - 4*a*c;
+        let steps = `${a}x² + ${b}x + ${c} = 0\n`;
+        steps += `D = b² − 4ac = ${b}² − 4×${a}×${c} = ${D}\n`;
+        if (D > 0) {
+            const x1 = (-b + Math.sqrt(D)) / (2*a);
+            const x2 = (-b - Math.sqrt(D)) / (2*a);
+            steps += `D > 0 → два корня:\nx₁ = (−b + √D) / 2a = ${x1.toFixed(4)}\nx₂ = (−b − √D) / 2a = ${x2.toFixed(4)}`;
+        } else if (D === 0) {
+            const x = -b / (2*a);
+            steps += `D = 0 → один корень:\nx = −b / 2a = ${x.toFixed(4)}`;
+        } else {
+            steps += `D < 0 → нет действительных корней`;
+        }
+        document.getElementById("calcResult").textContent = steps;
+    } else if (eqType === "linear") {
+        if (a === 0) { document.getElementById("calcResult").textContent = "❌ a ≠ 0"; return; }
+        const x = -c / a;
+        document.getElementById("calcResult").textContent = `${a}x + ${c} = 0\nx = −${c}/${a} = ${x.toFixed(4)}`;
+    }
 }
+
+// ==================== КОНВЕРТЕР ====================
+function calcConvert() {
+    const type = document.getElementById("convType").value;
+    const value = parseFloat(document.getElementById("convValue")?.value);
+    if (isNaN(value)) { document.getElementById("calcResult").textContent = "❌ Введи число"; return; }
+    
+    let out = "";
+    if (type === "length") {
+        out = `мм: ${(value*1000).toFixed(2)}\nсм: ${(value*100).toFixed(2)}\nдм: ${(value*10).toFixed(2)}\nм: ${value}\nкм: ${(value/1000).toFixed(6)}\nдюймы: ${(value*39.3701).toFixed(2)}\nфуты: ${(value*3.28084).toFixed(2)}`;
+    } else if (type === "mass") {
+        out = `мг: ${(value*1e6).toFixed(0)}\nг: ${(value*1000).toFixed(0)}\nкг: ${value}\nц: ${(value/100).toFixed(4)}\nт: ${(value/1000).toFixed(6)}\nфунты: ${(value*2.20462).toFixed(2)}`;
+    } else if (type === "speed") {
+        out = `м/с: ${(value/3.6).toFixed(2)}\nкм/ч: ${value}\nмиль/ч: ${(value*0.621371).toFixed(2)}`;
+    } else if (type === "temp") {
+        out = `°C: ${value}\n°F: ${(value*9/5+32).toFixed(2)}\nK: ${(value+273.15).toFixed(2)}`;
+    }
+    document.getElementById("calcResult").textContent = out;
+}
+
+// ==================== КЛАВИАТУРНЫЙ ВВОД ====================
+document.addEventListener("keydown", function(e) {
+    if (document.getElementById("calcModal").style.display !== "flex") return;
+    
+    const key = e.key;
+    if ("0123456789".includes(key)) calcInput(key);
+    else if (key === "+") calcInput("+");
+    else if (key === "-") calcInput("−");
+    else if (key === "*") calcInput("×");
+    else if (key === "/") calcInput("÷");
+    else if (key === "." || key === ",") calcInput(".");
+    else if (key === "(") calcBrackets();
+    else if (key === "Enter" || key === "=") { e.preventDefault(); calcCalculate(); }
+    else if (key === "Backspace") calcBackspace();
+    else if (key === "Delete" || key === "Escape") calcClear();
+    else if (key === "h" && e.ctrlKey) { e.preventDefault(); calcToggleHistory(); }
+    else if (key === "t" && e.ctrlKey) { e.preventDefault(); calcToggleTrig(); }
+});
