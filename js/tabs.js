@@ -52,6 +52,7 @@ function renderTab(tab) {
                 <button class="btn btn-cheatsheet" onclick="openCheatsheetMenu()">📝 Шпаргалки</button>
                 <button class="btn btn-calc" onclick="showWip('Калькулятор')">🧮 Калькулятор<span class="wip-badge">WIP</span></button>
                 <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
+                <button class="btn btn-calc" onclick="openCalculator()">🧮 Калькулятор</button>
             </div>
             <p class="music-hint">Скоро здесь будут:<br>калькулятор и трамваи</p>
         `;
@@ -73,6 +74,7 @@ function renderTab(tab) {
                 <button class="btn btn-weather" onclick="sendCommand('weather')">🌤 Погода</button>
                 <button class="btn btn-news" onclick="sendCommand('news')">📰 Новости</button>
                 <button class="btn btn-wip" onclick="showWip('Заметки')">📋 Заметки<span class="wip-badge">WIP</span></button>
+                <button class="btn btn-calc" onclick="openCalculator()">🧮 Калькулятор</button>
             </div>
             <p class="music-hint">Скоро: калькулятор, заметки,<br>очистка ПК и многое другое</p>
         `;
