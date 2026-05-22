@@ -174,6 +174,8 @@ function switchCalcMode(mode) {
     document.getElementById("calcEqInputs").style.display = "none";
     document.getElementById("calcConverterOutput").style.display = "none";
     document.getElementById("calcTrigRow").style.display = "none";
+    document.getElementById("calcDisplay").style.display = "block";    // ← добавь
+    document.getElementById("calcResult").style.display = "block";
     calcShowTrig = false;
     
     if (mode === "basic") {
@@ -206,6 +208,8 @@ function switchGeoShape() {
         document.getElementById("geoTable").style.display = "none";
         document.getElementById("geoCalcPad").style.display = "none";
         document.getElementById("geoError").textContent = "";
+         document.getElementById("calcDisplay").style.display = "block";   // ← добавь
+        document.getElementById("calcResult").style.display = "block";    // ← добавь
         geoActiveCell = null;
         return;
     }
@@ -472,8 +476,12 @@ function showGeoFormula(shape, field) {
         <div style="color:#58A6FF; font-size:14px; white-space:pre-line;">${appliedText}</div>
     `;
     
+    // Скрываем калькулятор перед показом формул
+    document.getElementById("calcModal").style.display = "none";
+    
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
+}
 }
 // ==================== ФИЗИКА ====================
 function updatePhysFormula() {
