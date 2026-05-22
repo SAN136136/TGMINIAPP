@@ -1,4 +1,4 @@
-// ==================== КАЛЬКУЛЯТОР v3.0 ====================
+// ==================== КАЛЬКУЛЯТОР v3.2 ====================
 let calcExpression = "";
 let calcHistory = [];
 let calcShowHistory = false;
@@ -21,6 +21,8 @@ function openCalculator() {
     document.getElementById("calcMainButtons").style.display = "grid";
     document.getElementById("calcExtraBtns").style.display = "grid";
     document.getElementById("calcEquationBtns").style.display = "none";
+    document.getElementById("calcDisplay").style.display = "block";
+    document.getElementById("calcResult").style.display = "block";
     switchCalcMode("basic");
 }
 
@@ -113,7 +115,6 @@ function calcClear() {
 }
 
 function calcBackspace() {
-    // Удаляем как обычный бэкспейс — по одному символу
     calcExpression = calcExpression.slice(0, -1);
     updateCalcDisplay();
     liveCalcResult();
@@ -174,30 +175,41 @@ function switchCalcMode(mode) {
     document.getElementById("calcEqInputs").style.display = "none";
     document.getElementById("calcConverterOutput").style.display = "none";
     document.getElementById("calcTrigRow").style.display = "none";
-    document.getElementById("calcDisplay").style.display = "block";    // ← добавь
-    document.getElementById("calcResult").style.display = "block";
     calcShowTrig = false;
     
     if (mode === "basic") {
         document.getElementById("calcMainButtons").style.display = "grid";
         document.getElementById("calcExtraBtns").style.display = "grid";
+        document.getElementById("calcDisplay").style.display = "block";
+        document.getElementById("calcResult").style.display = "block";
     } else if (mode === "equations") {
         document.getElementById("calcEqInputs").style.display = "block";
         document.getElementById("calcEquationBtns").style.display = "grid";
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
     } else if (mode === "geometry") {
         document.getElementById("calcGeoInputs").style.display = "block";
-        updateGeoShape();
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
+        if (!document.getElementById("geoShape").value) {
+            document.getElementById("geoShape").value = "triangle";
+        }
+        switchGeoShape();
     } else if (mode === "physics") {
         document.getElementById("calcPhysInputs").style.display = "block";
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
         updatePhysFormula();
     } else if (mode === "converter") {
         document.getElementById("calcConverterOutput").style.display = "block";
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
     }
     
     calcClear();
 }
 
-// ==================== ГЕОМЕТРИЯ v3.1 ====================
+// ==================== ГЕОМЕТРИЯ v3.2 ====================
 let geoData = {};
 let geoActiveCell = null;
 let geoCalcExpr = "";
@@ -208,20 +220,12 @@ function switchGeoShape() {
         document.getElementById("geoTable").style.display = "none";
         document.getElementById("geoCalcPad").style.display = "none";
         document.getElementById("geoError").textContent = "";
-        document.getElementById("calcDisplay").style.display = "block";
-        document.getElementById("calcResult").style.display = "block";
-        document.getElementById("calcMainButtons").style.display = "grid";
-        document.getElementById("calcExtraBtns").style.display = "grid";
         geoActiveCell = null;
         return;
     }
     if (!geoData[shape]) geoData[shape] = {};
     document.getElementById("geoTable").style.display = "block";
     document.getElementById("geoCalcPad").style.display = "block";
-    document.getElementById("calcDisplay").style.display = "none";
-    document.getElementById("calcResult").style.display = "none";
-    document.getElementById("calcMainButtons").style.display = "none";
-    document.getElementById("calcExtraBtns").style.display = "none";
     document.getElementById("geoError").textContent = "";
     geoActiveCell = null;
     geoCalcExpr = "";
@@ -273,7 +277,6 @@ function renderGeoTable(shape) {
                     displayVal = "н/д";
                 }
                 
-                // Разрешаем кликать и на вычисленные значения (чтобы перезаписать)
                 html += `<td style="padding:6px 8px;">${f.label}</td>
                     <td class="geo-val ${isComputed ? 'geo-computed' : ''}" 
                         onclick="editGeoCell('${shape}', '${f.key}')"
@@ -329,8 +332,15 @@ function liveGeoUpdate() {
     
     if (val !== "" && val !== undefined) {
         geoData[geoActiveCell.shape][geoActiveCell.field] = val;
+        // Если пользователь вводит угол вручную, ставим пометку
+        if (geoActiveCell.field === "A" || geoActiveCell.field === "B" || geoActiveCell.field === "C") {
+            geoData[geoActiveCell.shape][geoActiveCell.field + "_manual"] = val;
+        }
     } else if (geoCalcExpr === "") {
         delete geoData[geoActiveCell.shape][geoActiveCell.field];
+        if (geoActiveCell.field === "A" || geoActiveCell.field === "B" || geoActiveCell.field === "C") {
+            delete geoData[geoActiveCell.shape][geoActiveCell.field + "_manual"];
+        }
     }
     renderGeoTable(document.getElementById("geoShape").value);
 }
@@ -383,54 +393,47 @@ function computeGeoField(shape, field) {
         const a = d.a !== undefined ? parseFloat(d.a) : null;
         const b = d.b !== undefined ? parseFloat(d.b) : null;
         const c = d.c !== undefined ? parseFloat(d.c) : null;
-        const A = d.A !== undefined ? parseFloat(d.A) : null;
-        const B = d.B !== undefined ? parseFloat(d.B) : null;
-        const C = d.C !== undefined ? parseFloat(d.C) : null;
+        const A_manual = d.A_manual !== undefined ? parseFloat(d.A_manual) : null;
+        const B_manual = d.B_manual !== undefined ? parseFloat(d.B_manual) : null;
+        const C_manual = d.C_manual !== undefined ? parseFloat(d.C_manual) : null;
         
         if (field === "a") return a;
         if (field === "b") return b;
         if (field === "c") return c;
+        
         if (field === "A") {
-            if (A !== null) return A;
-            // Вычисляем по двум другим углам
-            if (B !== null && C !== null) {
-                const calcA = 180 - B - C;
+            if (A_manual !== null) return A_manual;
+            if (B_manual !== null && C_manual !== null) {
+                const calcA = 180 - B_manual - C_manual;
                 if (calcA > 0 && calcA < 180) return calcA.toFixed(4);
             }
-            // Вычисляем по теореме косинусов: cos A = (b² + c² - a²) / (2bc)
             if (a !== null && b !== null && c !== null) {
                 const cosA = (b*b + c*c - a*a) / (2*b*c);
-                if (cosA >= -1 && cosA <= 1) {
-                    return (Math.acos(cosA) * 180 / Math.PI).toFixed(4);
-                }
+                if (cosA >= -1 && cosA <= 1) return (Math.acos(cosA) * 180 / Math.PI).toFixed(4);
             }
             return null;
         }
         if (field === "B") {
-            if (B !== null) return B;
-            if (A !== null && C !== null) {
-                const calcB = 180 - A - C;
+            if (B_manual !== null) return B_manual;
+            if (A_manual !== null && C_manual !== null) {
+                const calcB = 180 - A_manual - C_manual;
                 if (calcB > 0 && calcB < 180) return calcB.toFixed(4);
             }
             if (a !== null && b !== null && c !== null) {
                 const cosB = (a*a + c*c - b*b) / (2*a*c);
-                if (cosB >= -1 && cosB <= 1) {
-                    return (Math.acos(cosB) * 180 / Math.PI).toFixed(4);
-                }
+                if (cosB >= -1 && cosB <= 1) return (Math.acos(cosB) * 180 / Math.PI).toFixed(4);
             }
             return null;
         }
         if (field === "C") {
-            if (C !== null) return C;
-            if (A !== null && B !== null) {
-                const calcC = 180 - A - B;
+            if (C_manual !== null) return C_manual;
+            if (A_manual !== null && B_manual !== null) {
+                const calcC = 180 - A_manual - B_manual;
                 if (calcC > 0 && calcC < 180) return calcC.toFixed(4);
             }
             if (a !== null && b !== null && c !== null) {
                 const cosC = (a*a + b*b - c*c) / (2*a*b);
-                if (cosC >= -1 && cosC <= 1) {
-                    return (Math.acos(cosC) * 180 / Math.PI).toFixed(4);
-                }
+                if (cosC >= -1 && cosC <= 1) return (Math.acos(cosC) * 180 / Math.PI).toFixed(4);
             }
             return null;
         }
@@ -472,9 +475,9 @@ function checkGeoImpossible(shape) {
         if (a !== null && b !== null && c !== null) {
             if (a + b <= c || a + c <= b || b + c <= a) return "❌ Такого треугольника не существует";
         }
-        const A = d.A !== undefined ? parseFloat(d.A) : null;
-        const B = d.B !== undefined ? parseFloat(d.B) : null;
-        const C = d.C !== undefined ? parseFloat(d.C) : null;
+        const A = d.A_manual !== undefined ? parseFloat(d.A_manual) : null;
+        const B = d.B_manual !== undefined ? parseFloat(d.B_manual) : null;
+        const C = d.C_manual !== undefined ? parseFloat(d.C_manual) : null;
         if (A !== null && (A <= 0 || A >= 180)) return "❌ Угол должен быть от 0 до 180°";
         if (B !== null && (B <= 0 || B >= 180)) return "❌ Угол должен быть от 0 до 180°";
         if (C !== null && (C <= 0 || C >= 180)) return "❌ Угол должен быть от 0 до 180°";
@@ -519,9 +522,9 @@ function showGeoFormula(shape, field) {
         const a = d?.a !== undefined ? parseFloat(d.a) : null;
         const b = d?.b !== undefined ? parseFloat(d.b) : null;
         const c = d?.c !== undefined ? parseFloat(d.c) : null;
-        const A = d?.A !== undefined ? parseFloat(d.A) : null;
-        const B = d?.B !== undefined ? parseFloat(d.B) : null;
-        const C = d?.C !== undefined ? parseFloat(d.C) : null;
+        const A = d?.A_manual !== undefined ? parseFloat(d.A_manual) : null;
+        const B = d?.B_manual !== undefined ? parseFloat(d.B_manual) : null;
+        const C = d?.C_manual !== undefined ? parseFloat(d.C_manual) : null;
         
         if (field === "P" && a!==null && b!==null && c!==null) appliedText = `P = ${a} + ${b} + ${c} = ${(a+b+c).toFixed(4)}`;
         else if (field === "S" && a!==null && b!==null && c!==null) {
@@ -575,6 +578,7 @@ function showGeoFormula(shape, field) {
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
 }
+
 // ==================== ФИЗИКА ====================
 function updatePhysFormula() {
     const formula = document.getElementById("physFormula").value;
@@ -608,66 +612,4 @@ function calcEquation() {
     
     if (eqType === "quadratic") {
         if (a === 0) { document.getElementById("calcResult").textContent = "❌ a ≠ 0 для квадратного уравнения"; return; }
-        const D = b*b - 4*a*c;
-        let steps = `${a}x² + ${b}x + ${c} = 0\n`;
-        steps += `D = b² − 4ac = ${b}² − 4×${a}×${c} = ${D}\n`;
-        if (D > 0) {
-            const x1 = (-b + Math.sqrt(D)) / (2*a);
-            const x2 = (-b - Math.sqrt(D)) / (2*a);
-            steps += `D > 0 → два корня:\nx₁ = (−b + √D) / 2a = ${x1.toFixed(4)}\nx₂ = (−b − √D) / 2a = ${x2.toFixed(4)}`;
-        } else if (D === 0) {
-            const x = -b / (2*a);
-            steps += `D = 0 → один корень:\nx = −b / 2a = ${x.toFixed(4)}`;
-        } else {
-            steps += `D < 0 → нет действительных корней`;
-        }
-        document.getElementById("calcResult").textContent = steps;
-        document.getElementById("calcMainButtons").style.display = "none";
-        document.getElementById("calcExtraBtns").style.display = "none";
-        document.getElementById("calcEquationBtns").style.display = "none";
-    } else if (eqType === "linear") {
-        if (a === 0) { document.getElementById("calcResult").textContent = "❌ a ≠ 0"; return; }
-        const x = -c / a;
-        document.getElementById("calcResult").textContent = `${a}x + ${c} = 0\nx = −${c}/${a} = ${x.toFixed(4)}`;
-    }
-}
-
-// ==================== КОНВЕРТЕР ====================
-function calcConvert() {
-    const type = document.getElementById("convType").value;
-    const value = parseFloat(document.getElementById("convValue")?.value);
-    if (isNaN(value)) { document.getElementById("calcResult").textContent = "❌ Введи число"; return; }
-    
-    let out = "";
-    if (type === "length") {
-        out = `мм: ${(value*1000).toFixed(2)}\nсм: ${(value*100).toFixed(2)}\nдм: ${(value*10).toFixed(2)}\nм: ${value}\nкм: ${(value/1000).toFixed(6)}\nдюймы: ${(value*39.3701).toFixed(2)}\nфуты: ${(value*3.28084).toFixed(2)}`;
-    } else if (type === "mass") {
-        out = `мг: ${(value*1e6).toFixed(0)}\nг: ${(value*1000).toFixed(0)}\nкг: ${value}\nц: ${(value/100).toFixed(4)}\nт: ${(value/1000).toFixed(6)}\nфунты: ${(value*2.20462).toFixed(2)}`;
-    } else if (type === "speed") {
-        out = `м/с: ${(value/3.6).toFixed(2)}\nкм/ч: ${value}\nмиль/ч: ${(value*0.621371).toFixed(2)}`;
-    } else if (type === "temp") {
-        out = `°C: ${value}\n°F: ${(value*9/5+32).toFixed(2)}\nK: ${(value+273.15).toFixed(2)}`;
-    }
-    document.getElementById("calcResult").textContent = out;
-    document.getElementById("calcMainButtons").style.display = "none";
-    document.getElementById("calcExtraBtns").style.display = "none";
-}
-
-// ==================== КЛАВИАТУРНЫЙ ВВОД ====================
-document.addEventListener("keydown", function(e) {
-    if (document.getElementById("calcModal").style.display !== "flex") return;
-    
-    const key = e.key;
-    if ("0123456789".includes(key)) calcInput(key);
-    else if (key === "+") calcInput("+");
-    else if (key === "-") calcInput("−");
-    else if (key === "*") calcInput("×");
-    else if (key === "/") calcInput("÷");
-    else if (key === "." || key === ",") calcInput(".");
-    else if (key === "(") calcBrackets();
-    else if (key === "Enter" || key === "=") { e.preventDefault(); calcCalculate(); }
-    else if (key === "Backspace") calcBackspace();
-    else if (key === "Delete" || key === "Escape") calcClear();
-    else if (key === "h" && e.ctrlKey) { e.preventDefault(); calcToggleHistory(); }
-    else if (key === "t" && e.ctrlKey) { e.preventDefault(); calcToggleTrig(); }
-});
+        const D = b*b - 4*a
