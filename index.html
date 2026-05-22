@@ -163,7 +163,7 @@
     let lastUpdateId = 0;
     const PASSWORD = "пельмень";
     
-    fetch('config.json')
+    fetch('gitconfig.json')
         .then(response => response.json())
         .then(config => {
             BOT_TOKEN = config.telegram.client_bot_token;
