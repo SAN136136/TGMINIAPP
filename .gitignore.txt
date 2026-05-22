@@ -1,1 +1,1 @@
-gitconfig.json
+config.json
