@@ -59,6 +59,7 @@ function switchCalcMode(mode) {
     let activeBtn = document.querySelector(`[data-mode="${mode}"]`);
     if (activeBtn) activeBtn.classList.add("active");
     
+    // Скрываем ВСЁ
     document.getElementById("calcMainButtons").style.display = "none";
     document.getElementById("calcExtraBtns").style.display = "none";
     document.getElementById("calcEquationBtns").style.display = "none";
@@ -76,7 +77,6 @@ function switchCalcMode(mode) {
         document.getElementById("calcResult").style.display = "block";
     } else if (mode === "equations") {
         document.getElementById("calcEqInputs").style.display = "block";
-        document.getElementById("calcEquationBtns").style.display = "grid";
         document.getElementById("calcDisplay").style.display = "none";
         document.getElementById("calcResult").style.display = "none";
     } else if (mode === "geometry") {
@@ -86,6 +86,20 @@ function switchCalcMode(mode) {
         if (!document.getElementById("geoShape").value) {
             document.getElementById("geoShape").value = "triangle";
         }
+        switchGeoShape();
+    } else if (mode === "physics") {
+        document.getElementById("calcPhysInputs").style.display = "block";
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
+        renderPhysSolver();
+    } else if (mode === "converter") {
+        document.getElementById("calcConverterOutput").style.display = "block";
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
+    }
+    
+    calcClear();
+}
         switchGeoShape();
     } else if (mode === "physics") {
     document.getElementById("calcPhysInputs").style.display = "block";
