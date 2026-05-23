@@ -140,59 +140,67 @@
             <div id="physSolver"></div>
         </div>
         
-        <!-- УРАВНЕНИЯ -->
-        <div id="calcEqInputs" style="display:none;">
-            <div style="display:flex; gap:6px; margin-bottom:10px;">
-                <button class="calc-mode-btn eq-type-btn active" id="eqType_linear" onclick="switchEqType('linear')">Линейные</button>
-                <button class="calc-mode-btn eq-type-btn" id="eqType_quadratic" onclick="switchEqType('quadratic')">Квадратные</button>
-                <button class="calc-mode-btn eq-type-btn" id="eqType_system" onclick="switchEqType('system')" style="opacity:0.5;" disabled>Системы (скоро)</button>
-            </div>
-            
-            <div id="eqCalcPad">
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <input type="text" id="eqInput" placeholder="" 
-                        style="flex:1; padding:12px; background:#0A0A14; border:2px solid #58A6FF; color:#FFD700; font-size:18px; border-radius:8px; text-align:center; letter-spacing:1px;"
-                        onfocus="this.select()">
-                    <button class="calc-btn" onclick="eqPaste()" style="padding:12px 15px; font-size:18px;">📋</button>
-                </div>
-                
-                <div class="calc-buttons" style="margin-top:5px;">
-                    <button class="calc-btn calc-btn-clear" onclick="eqClear()">C</button>
-                    <button class="calc-btn calc-btn-clear" onclick="eqBackspace()">⌫</button>
-                    <button class="calc-btn" onclick="eqInput('(')">(</button>
-                    <button class="calc-btn" onclick="eqInput(')')">)</button>
-                    <button class="calc-btn" onclick="eqInput('7')">7</button>
-                    <button class="calc-btn" onclick="eqInput('8')">8</button>
-                    <button class="calc-btn" onclick="eqInput('9')">9</button>
-                    <button class="calc-btn calc-btn-op" onclick="eqInput('/')">/</button>
-                    <button class="calc-btn" onclick="eqInput('4')">4</button>
-                    <button class="calc-btn" onclick="eqInput('5')">5</button>
-                    <button class="calc-btn" onclick="eqInput('6')">6</button>
-                    <button class="calc-btn calc-btn-op" onclick="eqInput('*')">*</button>
-                    <button class="calc-btn" onclick="eqInput('1')">1</button>
-                    <button class="calc-btn" onclick="eqInput('2')">2</button>
-                    <button class="calc-btn" onclick="eqInput('3')">3</button>
-                    <button class="calc-btn calc-btn-op" onclick="eqInput('-')">−</button>
-                    <button class="calc-btn" onclick="eqInput('0')">0</button>
-                    <button class="calc-btn" onclick="eqInput('.')">.</button>
-                    <button class="calc-btn calc-btn-eq" onclick="eqSolve()" style="font-size:16px;">Решить</button>
-                    <button class="calc-btn calc-btn-op" onclick="eqInput('+')">+</button>
-                    <button class="calc-btn calc-btn-func" onclick="eqInput('x')">x</button>
-                    <button class="calc-btn calc-btn-func" onclick="eqInput('x^2')">x²</button>
-                    <button class="calc-btn calc-btn-func" onclick="eqInput('=')">=</button>
-                </div>
-            </div>
-            
-            <div id="eqSolution" style="display:none;">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; background:#1A1A2E; padding:10px; border-radius:8px;">
-                    <span style="color:#FFD700; font-size:16px; flex:1;" id="eqOriginal"></span>
-                    <button class="calc-btn" onclick="eqEdit()" style="padding:8px 12px; font-size:16px;">✏️</button>
-                </div>
-                <div id="eqSteps" style="color:#CCC; font-size:14px;"></div>
-                <div id="eqAnswer" style="margin-top:10px;"></div>
-            </div>
+      <!-- УРАВНЕНИЯ -->
+<div id="calcEqInputs" style="display:none;">
+    <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <button class="calc-mode-btn eq-type-btn active" id="eqType_linear" onclick="switchEqType('linear')">Линейные</button>
+        <button class="calc-mode-btn eq-type-btn" id="eqType_quadratic" onclick="switchEqType('quadratic')">Квадратные</button>
+        <button class="calc-mode-btn eq-type-btn" id="eqType_system" onclick="switchEqType('system')">Системы</button>
+    </div>
+    
+    <div id="eqCalcPad">
+        <!-- Первое поле -->
+        <div style="display:flex; gap:8px; margin-bottom:5px;">
+            <input type="text" id="eqInput1" placeholder="" 
+                style="flex:1; padding:14px; background:#0A0A14; border:2px solid #FFD700; color:#FFD700; font-size:20px; border-radius:8px; text-align:center; letter-spacing:1px;"
+                onfocus="focusEqInput(1)" onclick="focusEqInput(1)">
+            <button class="calc-btn" onclick="eqPaste()" style="padding:12px 15px; font-size:18px;">📋</button>
         </div>
         
+        <!-- Второе поле (только для систем) -->
+        <div id="eqInput2Row" style="display:none; gap:8px; margin-bottom:8px;">
+            <input type="text" id="eqInput2" placeholder="" 
+                style="flex:1; padding:14px; background:#0A0A14; border:2px solid #3A5A6B; color:#FFD700; font-size:20px; border-radius:8px; text-align:center; letter-spacing:1px;"
+                onfocus="focusEqInput(2)" onclick="focusEqInput(2)">
+            <div style="width:52px;"></div>
+        </div>
+        
+        <div class="calc-buttons" style="margin-top:5px;">
+            <button class="calc-btn calc-btn-clear" onclick="eqClear()">C</button>
+            <button class="calc-btn calc-btn-clear" onclick="eqBackspace()">⌫</button>
+            <button class="calc-btn" onclick="eqInput('(')">(</button>
+            <button class="calc-btn" onclick="eqInput(')')">)</button>
+            <button class="calc-btn" onclick="eqInput('7')">7</button>
+            <button class="calc-btn" onclick="eqInput('8')">8</button>
+            <button class="calc-btn" onclick="eqInput('9')">9</button>
+            <button class="calc-btn calc-btn-op" onclick="eqInput('/')">/</button>
+            <button class="calc-btn" onclick="eqInput('4')">4</button>
+            <button class="calc-btn" onclick="eqInput('5')">5</button>
+            <button class="calc-btn" onclick="eqInput('6')">6</button>
+            <button class="calc-btn calc-btn-op" onclick="eqInput('*')">*</button>
+            <button class="calc-btn" onclick="eqInput('1')">1</button>
+            <button class="calc-btn" onclick="eqInput('2')">2</button>
+            <button class="calc-btn" onclick="eqInput('3')">3</button>
+            <button class="calc-btn calc-btn-op" onclick="eqInput('-')">−</button>
+            <button class="calc-btn" onclick="eqInput('0')">0</button>
+            <button class="calc-btn" onclick="eqInput('.')">.</button>
+            <button class="calc-btn calc-btn-eq" onclick="eqSolve()" style="font-size:16px;">Решить</button>
+            <button class="calc-btn calc-btn-op" onclick="eqInput('+')">+</button>
+            <button class="calc-btn calc-btn-func" onclick="eqInput('x')">x</button>
+            <button class="calc-btn calc-btn-func" id="eqYBtn" onclick="eqInput('y')">y</button>
+            <button class="calc-btn calc-btn-func" onclick="eqInput('=')">=</button>
+        </div>
+    </div>
+    
+    <div id="eqSolution" style="display:none;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; background:#1A1A2E; padding:10px; border-radius:8px;">
+            <span style="color:#FFD700; font-size:16px; flex:1;" id="eqOriginal"></span>
+            <button class="calc-btn" onclick="eqEdit()" style="padding:8px 12px; font-size:16px;">✏️</button>
+        </div>
+        <div id="eqSteps" style="color:#CCC; font-size:14px;"></div>
+        <div id="eqAnswer" style="margin-top:10px;"></div>
+    </div>
+</div>
         <!-- КОНВЕРТЕР -->
         <div id="calcConverterOutput" style="display:none;">
             <select id="convType" class="calc-select">
