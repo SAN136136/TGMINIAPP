@@ -1,4 +1,4 @@
-// ==================== УРАВНЕНИЯ v3.5 (Final Fix) ====================
+// ==================== УРАВНЕНИЯ v3.6 (Final Fix) ====================
 let eqExpression = "";
 let eqExpression2 = "";
 let eqSolved = false;
@@ -148,13 +148,10 @@ function showResult(result) {
     document.getElementById("eqSteps").innerHTML = html;
 }
 
-// ==================== НОВЫЙ ПАРСЕР (исправлен) ====================
+// ==================== ПАРСЕР ====================
 
 function parseCoefficients(expr, target) {
-    expr = expr.replace(/−/g, "-");  // ← ВОТ ЭТА СТРОКА ДОЛЖНА БЫТЬ ПЕРВОЙ
-    let s = expr;
-    
-}
+    expr = expr.replace(/−/g, "-");  // ФИКС: Unicode-минус → обычный дефис
     let s = expr;
     if (s.length > 0 && s[0] !== "+" && s[0] !== "-") {
         s = "+" + s;
@@ -195,17 +192,15 @@ function parseCoefficients(expr, target) {
         return sum;
     }
     
-    // Свободный член: убираем все члены с x и y
+    // Свободный член
     let cleaned = s;
     cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x[\^²]2/g, "");
     cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x(?![\^²2])/g, "");
     cleaned = cleaned.replace(/([+-]?\d*\.?\d*)y/g, "");
     
-    if (cleaned.length > 0 && cleaned[0] !== "+" && cleaned[0] !== "-" && cleaned[0] !== "−") {
-    cleaned = "+" + cleaned;
-}
-// Заменяем Unicode-минус на обычный
-cleaned = cleaned.replace(/−/g, "-");
+    if (cleaned.length > 0 && cleaned[0] !== "+" && cleaned[0] !== "-") {
+        cleaned = "+" + cleaned;
+    }
     
     let terms = cleaned.match(/([+-]\d+\.?\d*)/g) || [];
     terms.forEach(t => sum += parseFloat(t));
@@ -213,7 +208,7 @@ cleaned = cleaned.replace(/−/g, "-");
 }
 
 function parseEquation(str) {
-    let s = str.replace(/\s/g, "").replace(/,/g, ".");
+    let s = str.replace(/−/g, "-").replace(/\s/g, "").replace(/,/g, ".");
     let left = s, right = "0";
     if (s.includes("=")) [left, right] = s.split("=");
     
@@ -235,6 +230,7 @@ function parseEquation(str) {
 // ==================== РЕШАТЕЛИ ====================
 
 function solveLinear(input) {
+    input = input.replace(/−/g, "-");
     if (!input.includes("x")) return { error: "❌ Это не линейное уравнение (нет x)" };
     if (input.includes("x^2") || input.includes("x²")) return { error: "❌ Есть x² — перейди в «Квадратные»" };
     
@@ -252,6 +248,7 @@ function solveLinear(input) {
 }
 
 function solveQuadratic(input) {
+    input = input.replace(/−/g, "-");
     if (!input.includes("x^2") && !input.includes("x²")) return { error: "❌ Нет x² — перейди в «Линейные»" };
     
     let s = input.replace(/\s/g, "").replace(/,/g, ".");
@@ -296,6 +293,8 @@ function solveQuadratic(input) {
 }
 
 function solveSystem(input1, input2) {
+    input1 = input1.replace(/−/g, "-");
+    input2 = input2.replace(/−/g, "-");
     let e1 = parseEquation(input1);
     let e2 = parseEquation(input2);
     
@@ -361,7 +360,7 @@ function solveSystem(input1, input2) {
 }
 
 // ==================== АВТОТЕСТ ====================
-console.log("=== АВТОТЕСТ УРАВНЕНИЙ v3.5 ===");
+console.log("=== АВТОТЕСТ УРАВНЕНИЙ v3.6 ===");
 
 let testEq = parseEquation("2x − 3 = 6x + 5");
 console.log("parseEquation: ax=" + testEq.ax + ", bv=" + testEq.bv + " (ожидаю ax=-4, bv=8)");
@@ -375,7 +374,6 @@ console.log("solveQuadratic: " + testQuad.answer + " (ожидаю x₁=3, x₂=
 let testSys = solveSystem("x + y = 5", "x − y = 1");
 console.log("solveSystem: " + testSys.answer + " (ожидаю x=3, y=2)");
 
-// ОТЛАДКА
 console.log("=== ОТЛАДКА ПАРСЕРА ===");
 let left = "+2x − 3";
 console.log("Левая часть:", left);
