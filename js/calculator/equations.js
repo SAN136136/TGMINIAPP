@@ -1,4 +1,4 @@
-// ==================== УРАВНЕНИЯ v3.3 (All Fixes) ====================
+// ==================== УРАВНЕНИЯ v3.4 (Final Fix) ====================
 let eqExpression = "";
 let eqExpression2 = "";
 let eqSolved = false;
@@ -148,57 +148,106 @@ function showResult(result) {
     document.getElementById("eqSteps").innerHTML = html;
 }
 
-// ==================== ПАРСЕРЫ ====================
+// ==================== НОВЫЙ ПАРСЕР (правильно обрабатывает знаки) ====================
+
+function parseCoefficients(expr, target) {
+    // target: "x2", "x", "y", или null (свободный член)
+    // Добавляем "+" в начало, если выражение начинается с буквы или числа
+    let s = expr;
+    if (s.length > 0 && s[0] !== "+" && s[0] !== "-") {
+        s = "+" + s;
+    }
+    
+    let sum = 0;
+    let regex;
+    
+    if (target === "x2") {
+        regex = /([+-]\d*\.?\d*)x[\^²]2/g;
+    } else if (target === "x") {
+        regex = /([+-]\d*\.?\d*)x(?![\^²2])/g;
+    } else if (target === "y") {
+        regex = /([+-]\d*\.?\d*)y/g;
+    } else {
+        // Свободный член: заменяем все члены с x и y на пустоту, остальное суммируем
+        let cleaned = s.replace(/([+-]?\d*\.?\d*)x[\^²]?2?/g, "");
+        cleaned = cleaned.replace(/([+-]?\d*\.?\d*)y/g, "");
+        // Добавляем "+" в начало для правильного парсинга
+        if (cleaned.length > 0 && cleaned[0] !== "+" && cleaned[0] !== "-") {
+            cleaned = "+" + cleaned;
+        }
+        let terms = cleaned.match(/([+-]\d+\.?\d*)/g) || [];
+        terms.forEach(t => sum += parseFloat(t));
+        return sum;
+    }
+    
+    let matches = s.match(regex) || [];
+    matches.forEach(m => {
+        let coef = m.replace(target === "x2" ? /x[\^²]2/ : target === "y" ? /y/ : /x(?![\^²2])/, "");
+        if (coef === "+" || coef === "") sum += 1;
+        else if (coef === "-") sum -= 1;
+        else sum += parseFloat(coef);
+    });
+    
+    return sum;
+}
+
+function parseEquation(str) {
+    let s = str.replace(/\s/g, "").replace(/,/g, ".");
+    let left = s, right = "0";
+    if (s.includes("=")) [left, right] = s.split("=");
+    
+    let ax = parseCoefficients(left, "x");
+    let ay = parseCoefficients(left, "y");
+    let bv = parseCoefficients(left, null);
+    
+    let rAx = parseCoefficients(right, "x");
+    let rAy = parseCoefficients(right, "y");
+    let rBv = parseCoefficients(right, null);
+    
+    // Переносим правую часть в левую: левая - правая
+    ax -= rAx;
+    ay -= rAy;
+    bv -= rBv;
+    
+    // Уравнение: ax + ay + bv = 0 → ax + ay = -bv
+    return { ax, ay, bv: -bv };
+}
+
+// ==================== РЕШАТЕЛИ ====================
 
 function solveLinear(input) {
-    let expr = input.replace(/\s/g, "").replace(/,/g, ".");
+    if (!input.includes("x")) return { error: "❌ Это не линейное уравнение (нет x)" };
+    if (input.includes("x^2") || input.includes("x²")) return { error: "❌ Есть x² — перейди в «Квадратные»" };
     
-    if (!expr.includes("x")) return { error: "❌ Это не линейное уравнение (нет x)" };
-    if (expr.includes("x^2") || expr.includes("x²")) return { error: "❌ Есть x² — перейди в «Квадратные»" };
+    let eq = parseEquation(input);
     
-    let left = expr, right = "0";
-    if (expr.includes("=")) [left, right] = expr.split("=");
+    if (eq.ax === 0) return { error: "❌ Коэффициент при x равен 0" };
     
-    let a = parseSide(left, "x");
-    let b = parseSide(left, null);
-    let rightA = parseSide(right, "x");
-    let rightB = parseSide(right, null);
-    
-    a -= rightA;
-    b -= rightB;
-    
-    if (a === 0) return { error: "❌ Коэффициент при x равен 0" };
-    
-    let x = -b / a;
+    let x = eq.bv / eq.ax;
     
     return {
         original: input,
-        steps: `${a}x + ${b} = 0\n${a}x = ${-b}\nx = ${-b} / ${a}\nx = ${x.toFixed(4)}`,
+        steps: `${eq.ax}x = ${eq.bv}\nx = ${eq.bv} / ${eq.ax}\nx = ${x.toFixed(4)}`,
         answer: `x = ${x.toFixed(4)}`
     };
 }
 
 function solveQuadratic(input) {
-    let expr = input.replace(/\s/g, "").replace(/,/g, ".");
+    if (!input.includes("x^2") && !input.includes("x²")) return { error: "❌ Нет x² — перейди в «Линейные»" };
     
-    if (!expr.includes("x^2") && !expr.includes("x²")) return { error: "❌ Нет x² — перейди в «Линейные»" };
-    
-    let left = expr, right = "0";
-    if (expr.includes("=")) [left, right] = expr.split("=");
-    
-    // Переносим правую часть в левую (вычитаем)
-    // Упрощённо: объединяем left и right с инвертированными знаками right
-    let fullExpr = left;
-    let rightTerms = right.match(/([+-]?\d*\.?\d*)x[\^²]2|([+-]?\d*\.?\d*)x(?![\^²2])|([+-]?\d+\.?\d*)/g) || [];
-    rightTerms.forEach(term => {
-        if (term.startsWith("+")) fullExpr += "-" + term.slice(1);
-        else if (term.startsWith("-")) fullExpr += "+" + term.slice(1);
-        else fullExpr += "-" + term;
-    });
-    
-    let a = parseSide(fullExpr, "x2");
-    let b = parseSide(fullExpr, "x");
-    let c = parseSide(fullExpr, null);
+    let eq = parseEquation(input);
+    // Для квадратного: ax² + bx + c = 0 → eq.ax это коэффициент при x, eq.bv это свободный член
+    // Но parseEquation не парсит x²! Нужно отдельно.
+    let a = parseCoefficients(input.replace(/\s/g, ""), "x2");
+    let b = eq.ax;  // коэффициент при x
+    let c = parseCoefficients(input.replace(/\s/g, ""), null);
+    // Пересчитываем с учётом правой части
+    let s = input.replace(/\s/g, "").replace(/,/g, ".");
+    let left = s, right = "0";
+    if (s.includes("=")) [left, right] = s.split("=");
+    a = parseCoefficients(left, "x2") - parseCoefficients(right, "x2");
+    b = parseCoefficients(left, "x") - parseCoefficients(right, "x");
+    c = parseCoefficients(left, null) - parseCoefficients(right, null);
     
     if (a === 0) return { error: "❌ a = 0 — не квадратное" };
     
@@ -298,60 +347,4 @@ function solveSystem(input1, input2) {
     steps += `\nx = ${sumC} / ${sumA} = ${x.toFixed(4)}\n`;
     steps += `y = (${e1.bv} − ${e1.ax}·${x.toFixed(4)}) / ${e1.ay} = ${y.toFixed(4)}`;
     return { original: `${input1}  |  ${input2}`, steps, answer: `x = ${x.toFixed(4)}  |  y = ${y.toFixed(4)}` };
-}
-
-// ==================== УНИВЕРСАЛЬНЫЙ ПАРСЕР ====================
-
-function parseSide(expr, target) {
-    // target: "x2" (x²), "x" (x), "y" (y), null (свободный член)
-    let sum = 0;
-    let regex;
-    
-    if (target === "x2") {
-        regex = /([+-]?\d*\.?\d*)x[\^²]2/g;
-    } else if (target === "x") {
-        regex = /([+-]?\d*\.?\d*)x(?![\^²2])/g;
-    } else if (target === "y") {
-        regex = /([+-]?\d*\.?\d*)y/g;
-    } else {
-        // Свободный член: всё, что не содержит x или y
-        // Упрощённо: убираем все члены с x и y, оставшееся суммируем
-        let cleaned = expr.replace(/([+-]?\d*\.?\d*)x[\^²]?2?/g, "");
-        cleaned = cleaned.replace(/([+-]?\d*\.?\d*)y/g, "");
-        let terms = cleaned.match(/([+-]?\d+\.?\d*)/g) || [];
-        terms.forEach(t => sum += parseFloat(t));
-        return sum;
-    }
-    
-    let matches = expr.match(regex) || [];
-    matches.forEach(m => {
-        let coef = m.replace(target === "x2" ? /x[\^²]2/ : target === "y" ? /y/ : /x(?![\^²2])/, "");
-        if (coef === "" || coef === "+") sum += 1;
-        else if (coef === "-") sum -= 1;
-        else sum += parseFloat(coef);
-    });
-    
-    return sum;
-}
-
-function parseEquation(str) {
-    let s = str.replace(/\s/g, "").replace(/,/g, ".");
-    let left = s, right = "0";
-    if (s.includes("=")) [left, right] = s.split("=");
-    
-    let ax = parseSide(left, "x");
-    let ay = parseSide(left, "y");
-    let bv = parseSide(left, null);
-    
-    let rAx = parseSide(right, "x");
-    let rAy = parseSide(right, "y");
-    let rBv = parseSide(right, null);
-    
-    // Переносим правую часть в левую
-    ax -= rAx;
-    ay -= rAy;
-    bv -= rBv;
-    
-    // Переносим свободный член в правую часть
-    return { ax, ay, bv: -bv };
 }
