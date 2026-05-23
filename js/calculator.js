@@ -1,4 +1,4 @@
-// ==================== КАЛЬКУЛЯТОР v3.3 ====================
+// ==================== КАЛЬКУЛЯТОР v3.6 ====================
 let calcExpression = "";
 let calcHistory = [];
 let calcShowHistory = false;
@@ -177,11 +177,10 @@ function switchCalcMode(mode) {
     calcShowTrig = false;
     
     if (mode === "basic") {
-    document.getElementById("calcMainButtons").style.display = "grid";
-    document.getElementById("calcExtraBtns").style.display = "grid";
-    document.getElementById("calcDisplay").style.display = "block";
-    document.getElementById("calcResult").style.display = "block";
-
+        document.getElementById("calcMainButtons").style.display = "grid";
+        document.getElementById("calcExtraBtns").style.display = "grid";
+        document.getElementById("calcDisplay").style.display = "block";
+        document.getElementById("calcResult").style.display = "block";
     } else if (mode === "equations") {
         document.getElementById("calcEqInputs").style.display = "block";
         document.getElementById("calcEquationBtns").style.display = "grid";
@@ -191,11 +190,6 @@ function switchCalcMode(mode) {
         document.getElementById("calcGeoInputs").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
         document.getElementById("calcResult").style.display = "none";
-        document.getElementById("calcResult").style.display = "none";
-        document.getElementById("calcDisplay").style.display = "none";
-        document.getElementById("calcResult").style.display = "none";
-        document.getElementById("calcMainButtons").style.display = "none";
-        document.getElementById("calcExtraBtns").style.display = "none";
         if (!document.getElementById("geoShape").value) {
             document.getElementById("geoShape").value = "triangle";
         }
@@ -214,7 +208,7 @@ function switchCalcMode(mode) {
     calcClear();
 }
 
-// ==================== ГЕОМЕТРИЯ v3.5 ====================
+// ==================== ГЕОМЕТРИЯ v3.6 ====================
 let geoData = {};
 let geoActiveCell = null;
 let geoCalcExpr = "";
@@ -222,6 +216,11 @@ let geoShowAdvanced = false;
 let wasCalcOpenBeforeFormula = false;
 
 function switchGeoShape() {
+    document.getElementById("calcDisplay").style.display = "none";
+    document.getElementById("calcResult").style.display = "none";
+    document.getElementById("calcMainButtons").style.display = "none";
+    document.getElementById("calcExtraBtns").style.display = "none";
+    
     const shape = document.getElementById("geoShape").value;
     if (!shape) {
         document.getElementById("geoTable").style.display = "none";
@@ -238,10 +237,6 @@ function switchGeoShape() {
     geoCalcExpr = "";
     geoShowAdvanced = false;
     document.getElementById("geoAdvancedRow").style.display = "none";
-    document.getElementById("calcDisplay").style.display = "none";
-    document.getElementById("calcResult").style.display = "none";
-    document.getElementById("calcMainButtons").style.display = "none";
-    document.getElementById("calcExtraBtns").style.display = "none";
     renderGeoTable(shape);
 }
 
@@ -261,7 +256,7 @@ function renderGeoTable(shape) {
     const table = document.getElementById("geoTable");
     const fields = getGeoFields(shape);
     const cols = (shape === "triangle") ? 2 : 1;
-    let isActive = geoActiveCell && geoActiveCell.shape === shape && geoActiveCell.field === f.key;
+    
     let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
         <span style="color:#888; font-size:11px;">Введи известные данные</span>
         <button class="calc-btn calc-btn-clear" onclick="clearGeoTable()" style="padding:6px 10px; font-size:11px;">🗑 Очистить</button>
@@ -270,7 +265,7 @@ function renderGeoTable(shape) {
     html += "<tr><th>Параметр</th><th>Значение</th><th></th>";
     if (cols === 2) html += "<th>Параметр</th><th>Значение</th><th></th>";
     html += "</tr>";
-
+    
     for (let i = 0; i < fields.length; i += cols) {
         html += "<tr>";
         for (let j = 0; j < cols; j++) {
@@ -283,7 +278,7 @@ function renderGeoTable(shape) {
                 let displayVal;
                 let isComputed = false;
                 let isActive = geoActiveCell && geoActiveCell.shape === shape && geoActiveCell.field === f.key;
-
+                
                 if (computed !== null) {
                     displayVal = computed;
                     isComputed = true;
@@ -295,14 +290,14 @@ function renderGeoTable(shape) {
                 } else {
                     displayVal = "н/д";
                 }
-
+                
                 let autoMark = "";
                 if (isAuto) {
                     autoMark = " <span style='color:#888; font-size:9px;'>авто</span>";
                 }
-
+                
                 html += `<td style="padding:6px 8px;">${f.label}</td>
-                    <td class="geo-val ${isComputed ? 'geo-computed' : ''} ${isActive ? 'geo-active-cell' : ''}"
+                    <td class="geo-val ${isComputed ? 'geo-computed' : ''} ${isActive ? 'geo-active-cell' : ''}" 
                         onclick="editGeoCell('${shape}', '${f.key}')"
                         style="padding:8px 10px; cursor:pointer; white-space:nowrap; ${isComputed ? 'color:#58A6FF;font-weight:bold;' : 'color:#CCC;'}">
                         ${displayVal}${autoMark}
@@ -318,7 +313,7 @@ function renderGeoTable(shape) {
     }
     html += "</table>";
     table.innerHTML = html;
-
+    
     const error = checkGeoImpossible(shape);
     document.getElementById("geoError").textContent = error || "";
 }
@@ -326,14 +321,14 @@ function renderGeoTable(shape) {
 function getSideLimits(shape, field) {
     if (shape !== "triangle") return null;
     if (field !== "a" && field !== "b" && field !== "c") return null;
-
+    
     const d = geoData["triangle"];
     if (!d) return null;
-
+    
     const a = d.a !== undefined ? parseFloat(d.a) : null;
     const b = d.b !== undefined ? parseFloat(d.b) : null;
     const c = d.c !== undefined ? parseFloat(d.c) : null;
-
+    
     if (field === "c" && a !== null && b !== null && c === null) {
         const min = Math.abs(a - b);
         const max = a + b;
@@ -363,17 +358,8 @@ function editGeoCell(shape, field) {
     geoCalcExpr = geoData[shape][field] !== undefined ? String(geoData[shape][field]) : "";
     geoShowAdvanced = false;
     document.getElementById("geoAdvancedRow").style.display = "none";
-    renderGeoTable(shape);  // ← ВОТ ЭТА СТРОКА ДОЛЖНА БЫТЬ!
-}
-
-    geoActiveCell = { shape, field };
-    document.getElementById("geoCalcPad").style.display = "block";
-    geoCalcExpr = geoData[shape][field] !== undefined ? String(geoData[shape][field]) : "";
-    document.getElementById("geoCalcDisplay").textContent = geoCalcExpr || "0";
-    geoShowAdvanced = false;
-    document.getElementById("geoAdvancedRow").style.display = "none";
     renderGeoTable(shape);
-
+}
 
 function geoCalcInput(val) {
     if (geoCalcExpr === "" && "0123456789".includes(val)) geoCalcExpr = val;
@@ -381,8 +367,8 @@ function geoCalcInput(val) {
     liveGeoUpdate();
 }
 
-function geoCalcClear() { geoCalcExpr = ""; document.getElementById("geoCalcDisplay").textContent = "0"; liveGeoUpdate(); }
-function geoCalcBackspace() { geoCalcExpr = geoCalcExpr.slice(0, -1);}
+function geoCalcClear() { geoCalcExpr = ""; liveGeoUpdate(); }
+function geoCalcBackspace() { geoCalcExpr = geoCalcExpr.slice(0, -1); liveGeoUpdate(); }
 
 function toggleGeoAdvanced() {
     geoShowAdvanced = !geoShowAdvanced;
@@ -392,7 +378,7 @@ function toggleGeoAdvanced() {
 function liveGeoUpdate() {
     if (!geoActiveCell) return;
     let val = geoCalcExpr.trim();
-
+    
     try {
         let expr = val.replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-")
             .replace(/π/g, String(Math.PI)).replace(/²/g, "**2").replace(/\^/g, "**");
@@ -402,7 +388,7 @@ function liveGeoUpdate() {
             val = Math.round(result * 1000000) / 1000000;
         }
     } catch (e) {}
-
+    
     if (val !== "" && val !== undefined) {
         geoData[geoActiveCell.shape][geoActiveCell.field] = val;
         delete geoData[geoActiveCell.shape]["_auto_" + geoActiveCell.field];
@@ -455,7 +441,7 @@ function getGeoFields(shape) {
 function computeGeoField(shape, field) {
     const d = geoData[shape];
     if (!d) return null;
-
+    
     if (shape === "circle") {
         const R = d.R !== undefined ? parseFloat(d.R) : null;
         if (field === "R") return R !== null ? R : null;
@@ -470,12 +456,11 @@ function computeGeoField(shape, field) {
         const A_manual = d.A_manual !== undefined ? parseFloat(d.A_manual) : null;
         const B_manual = d.B_manual !== undefined ? parseFloat(d.B_manual) : null;
         const C_manual = d.C_manual !== undefined ? parseFloat(d.C_manual) : null;
-
+        
         if (field === "a") return a;
         if (field === "b") return b;
         if (field === "c") return c;
-
-        // Автозамена углов: если введены все три стороны
+        
         if (a !== null && b !== null && c !== null) {
             if (field === "A") {
                 const cosA = (b*b + c*c - a*a) / (2*b*c);
@@ -499,7 +484,7 @@ function computeGeoField(shape, field) {
                 }
             }
         }
-
+        
         if (field === "A") {
             if (A_manual !== null) return A_manual;
             if (B_manual !== null && C_manual !== null) {
@@ -554,7 +539,7 @@ function computeGeoField(shape, field) {
 function checkGeoImpossible(shape) {
     const d = geoData[shape];
     if (!d) return null;
-
+    
     if (shape === "triangle") {
         const a = d.a !== undefined ? parseFloat(d.a) : null;
         const b = d.b !== undefined ? parseFloat(d.b) : null;
@@ -588,11 +573,11 @@ function checkGeoImpossible(shape) {
 
 function showGeoFormula(shape, field) {
     wasCalcOpenBeforeFormula = document.getElementById("calcModal").style.display === "flex";
-
+    
     const d = geoData[shape];
     let formulaText = "";
     let appliedText = "";
-
+    
     if (shape === "circle") {
         const formulas = { D: "D = 2R", S: "S = πR²", C: "C = 2πR" };
         formulaText = "1. " + (formulas[field] || "");
@@ -603,8 +588,8 @@ function showGeoFormula(shape, field) {
             else if (field === "C") appliedText = `C = 2 × π × ${R} = ${(2*Math.PI*R).toFixed(4)}`;
         }
     } else if (shape === "triangle") {
-        const formulas = {
-            P: "1. P = a + b + c",
+        const formulas = { 
+            P: "1. P = a + b + c", 
             S: "1. S = √(p(p-a)(p-b)(p-c))\n   p = (a+b+c)/2",
             A: "1. A = 180° − B − C (по двум углам)\n2. cos A = (b² + c² − a²) / (2bc) (по сторонам)",
             B: "1. B = 180° − A − C (по двум углам)\n2. cos B = (a² + c² − b²) / (2ac) (по сторонам)",
@@ -617,7 +602,7 @@ function showGeoFormula(shape, field) {
         const A = d?.A_manual !== undefined ? parseFloat(d.A_manual) : null;
         const B = d?.B_manual !== undefined ? parseFloat(d.B_manual) : null;
         const C = d?.C_manual !== undefined ? parseFloat(d.C_manual) : null;
-
+        
         if (field === "P" && a!==null && b!==null && c!==null) appliedText = `P = ${a} + ${b} + ${c} = ${(a+b+c).toFixed(4)}`;
         else if (field === "S" && a!==null && b!==null && c!==null) {
             const p = (a+b+c)/2;
@@ -657,19 +642,20 @@ function showGeoFormula(shape, field) {
         else if (field === "S_side" && R!==null && h!==null) appliedText = `S(бок) = 2 × π × ${R} × ${h} = ${(2*Math.PI*R*h).toFixed(4)}`;
         else if (field === "S_full" && R!==null && h!==null) appliedText = `S(полн) = 2 × π × ${R} × (${R} + ${h}) = ${(2*Math.PI*R*(R+h)).toFixed(4)}`;
     }
-
+    
     if (!formulaText) formulaText = "Нет формулы для этого параметра";
     if (!appliedText) appliedText = "Недостаточно данных для расчёта";
-
+    
     const content = `
         <div style="margin-bottom:10px; color:#FFD700; font-size:14px; white-space:pre-line;">${formulaText}</div>
         <div style="color:#58A6FF; font-size:14px; white-space:pre-line;">${appliedText}</div>
     `;
-
+    
     document.getElementById("calcModal").style.display = "none";
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
 }
+
 // ==================== ФИЗИКА ====================
 function updatePhysFormula() {
     const formula = document.getElementById("physFormula").value;
