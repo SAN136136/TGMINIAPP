@@ -69,17 +69,28 @@ function eqSolve() {
             document.getElementById("eqSteps").innerHTML = `<div style="color:#C72A2A;">${result.error}</div>`;
             return;
         }
-        showSolution(result);
-    } else if (eqType === "quadratic") {
-        const result = solveQuadratic(input);
-        if (result.error) {
-            document.getElementById("eqSteps").innerHTML = `<div style="color:#C72A2A;">${result.error}</div>`;
-            return;
-        }
-        showSolution(result);
+       function showSolution(result) {
+    eqSolved = true;
+    document.getElementById("eqCalcPad").style.display = "none";
+    document.getElementById("eqSolution").style.display = "block";
+    
+    let html = `<div style="color:#FFD700; font-size:14px; font-weight:bold; margin-bottom:8px;">${result.title}</div>`;
+    html += `<div style="color:#CCC; font-size:13px; margin-bottom:5px;">Исходное: ${result.original}</div>`;
+    html += result.steps;
+    
+    if (result.answer) {
+        html += `<div style="margin-top:10px; padding:10px; background:#1A2E1A; border-radius:6px; color:#2D8A4E; font-weight:bold; font-size:16px;">✅ ${result.answer}</div>`;
     }
+    
+    if (result.detail) {
+        // Сохраняем detail в глобальную переменную для использования в onclick
+        window._eqDetail = result.detail;
+        html += `<button onclick="showEqDetail(window._eqDetail)" 
+            style="margin-top:10px; padding:12px 20px; background:#3A5A6B; border:none; color:white; font-size:15px; border-radius:6px; cursor:pointer; width:100%;">📋 Подробнее</button>`;
+    }
+    
+    document.getElementById("eqSteps").innerHTML = html;
 }
-
 function showSolution(result) {
     eqSolved = true;
     document.getElementById("eqCalcPad").style.display = "none";
