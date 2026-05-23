@@ -265,4 +265,4 @@ function showEqDetail(detailText) {
     document.getElementById("calcModal").style.display = "none";
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
-});
+}
