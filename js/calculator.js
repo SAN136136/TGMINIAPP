@@ -181,7 +181,7 @@ function switchCalcMode(mode) {
     document.getElementById("calcExtraBtns").style.display = "grid";
     document.getElementById("calcDisplay").style.display = "block";
     document.getElementById("calcResult").style.display = "block";
-}
+
     } else if (mode === "equations") {
         document.getElementById("calcEqInputs").style.display = "block";
         document.getElementById("calcEquationBtns").style.display = "grid";
