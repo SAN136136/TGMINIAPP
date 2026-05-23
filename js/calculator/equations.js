@@ -1,4 +1,4 @@
-// ==================== УРАВНЕНИЯ v2.2 ====================
+// ==================== УРАВНЕНИЯ v2.3 ====================
 let eqExpression = "";
 let eqSolved = false;
 let eqType = "linear";
@@ -67,18 +67,20 @@ function eqSolve() {
     if (eqType === "linear") {
         const result = solveLinear(input);
         if (result.error) {
-            document.getElementById("eqSteps").innerHTML = `<div style="color:#C72A2A;">${result.error}</div>`;
             document.getElementById("eqSolution").style.display = "block";
             document.getElementById("eqCalcPad").style.display = "none";
+            document.getElementById("eqSteps").innerHTML = `<div style="color:#FF5555; font-size:18px; text-align:center; padding:20px;">${result.error}</div>`;
+            document.getElementById("eqAnswer").innerHTML = "";
             return;
         }
         showSolution(result);
     } else if (eqType === "quadratic") {
         const result = solveQuadratic(input);
         if (result.error) {
-            document.getElementById("eqSteps").innerHTML = `<div style="color:#C72A2A;">${result.error}</div>`;
             document.getElementById("eqSolution").style.display = "block";
             document.getElementById("eqCalcPad").style.display = "none";
+            document.getElementById("eqSteps").innerHTML = `<div style="color:#FF5555; font-size:18px; text-align:center; padding:20px;">${result.error}</div>`;
+            document.getElementById("eqAnswer").innerHTML = "";
             return;
         }
         showSolution(result);
@@ -90,18 +92,18 @@ function showSolution(result) {
     document.getElementById("eqCalcPad").style.display = "none";
     document.getElementById("eqSolution").style.display = "block";
     
-    let html = `<div style="color:#FFD700; font-size:14px; font-weight:bold; margin-bottom:8px;">${result.title}</div>`;
-    html += `<div style="color:#CCC; font-size:13px; margin-bottom:5px;">Исходное: ${result.original}</div>`;
-    html += result.steps;
+    // Крупное решение
+    let html = `<div style="font-size:20px; font-weight:bold; color:#58A6FF; margin-bottom:5px;">${result.original}</div>`;
+    html += `<div style="font-size:16px; color:#CCC; margin-bottom:15px;">${result.stepsShort}</div>`;
     
     if (result.answer) {
-        html += `<div style="margin-top:10px; padding:10px; background:#1A2E1A; border-radius:6px; color:#2D8A4E; font-weight:bold; font-size:16px;">✅ ${result.answer}</div>`;
+        html += `<div style="padding:12px; background:#1A2E1A; border-radius:8px; color:#2D8A4E; font-weight:bold; font-size:20px; text-align:center;">${result.answer}</div>`;
     }
     
     if (result.detail) {
         window._eqDetail = result.detail;
         html += `<button onclick="showEqDetail(window._eqDetail)" 
-            style="margin-top:10px; padding:12px 20px; background:#3A5A6B; border:none; color:white; font-size:15px; border-radius:6px; cursor:pointer; width:100%;">📋 Подробнее</button>`;
+            style="margin-top:15px; padding:14px 24px; background:#3A5A6B; border:none; color:white; font-size:16px; border-radius:8px; cursor:pointer; width:100%;">📋 Подробнее</button>`;
     }
     
     document.getElementById("eqSteps").innerHTML = html;
@@ -110,10 +112,12 @@ function showSolution(result) {
 function solveLinear(input) {
     let expr = input.replace(/\s/g, "").replace(/,/g, ".");
     
+    // Проверка: есть ли x
     if (!expr.includes("x")) {
         return { error: "❌ Это не линейное уравнение (нет переменной x)" };
     }
     
+    // Проверка: нет ли x² или x^2
     if (expr.includes("x^2") || expr.includes("x²")) {
         return { error: "❌ Это не линейное уравнение (есть x²). Перейди в раздел «Квадратные»" };
     }
@@ -142,33 +146,28 @@ function solveLinear(input) {
         let rightVal = eval(right.replace(/x/g, "0")) || 0;
         b -= rightVal;
     } catch(e) {
-        return { error: "❌ Не удалось разобрать уравнение. Проверь формат." };
+        return { error: "❌ Не удалось разобрать уравнение" };
     }
     
     if (a === 0) {
-        return { error: "❌ Коэффициент при x равен 0. Уравнение не имеет решения." };
+        return { error: "❌ Коэффициент при x равен 0" };
     }
     
     let x = -b / a;
     
     return {
-        title: "Решение линейного уравнения",
-        original: input,
-        steps: `
-            <div style="color:#CCC; font-size:13px; margin-bottom:5px;">Переносим всё в левую часть:</div>
-            <div style="color:#58A6FF; font-size:14px; margin-bottom:10px;">${a}x + ${b} = 0</div>
-            <div style="color:#CCC; font-size:13px;">Переносим ${b} в правую часть:</div>
-            <div style="color:#58A6FF; font-size:14px; margin-bottom:5px;">${a}x = ${-b}</div>
-            <div style="color:#CCC; font-size:13px;">Делим на ${a}:</div>
-        `,
+        title: "",
+        original: `${input}`,
+        stepsShort: `${a}x + ${b} = 0 → x = ${x.toFixed(4)}`,
         answer: `x = ${x.toFixed(4)}`,
-        detail: `Линейное уравнение: ${input}\n\nПриводим к виду ax + b = 0:\n${a}x + ${b} = 0\n\nПереносим b вправо:\n${a}x = ${-b}\n\nДелим на a:\nx = ${-b}/${a} = ${x.toFixed(4)}`
+        detail: `Линейное уравнение: ${input}\n\nПриводим к виду ax + b = 0:\n${a}x + ${b} = 0\n\nПереносим b вправо:\n${a}x = ${-b}\n\nДелим на a = ${a}:\nx = ${-b}/${a} = ${x.toFixed(4)}`
     };
 }
 
 function solveQuadratic(input) {
     let expr = input.replace(/\s/g, "").replace(/,/g, ".");
     
+    // Проверка: есть ли x² или x^2
     if (!expr.includes("x^2") && !expr.includes("x²")) {
         return { error: "❌ Это не квадратное уравнение (нет x²). Перейди в раздел «Линейные»" };
     }
@@ -181,6 +180,7 @@ function solveQuadratic(input) {
     
     let a = 0, b = 0, c = 0;
     
+    // Парсим x² и x^2
     let x2match = left.match(/([+-]?\d*\.?\d*)x[\^²]2/);
     if (x2match) {
         let coef = x2match[1] || "";
@@ -189,6 +189,7 @@ function solveQuadratic(input) {
         else a = parseFloat(coef);
     }
     
+    // Парсим x (не x²)
     let x1match = left.match(/([+-]?\d*\.?\d*)x(?![\^²2])/);
     if (x1match) {
         let coef = x1match[1] || "";
@@ -197,6 +198,7 @@ function solveQuadratic(input) {
         else b = parseFloat(coef);
     }
     
+    // Парсим свободный член
     let cmatch = left.match(/([+-]?\d+\.?\d*)(?![\^²2]?x)/g);
     if (cmatch) {
         cmatch.forEach(m => {
@@ -207,38 +209,35 @@ function solveQuadratic(input) {
     }
     
     if (a === 0) {
-        return { error: "❌ Коэффициент при x² равен 0. Это не квадратное уравнение." };
+        return { error: "❌ Коэффициент при x² равен 0" };
     }
     
     let D = b*b - 4*a*c;
-    let steps = `
-        <div style="color:#58A6FF; font-size:14px; margin-bottom:10px;">${a}x² + ${b}x + ${c} = 0</div>
-        <div style="color:#CCC; font-size:13px;">D = b² − 4ac = ${b}² − 4·${a}·${c} = ${D}</div>
-    `;
+    let stepsShort = `D = ${b}² − 4·${a}·${c} = ${D}`;
     let answer = "";
     let detail = `Квадратное уравнение: ${input}\n\nПриводим к виду ax² + bx + c = 0:\n${a}x² + ${b}x + ${c} = 0\n\nДискриминант:\nD = b² − 4ac = ${b}² − 4·${a}·${c} = ${D}\n\n`;
     
     if (D > 0) {
         let x1 = (-b + Math.sqrt(D)) / (2*a);
         let x2 = (-b - Math.sqrt(D)) / (2*a);
-        steps += `<div style="color:#2D8A4E; font-size:14px; margin-top:5px;">D > 0 → два корня:</div>`;
-        answer = `x₁ = ${x1.toFixed(4)}, x₂ = ${x2.toFixed(4)}`;
+        stepsShort += ` → D > 0 → два корня`;
+        answer = `x₁ = ${x1.toFixed(4)}  |  x₂ = ${x2.toFixed(4)}`;
         detail += `D > 0 → два корня:\nx₁ = (−b + √D) / 2a = (${-b} + ${Math.sqrt(D).toFixed(2)}) / ${2*a} = ${x1.toFixed(4)}\nx₂ = (−b − √D) / 2a = (${-b} − ${Math.sqrt(D).toFixed(2)}) / ${2*a} = ${x2.toFixed(4)}`;
     } else if (D === 0) {
         let x = -b / (2*a);
-        steps += `<div style="color:#2D8A4E; font-size:14px; margin-top:5px;">D = 0 → один корень:</div>`;
+        stepsShort += ` → D = 0 → один корень`;
         answer = `x = ${x.toFixed(4)}`;
         detail += `D = 0 → один корень:\nx = −b / 2a = ${-b} / ${2*a} = ${x.toFixed(4)}`;
     } else {
-        steps += `<div style="color:#C72A2A; font-size:14px; margin-top:5px;">D < 0 → нет действительных корней</div>`;
-        answer = "Нет действительных корней";
+        stepsShort += ` → D < 0 → нет корней`;
+        answer = `Нет действительных корней`;
         detail += `D < 0 → нет действительных корней`;
     }
     
     return {
-        title: "Решение квадратного уравнения",
-        original: input,
-        steps: steps,
+        title: "",
+        original: `${input}`,
+        stepsShort: stepsShort,
         answer: answer,
         detail: detail
     };
@@ -246,8 +245,8 @@ function solveQuadratic(input) {
 
 function showEqDetail(detailText) {
     const content = `
-        <div style="color:#FFD700; font-size:14px; margin-bottom:10px;">📋 Подробное решение</div>
-        <div style="color:#CCC; font-size:14px; white-space:pre-line;">${detailText}</div>
+        <div style="color:#FFD700; font-size:16px; margin-bottom:15px; font-weight:bold;">📋 Подробное решение</div>
+        <div style="color:#CCC; font-size:15px; white-space:pre-line; line-height:1.8;">${detailText}</div>
     `;
     
     document.getElementById("calcModal").style.display = "none";
