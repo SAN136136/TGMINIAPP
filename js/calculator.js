@@ -237,7 +237,6 @@ function switchGeoShape() {
     geoActiveCell = null;
     geoCalcExpr = "";
     geoShowAdvanced = false;
-    document.getElementById("geoCalcDisplay").textContent = "0";
     document.getElementById("geoAdvancedRow").style.display = "none";
     document.getElementById("calcDisplay").style.display = "none";
     document.getElementById("calcResult").style.display = "none";
@@ -253,7 +252,6 @@ function clearGeoTable() {
     geoActiveCell = null;
     geoCalcExpr = "";
     geoShowAdvanced = false;
-    document.getElementById("geoCalcDisplay").textContent = "0";
     document.getElementById("geoAdvancedRow").style.display = "none";
     document.getElementById("geoError").textContent = "";
     renderGeoTable(shape);
@@ -372,12 +370,11 @@ function editGeoCell(shape, field) {
 function geoCalcInput(val) {
     if (geoCalcExpr === "" && "0123456789".includes(val)) geoCalcExpr = val;
     else geoCalcExpr += val;
-    document.getElementById("geoCalcDisplay").textContent = geoCalcExpr || "0";
     liveGeoUpdate();
 }
 
 function geoCalcClear() { geoCalcExpr = ""; document.getElementById("geoCalcDisplay").textContent = "0"; liveGeoUpdate(); }
-function geoCalcBackspace() { geoCalcExpr = geoCalcExpr.slice(0, -1); document.getElementById("geoCalcDisplay").textContent = geoCalcExpr || "0"; liveGeoUpdate(); }
+function geoCalcBackspace() { geoCalcExpr = geoCalcExpr.slice(0, -1);}
 
 function toggleGeoAdvanced() {
     geoShowAdvanced = !geoShowAdvanced;
