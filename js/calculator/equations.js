@@ -348,3 +348,17 @@ function solveSystem(input1, input2) {
     steps += `y = (${e1.bv} − ${e1.ax}·${x.toFixed(4)}) / ${e1.ay} = ${y.toFixed(4)}`;
     return { original: `${input1}  |  ${input2}`, steps, answer: `x = ${x.toFixed(4)}  |  y = ${y.toFixed(4)}` };
 }
+// ==================== АВТОТЕСТ ====================
+console.log("=== АВТОТЕСТ УРАВНЕНИЙ ===");
+
+let testEq = parseEquation("2x − 3 = 6x + 5");
+console.log("2x − 3 = 6x + 5 → ax=" + testEq.ax + ", bv=" + testEq.bv + " (ожидаю ax=-4, bv=8)");
+
+let testLinear = solveLinear("2x − 3 = 6x + 5");
+console.log("solveLinear:", testLinear.answer, "(ожидаю x = -2)");
+
+let testQuad = solveQuadratic("x² − 5x + 6 = 0");
+console.log("solveQuadratic:", testQuad.answer, "(ожидаю x₁=3, x₂=2)");
+
+let testSys = solveSystem("x + y = 5", "x − y = 1");
+console.log("solveSystem:", testSys.answer, "(ожидаю x=3, y=2)");
