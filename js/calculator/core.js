@@ -20,7 +20,6 @@ function openCalculator() {
     document.getElementById("calcConverterOutput").style.display = "none";
     document.getElementById("calcMainButtons").style.display = "grid";
     document.getElementById("calcExtraBtns").style.display = "grid";
-    document.getElementById("calcEquationBtns").style.display = "none";
     document.getElementById("calcDisplay").style.display = "block";
     document.getElementById("calcResult").style.display = "block";
     switchCalcMode("basic");
@@ -52,7 +51,6 @@ function calcClear() {
     document.getElementById("calcResult").textContent = "";
 }
 
-// ==================== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ====================
 function switchCalcMode(mode) {
     calcMode = mode;
     document.querySelectorAll(".calc-mode-btn").forEach(btn => btn.classList.remove("active"));
@@ -61,7 +59,6 @@ function switchCalcMode(mode) {
     
     document.getElementById("calcMainButtons").style.display = "none";
     document.getElementById("calcExtraBtns").style.display = "none";
-    document.getElementById("calcEquationBtns").style.display = "none";
     document.getElementById("calcGeoInputs").style.display = "none";
     document.getElementById("calcPhysInputs").style.display = "none";
     document.getElementById("calcEqInputs").style.display = "none";
