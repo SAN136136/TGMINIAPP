@@ -201,9 +201,11 @@ function parseCoefficients(expr, target) {
     cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x(?![\^²2])/g, "");
     cleaned = cleaned.replace(/([+-]?\d*\.?\d*)y/g, "");
     
-    if (cleaned.length > 0 && cleaned[0] !== "+" && cleaned[0] !== "-") {
-        cleaned = "+" + cleaned;
-    }
+    if (cleaned.length > 0 && cleaned[0] !== "+" && cleaned[0] !== "-" && cleaned[0] !== "−") {
+    cleaned = "+" + cleaned;
+}
+// Заменяем Unicode-минус на обычный
+cleaned = cleaned.replace(/−/g, "-");
     
     let terms = cleaned.match(/([+-]\d+\.?\d*)/g) || [];
     terms.forEach(t => sum += parseFloat(t));
