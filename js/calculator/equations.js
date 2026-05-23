@@ -372,3 +372,15 @@ console.log("solveQuadratic: " + testQuad.answer + " (ожидаю x₁=3, x₂=
 
 let testSys = solveSystem("x + y = 5", "x − y = 1");
 console.log("solveSystem: " + testSys.answer + " (ожидаю x=3, y=2)");
+
+// ОТЛАДКА
+console.log("=== ОТЛАДКА ПАРСЕРА ===");
+let left = "+2x − 3";
+console.log("Левая часть:", left);
+console.log("  parseCoefficients(x):", parseCoefficients(left, "x"));
+console.log("  parseCoefficients(null):", parseCoefficients(left, null));
+
+let right = "+6x + 5";
+console.log("Правая часть:", right);
+console.log("  parseCoefficients(x):", parseCoefficients(right, "x"));
+console.log("  parseCoefficients(null):", parseCoefficients(right, null));
