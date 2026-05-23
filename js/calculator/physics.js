@@ -1,8 +1,9 @@
-// ==================== ФИЗИКА v2.1 — Решатель ====================
+// ==================== ФИЗИКА v2.2 — Решатель ====================
 let physGivens = [];
 let physFinds = [];
 let physShowAddGiven = false;
 let physShowAddFind = false;
+let physError = "";
 
 const physQuantities = [
     { symbol: "v0", name: "Начальная скорость (v₀)", unit: "м/с" },
@@ -12,10 +13,27 @@ const physQuantities = [
     { symbol: "S", name: "Путь (S)", unit: "м" },
     { symbol: "F", name: "Сила (F)", unit: "Н" },
     { symbol: "m", name: "Масса (m)", unit: "кг" },
+    { symbol: "P", name: "Давление (P)", unit: "Па" },
+    { symbol: "A", name: "Площадь (S)", unit: "м²" },
+    { symbol: "I", name: "Сила тока (I)", unit: "А" },
+    { symbol: "U", name: "Напряжение (U)", unit: "В" },
+    { symbol: "R", name: "Сопротивление (R)", unit: "Ом" },
 ];
 
 const physFormulas = [
+    // Кинематика
     { expr: "S = v₀t + at²/2", needs: ["v0", "t", "a"], gives: "S", name: "Путь при равноускоренном движении" },
+    { expr: "v = v₀ + at", needs: ["v0", "a", "t"], gives: "v", name: "Скорость при равноускоренном движении" },
+    { expr: "S = vt", needs: ["v", "t"], gives: "S", name: "Путь при равномерном движении" },
+    { expr: "v = S/t", needs: ["S", "t"], gives: "v", name: "Скорость при равномерном движении" },
+    // Динамика
+    { expr: "F = ma", needs: ["m", "a"], gives: "F", name: "Второй закон Ньютона" },
+    { expr: "a = F/m", needs: ["F", "m"], gives: "a", name: "Ускорение по второму закону Ньютона" },
+    // Давление
+    { expr: "P = F/S", needs: ["F", "A"], gives: "P", name: "Давление" },
+    // Электричество
+    { expr: "I = U/R", needs: ["U", "R"], gives: "I", name: "Закон Ома" },
+    { expr: "U = IR", needs: ["I", "R"], gives: "U", name: "Напряжение по закону Ома" },
 ];
 
 // ==================== ОТРИСОВКА ====================
@@ -23,9 +41,14 @@ function renderPhysSolver() {
     const container = document.getElementById("physSolver");
     if (!container) return;
     
-    let html = ``;
+    let html = "";
     
-    // === ДАНО (сверху) ===
+    // Сообщение об ошибке
+    if (physError) {
+        html += `<div style="color:#FF5555; font-size:12px; margin-bottom:8px; text-align:center;">${physError}</div>`;
+    }
+    
+    // === ДАНО ===
     html += `<div style="margin-bottom:15px;">
         <div style="font-weight:bold; color:#58A6FF; margin-bottom:8px;">📥 ДАНО</div>`;
     
@@ -79,13 +102,12 @@ function renderPhysSolver() {
     }
     html += `</div></div>`;
     
-    // === РЕШЕНИЕ (снизу) ===
+    // === РЕШЕНИЕ ===
     html += `<div style="margin-bottom:15px;">
         <div style="font-weight:bold; color:#58A6FF; margin-bottom:8px;">📤 РЕШЕНИЕ</div>
         <div style="color:#888; font-size:13px; min-height:50px;" id="physSolutionContent">Нажми "Решить"</div>
     </div>`;
     
-    // Кнопки
     html += `<div style="display:flex; gap:10px;">
         <button class="calc-btn calc-btn-eq" onclick="physSolve()" style="flex:1;">🧠 Решить</button>
         <button class="calc-btn calc-btn-clear" onclick="physClear()" style="flex:1;">🗑 Очистить</button>
@@ -99,6 +121,14 @@ function toggleAddGiven() { physShowAddGiven = !physShowAddGiven; physShowAddFin
 function toggleAddFind() { physShowAddFind = !physShowAddFind; physShowAddGiven = false; renderPhysSolver(); }
 
 function addGiven(symbol, name, unit) {
+    // Проверка на повтор
+    if (physGivens.find(g => g.symbol === symbol)) {
+        physError = `⚠️ Величина "${name}" уже добавлена`;
+        renderPhysSolver();
+        setTimeout(() => { physError = ""; renderPhysSolver(); }, 2000);
+        return;
+    }
+    physError = "";
     physGivens.push({ symbol, name, value: 0, unit });
     physShowAddGiven = false;
     renderPhysSolver();
@@ -107,7 +137,13 @@ function addGiven(symbol, name, unit) {
 function addFind(symbol, name) {
     if (!physFinds.find(f => f.symbol === symbol)) {
         physFinds.push({ symbol, name });
+    } else {
+        physError = `⚠️ Величина "${name}" уже в списке`;
+        renderPhysSolver();
+        setTimeout(() => { physError = ""; renderPhysSolver(); }, 2000);
+        return;
     }
+    physError = "";
     physShowAddFind = false;
     renderPhysSolver();
 }
@@ -119,6 +155,7 @@ function removeFind(index) { physFinds.splice(index, 1); renderPhysSolver(); }
 function physClear() {
     physGivens = [];
     physFinds = [];
+    physError = "";
     document.getElementById("physSolutionContent").innerHTML = `Нажми "Решить"`;
     renderPhysSolver();
 }
@@ -134,26 +171,43 @@ function physSolve() {
     }
     
     let steps = "";
+    let changed = true;
     
-    for (let formula of physFormulas) {
-        const { expr, needs, gives, name } = formula;
-        if (known[gives] !== undefined) continue;
-        if (needs.every(n => known[n] !== undefined)) {
-            const v0 = known["v0"] || 0;
-            const t = known["t"] || 0;
-            const a = known["a"] || 0;
-            let result;
-            if (gives === "S") {
-                result = v0 * t + a * t * t / 2;
-                steps += `<div style="margin-bottom:10px; padding:10px; background:#1A1A2E; border-radius:8px;">
-                    <div style="color:#FFD700; font-size:14px; font-weight:bold;">${name}</div>
-                    <div style="color:#58A6FF; font-size:15px; margin-top:8px;">${expr}</div>
-                    <div style="color:#CCC; font-size:13px; margin-top:5px;">S = ${v0}·${t} + ${a}·${t}²/2 = ${result.toFixed(2)} м</div>
-                    <span onclick="showPhysDetail('${gives}', ${v0}, ${t}, ${a}, ${result})" 
-                        style="color:#888; font-size:11px; cursor:pointer; margin-top:8px; display:inline-block;">📋 Подробнее</span>
-                </div>`;
+    while (changed) {
+        changed = false;
+        for (let formula of physFormulas) {
+            const { expr, needs, gives, name } = formula;
+            if (known[gives] !== undefined) continue;
+            if (needs.every(n => known[n] !== undefined)) {
+                let result;
+                switch(gives) {
+                    case "S":
+                        if (needs.length === 3) result = known["v0"] * known["t"] + known["a"] * known["t"] * known["t"] / 2;
+                        else if (known["v"] !== undefined) result = known["v"] * known["t"];
+                        break;
+                    case "v":
+                        if (known["v0"] !== undefined) result = known["v0"] + known["a"] * known["t"];
+                        else result = known["S"] / known["t"];
+                        break;
+                    case "F": result = known["m"] * known["a"]; break;
+                    case "a": result = known["F"] / known["m"]; break;
+                    case "P": result = known["F"] / known["A"]; break;
+                    case "I": result = known["U"] / known["R"]; break;
+                    case "U": result = known["I"] * known["R"]; break;
+                }
+                
+                if (result !== undefined) {
+                    steps += `<div style="margin-bottom:10px; padding:10px; background:#1A1A2E; border-radius:8px;">
+                        <div style="color:#FFD700; font-size:14px; font-weight:bold;">${name}</div>
+                        <div style="color:#58A6FF; font-size:15px; margin-top:8px;">${expr}</div>
+                        <div style="color:#CCC; font-size:13px; margin-top:5px;">${gives} = ${result.toFixed(2)} ${physQuantities.find(q => q.symbol === gives)?.unit || ''}</div>
+                        <span onclick="showPhysDetail('${gives}', known, '${name}', '${expr}', ${result})" 
+                            style="color:#888; font-size:11px; cursor:pointer; margin-top:8px; display:inline-block;">📋 Подробнее</span>
+                    </div>`;
+                    known[gives] = result;
+                    changed = true;
+                }
             }
-            known[gives] = result;
         }
     }
     
@@ -177,48 +231,30 @@ function physSolve() {
     document.getElementById("physSolutionContent").innerHTML = steps;
 }
 
-function showPhysDetail(gives, v0, t, a, result) {
-    let content = `
+function showPhysDetail(gives, known, name, expr, result) {
+    const q = physQuantities.find(q => q.symbol === gives);
+    
+    let detailHtml = "";
+    for (let [key, val] of Object.entries(known)) {
+        const qty = physQuantities.find(q => q.symbol === key);
+        if (qty) {
+            detailHtml += `${qty.name} = ${val} ${qty.unit}\n`;
+        }
+    }
+    
+    const content = `
         <div style="text-align:center; margin-bottom:15px;">
-            <div style="color:#FFD700; font-size:18px; font-weight:bold;">S = v₀t + at²/2</div>
-            <div style="color:#888; font-size:12px; margin-top:5px;">Путь при равноускоренном движении</div>
-        </div>
-        <div style="display:flex; justify-content:center; gap:20px; margin-bottom:15px; flex-wrap:wrap;">
-            <div style="text-align:center;">
-                <div style="color:#58A6FF; font-size:16px;">S</div>
-                <div style="color:#888; font-size:11px;">↑</div>
-                <div style="color:#CCC; font-size:12px;">Путь</div>
-            </div>
-            <div style="text-align:center;">
-                <div style="color:#58A6FF; font-size:16px;">v₀</div>
-                <div style="color:#888; font-size:11px;">↑</div>
-                <div style="color:#CCC; font-size:12px;">Нач. скорость</div>
-            </div>
-            <div style="text-align:center;">
-                <div style="color:#58A6FF; font-size:16px;">t</div>
-                <div style="color:#888; font-size:11px;">↑</div>
-                <div style="color:#CCC; font-size:12px;">Время</div>
-            </div>
-            <div style="text-align:center;">
-                <div style="color:#58A6FF; font-size:16px;">a</div>
-                <div style="color:#888; font-size:11px;">↑</div>
-                <div style="color:#CCC; font-size:12px;">Ускорение</div>
-            </div>
+            <div style="color:#FFD700; font-size:18px; font-weight:bold;">${name}</div>
+            <div style="color:#58A6FF; font-size:16px; margin-top:8px;">${expr}</div>
         </div>
         <div style="border-top:1px solid #2A2A3E; padding-top:10px; color:#CCC; font-size:13px; white-space:pre-line;">
             Дано:
-            v₀ = ${v0} м/с
-            t = ${t} с
-            a = ${a} м/с²
-            
-            Подставляем:
-            S = ${v0}·${t} + ${a}·${t}²/2
-            S = ${v0*t} + ${a*t*t/2}
-            S = ${result.toFixed(2)} м ✅
+            ${detailHtml}
+            Результат:
+            ${gives} = ${result.toFixed(2)} ${q ? q.unit : ''} ✅
         </div>
     `;
     
-    // Скрываем калькулятор перед показом
     document.getElementById("calcModal").style.display = "none";
     document.getElementById("cheatsheetContent").innerHTML = content;
     document.getElementById("cheatsheetModal").style.display = "flex";
