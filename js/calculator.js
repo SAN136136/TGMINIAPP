@@ -373,7 +373,7 @@ function editGeoCell(shape, field) {
     geoShowAdvanced = false;
     document.getElementById("geoAdvancedRow").style.display = "none";
     renderGeoTable(shape);
-}
+
 
 function geoCalcInput(val) {
     if (geoCalcExpr === "" && "0123456789".includes(val)) geoCalcExpr = val;
