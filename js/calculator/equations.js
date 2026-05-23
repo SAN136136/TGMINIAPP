@@ -1,4 +1,4 @@
-// ==================== УРАВНЕНИЯ v3.4 (Final Fix) ====================
+// ==================== УРАВНЕНИЯ v3.5 (Final Fix) ====================
 let eqExpression = "";
 let eqExpression2 = "";
 let eqSolved = false;
@@ -148,46 +148,61 @@ function showResult(result) {
     document.getElementById("eqSteps").innerHTML = html;
 }
 
-// ==================== НОВЫЙ ПАРСЕР (правильно обрабатывает знаки) ====================
+// ==================== НОВЫЙ ПАРСЕР (исправлен) ====================
 
 function parseCoefficients(expr, target) {
-    // target: "x2", "x", "y", или null (свободный член)
-    // Добавляем "+" в начало, если выражение начинается с буквы или числа
     let s = expr;
     if (s.length > 0 && s[0] !== "+" && s[0] !== "-") {
         s = "+" + s;
     }
     
     let sum = 0;
-    let regex;
     
     if (target === "x2") {
-        regex = /([+-]\d*\.?\d*)x[\^²]2/g;
-    } else if (target === "x") {
-        regex = /([+-]\d*\.?\d*)x(?![\^²2])/g;
-    } else if (target === "y") {
-        regex = /([+-]\d*\.?\d*)y/g;
-    } else {
-        // Свободный член: заменяем все члены с x и y на пустоту, остальное суммируем
-        let cleaned = s.replace(/([+-]?\d*\.?\d*)x[\^²]?2?/g, "");
-        cleaned = cleaned.replace(/([+-]?\d*\.?\d*)y/g, "");
-        // Добавляем "+" в начало для правильного парсинга
-        if (cleaned.length > 0 && cleaned[0] !== "+" && cleaned[0] !== "-") {
-            cleaned = "+" + cleaned;
-        }
-        let terms = cleaned.match(/([+-]\d+\.?\d*)/g) || [];
-        terms.forEach(t => sum += parseFloat(t));
+        let matches = s.match(/([+-]\d*\.?\d*)x[\^²]2/g) || [];
+        matches.forEach(m => {
+            let coef = m.replace(/x[\^²]2/, "");
+            if (coef === "+" || coef === "") sum += 1;
+            else if (coef === "-") sum -= 1;
+            else sum += parseFloat(coef);
+        });
         return sum;
     }
     
-    let matches = s.match(regex) || [];
-    matches.forEach(m => {
-        let coef = m.replace(target === "x2" ? /x[\^²]2/ : target === "y" ? /y/ : /x(?![\^²2])/, "");
-        if (coef === "+" || coef === "") sum += 1;
-        else if (coef === "-") sum -= 1;
-        else sum += parseFloat(coef);
-    });
+    if (target === "x") {
+        let matches = s.match(/([+-]\d*\.?\d*)x(?![\^²2])/g) || [];
+        matches.forEach(m => {
+            let coef = m.replace(/x(?![\^²2])/, "");
+            if (coef === "+" || coef === "") sum += 1;
+            else if (coef === "-") sum -= 1;
+            else sum += parseFloat(coef);
+        });
+        return sum;
+    }
     
+    if (target === "y") {
+        let matches = s.match(/([+-]\d*\.?\d*)y/g) || [];
+        matches.forEach(m => {
+            let coef = m.replace(/y/, "");
+            if (coef === "+" || coef === "") sum += 1;
+            else if (coef === "-") sum -= 1;
+            else sum += parseFloat(coef);
+        });
+        return sum;
+    }
+    
+    // Свободный член: убираем все члены с x и y
+    let cleaned = s;
+    cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x[\^²]2/g, "");
+    cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x(?![\^²2])/g, "");
+    cleaned = cleaned.replace(/([+-]?\d*\.?\d*)y/g, "");
+    
+    if (cleaned.length > 0 && cleaned[0] !== "+" && cleaned[0] !== "-") {
+        cleaned = "+" + cleaned;
+    }
+    
+    let terms = cleaned.match(/([+-]\d+\.?\d*)/g) || [];
+    terms.forEach(t => sum += parseFloat(t));
     return sum;
 }
 
@@ -204,12 +219,10 @@ function parseEquation(str) {
     let rAy = parseCoefficients(right, "y");
     let rBv = parseCoefficients(right, null);
     
-    // Переносим правую часть в левую: левая - правая
     ax -= rAx;
     ay -= rAy;
     bv -= rBv;
     
-    // Уравнение: ax + ay + bv = 0 → ax + ay = -bv
     return { ax, ay, bv: -bv };
 }
 
@@ -235,19 +248,13 @@ function solveLinear(input) {
 function solveQuadratic(input) {
     if (!input.includes("x^2") && !input.includes("x²")) return { error: "❌ Нет x² — перейди в «Линейные»" };
     
-    let eq = parseEquation(input);
-    // Для квадратного: ax² + bx + c = 0 → eq.ax это коэффициент при x, eq.bv это свободный член
-    // Но parseEquation не парсит x²! Нужно отдельно.
-    let a = parseCoefficients(input.replace(/\s/g, ""), "x2");
-    let b = eq.ax;  // коэффициент при x
-    let c = parseCoefficients(input.replace(/\s/g, ""), null);
-    // Пересчитываем с учётом правой части
     let s = input.replace(/\s/g, "").replace(/,/g, ".");
     let left = s, right = "0";
     if (s.includes("=")) [left, right] = s.split("=");
-    a = parseCoefficients(left, "x2") - parseCoefficients(right, "x2");
-    b = parseCoefficients(left, "x") - parseCoefficients(right, "x");
-    c = parseCoefficients(left, null) - parseCoefficients(right, null);
+    
+    let a = parseCoefficients(left, "x2") - parseCoefficients(right, "x2");
+    let b = parseCoefficients(left, "x") - parseCoefficients(right, "x");
+    let c = parseCoefficients(left, null) - parseCoefficients(right, null);
     
     if (a === 0) return { error: "❌ a = 0 — не квадратное" };
     
@@ -294,7 +301,6 @@ function solveSystem(input1, input2) {
     steps += `${e1.ax}x + ${e1.ay}y = ${e1.bv}\n`;
     steps += `${e2.ax}x + ${e2.ay}y = ${e2.bv}\n\n`;
     
-    // Пробуем подстановку (если в первом уравнении x без коэффициента)
     if (e1.ax === 1 && e1.ay !== 0) {
         steps += `Метод подстановки:\n`;
         steps += `Из первого: x = ${e1.bv} − (${e1.ay})y\n\n`;
@@ -316,7 +322,6 @@ function solveSystem(input1, input2) {
         return { original: `${input1}  |  ${input2}`, steps, answer: `x = ${x.toFixed(4)}  |  y = ${y.toFixed(4)}` };
     }
     
-    // Метод сложения
     steps += `Метод сложения:\n`;
     let mult1 = e2.ax;
     let mult2 = -e1.ax;
@@ -348,17 +353,18 @@ function solveSystem(input1, input2) {
     steps += `y = (${e1.bv} − ${e1.ax}·${x.toFixed(4)}) / ${e1.ay} = ${y.toFixed(4)}`;
     return { original: `${input1}  |  ${input2}`, steps, answer: `x = ${x.toFixed(4)}  |  y = ${y.toFixed(4)}` };
 }
+
 // ==================== АВТОТЕСТ ====================
-console.log("=== АВТОТЕСТ УРАВНЕНИЙ ===");
+console.log("=== АВТОТЕСТ УРАВНЕНИЙ v3.5 ===");
 
 let testEq = parseEquation("2x − 3 = 6x + 5");
-console.log("2x − 3 = 6x + 5 → ax=" + testEq.ax + ", bv=" + testEq.bv + " (ожидаю ax=-4, bv=8)");
+console.log("parseEquation: ax=" + testEq.ax + ", bv=" + testEq.bv + " (ожидаю ax=-4, bv=8)");
 
 let testLinear = solveLinear("2x − 3 = 6x + 5");
-console.log("solveLinear:", testLinear.answer, "(ожидаю x = -2)");
+console.log("solveLinear: " + testLinear.answer + " (ожидаю x = -2)");
 
 let testQuad = solveQuadratic("x² − 5x + 6 = 0");
-console.log("solveQuadratic:", testQuad.answer, "(ожидаю x₁=3, x₂=2)");
+console.log("solveQuadratic: " + testQuad.answer + " (ожидаю x₁=3, x₂=2)");
 
 let testSys = solveSystem("x + y = 5", "x − y = 1");
-console.log("solveSystem:", testSys.answer, "(ожидаю x=3, y=2)");
+console.log("solveSystem: " + testSys.answer + " (ожидаю x=3, y=2)");
