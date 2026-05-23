@@ -136,17 +136,10 @@
         </div>
         
         <!-- ФИЗИКА -->
-        <div id="calcPhysInputs" style="display:none;">
-            <select id="physFormula" onchange="updatePhysFormula()" class="calc-select">
-                <option value="F=ma">F = ma</option>
-                <option value="P=F/S">P = F/S</option>
-                <option value="I=U/R">I = U/R</option>
-                <option value="v=S/t">v = S/t</option>
-            </select>
-            <div id="physFields" style="margin:8px 0;"></div>
-            <button class="calc-btn calc-btn-eq" onclick="calcPhys()" style="width:100%;">Посчитать</button>
-        </div>
-        
+        <!-- ФИЗИКА (Решатель) -->
+<div id="calcPhysInputs" style="display:none;">
+    <div id="physSolver"></div>
+</div>
         <!-- УРАВНЕНИЯ -->
         <div id="calcEqInputs" style="display:none;">
             <select id="eqType" class="calc-select">
