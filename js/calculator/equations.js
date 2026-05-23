@@ -248,6 +248,10 @@ function solveLinear(input) {
 }
 
 function solveQuadratic(input) {
+    console.log("solveQuadratic input:", input);
+    console.log("  parseCoefficients(left, x2):", parseCoefficients(left, "x2"));
+    console.log("  parseCoefficients(left, x):", parseCoefficients(left, "x"));
+    console.log("  parseCoefficients(left, null):", parseCoefficients(left, null));
     input = input.replace(/−/g, "-");
     if (!input.includes("x^2") && !input.includes("x²")) return { error: "❌ Нет x² — перейди в «Линейные»" };
     
