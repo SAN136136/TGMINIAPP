@@ -1,4 +1,4 @@
-// ==================== УРАВНЕНИЯ v3.6 (Final Fix) ====================
+// ==================== УРАВНЕНИЯ v3.7 (Final Fix) ====================
 let eqExpression = "";
 let eqExpression2 = "";
 let eqSolved = false;
@@ -160,9 +160,10 @@ function parseCoefficients(expr, target) {
     let sum = 0;
     
     if (target === "x2") {
-        let matches = s.match(/([+-]\d*\.?\d*)x[\^²]2/g) || [];
+        // x² (Unicode) или x^2 (ASCII)
+        let matches = s.match(/([+-]\d*\.?\d*)x[²^2]/g) || [];
         matches.forEach(m => {
-            let coef = m.replace(/x[\^²]2/, "");
+            let coef = m.replace(/x[²^2]/, "");
             if (coef === "+" || coef === "") sum += 1;
             else if (coef === "-") sum -= 1;
             else sum += parseFloat(coef);
@@ -194,7 +195,7 @@ function parseCoefficients(expr, target) {
     
     // Свободный член
     let cleaned = s;
-    cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x[\^²]2/g, "");
+    cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x[²^2]/g, "");
     cleaned = cleaned.replace(/([+-]?\d*\.?\d*)x(?![\^²2])/g, "");
     cleaned = cleaned.replace(/([+-]?\d*\.?\d*)y/g, "");
     
@@ -254,13 +255,6 @@ function solveQuadratic(input) {
     let s = input.replace(/\s/g, "").replace(/,/g, ".");
     let left = s, right = "0";
     if (s.includes("=")) [left, right] = s.split("=");
-    
-    console.log("solveQuadratic отладка:");
-    console.log("  left:", left);
-    console.log("  right:", right);
-    console.log("  parseCoefficients(left, x2):", parseCoefficients(left, "x2"));
-    console.log("  parseCoefficients(left, x):", parseCoefficients(left, "x"));
-    console.log("  parseCoefficients(left, null):", parseCoefficients(left, null));
     
     let a = parseCoefficients(left, "x2") - parseCoefficients(right, "x2");
     let b = parseCoefficients(left, "x") - parseCoefficients(right, "x");
@@ -367,7 +361,7 @@ function solveSystem(input1, input2) {
 }
 
 // ==================== АВТОТЕСТ ====================
-console.log("=== АВТОТЕСТ УРАВНЕНИЙ v3.6 ===");
+console.log("=== АВТОТЕСТ УРАВНЕНИЙ v3.7 ===");
 
 let testEq = parseEquation("2x − 3 = 6x + 5");
 console.log("parseEquation: ax=" + testEq.ax + ", bv=" + testEq.bv + " (ожидаю ax=-4, bv=8)");
