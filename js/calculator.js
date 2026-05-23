@@ -191,6 +191,11 @@ function switchCalcMode(mode) {
         document.getElementById("calcGeoInputs").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
         document.getElementById("calcResult").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
+        document.getElementById("calcMainButtons").style.display = "none";
+        document.getElementById("calcExtraBtns").style.display = "none";
         if (!document.getElementById("geoShape").value) {
             document.getElementById("geoShape").value = "triangle";
         }
