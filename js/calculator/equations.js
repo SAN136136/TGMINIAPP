@@ -151,6 +151,10 @@ function showResult(result) {
 // ==================== НОВЫЙ ПАРСЕР (исправлен) ====================
 
 function parseCoefficients(expr, target) {
+    function parseCoefficients(expr, target) {
+    expr = expr.replace(/−/g, "-");  // ← ДОБАВЬ ЭТУ СТРОКУ
+    let s = expr;
+}
     let s = expr;
     if (s.length > 0 && s[0] !== "+" && s[0] !== "-") {
         s = "+" + s;
