@@ -107,32 +107,36 @@
     
     <!-- Калькулятор для ввода значений -->
     <div id="geoCalcPad" style="display:none;">
-        <div class="calc-display" id="geoCalcDisplay" contenteditable="false">0</div>
-        <div class="calc-buttons" style="margin-top:5px;">
-            <button class="calc-btn calc-btn-clear" onclick="geoCalcClear()">C</button>
-            <button class="calc-btn calc-btn-clear" onclick="geoCalcBackspace()">⌫</button>
-            <button class="calc-btn" onclick="geoCalcInput('(')">(</button>
-            <button class="calc-btn" onclick="geoCalcInput(')')">)</button>
-            <button class="calc-btn" onclick="geoCalcInput('7')">7</button>
-            <button class="calc-btn" onclick="geoCalcInput('8')">8</button>
-            <button class="calc-btn" onclick="geoCalcInput('9')">9</button>
-            <button class="calc-btn calc-btn-op" onclick="geoCalcInput('/')">÷</button>
-            <button class="calc-btn" onclick="geoCalcInput('4')">4</button>
-            <button class="calc-btn" onclick="geoCalcInput('5')">5</button>
-            <button class="calc-btn" onclick="geoCalcInput('6')">6</button>
-            <button class="calc-btn calc-btn-op" onclick="geoCalcInput('*')">×</button>
-            <button class="calc-btn" onclick="geoCalcInput('1')">1</button>
-            <button class="calc-btn" onclick="geoCalcInput('2')">2</button>
-            <button class="calc-btn" onclick="geoCalcInput('3')">3</button>
-            <button class="calc-btn calc-btn-op" onclick="geoCalcInput('-')">−</button>
-            <button class="calc-btn" onclick="geoCalcInput('0')">0</button>
-            <button class="calc-btn" onclick="geoCalcInput('.')">.</button>
-            <button class="calc-btn calc-btn-eq" onclick="geoCalcConfirm()">OK</button>
-            <button class="calc-btn calc-btn-op" onclick="geoCalcInput('+')">+</button>
-            <button class="calc-btn calc-btn-func" onclick="geoCalcInput('sqrt(')">√</button>
-            <button class="calc-btn calc-btn-func" onclick="geoCalcInput('^2')">x²</button>
-            <button class="calc-btn calc-btn-func" onclick="geoCalcInput('pi')">π</button>
-        </div>
+    <div class="calc-display" id="geoCalcDisplay" contenteditable="false">0</div>
+
+    <!-- Расширенные функции (скрыты) -->
+    <div class="calc-buttons" id="geoAdvancedRow" style="display:none; margin-top:5px;">
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('+')">+</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('−')">−</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('×')">×</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('÷')">÷</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('(')">(</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput(')')">)</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('sqrt(')">√</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('^2')">x²</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('pi')">π</button>
+        <button class="calc-btn calc-btn-func" onclick="geoCalcInput('.')">.</button>
+    </div>
+
+    <div class="calc-buttons" style="margin-top:5px;">
+        <button class="calc-btn calc-btn-clear" onclick="geoCalcClear()">C</button>
+        <button class="calc-btn calc-btn-clear" onclick="geoCalcBackspace()">⌫</button>
+        <button class="calc-btn calc-btn-func" onclick="toggleGeoAdvanced()">···</button>
+        <button class="calc-btn" onclick="geoCalcInput('7')">7</button>
+        <button class="calc-btn" onclick="geoCalcInput('8')">8</button>
+        <button class="calc-btn" onclick="geoCalcInput('9')">9</button>
+        <button class="calc-btn" onclick="geoCalcInput('4')">4</button>
+        <button class="calc-btn" onclick="geoCalcInput('5')">5</button>
+        <button class="calc-btn" onclick="geoCalcInput('6')">6</button>
+        <button class="calc-btn" onclick="geoCalcInput('1')">1</button>
+        <button class="calc-btn" onclick="geoCalcInput('2')">2</button>
+        <button class="calc-btn" onclick="geoCalcInput('3')">3</button>
+        <button class="calc-btn" onclick="geoCalcInput('0')">0</button>
     </div>
 </div>
         
@@ -239,5 +243,5 @@
 <script src="js/commands.js"></script>
 <script src="js/calculator.js"></script>
 
-</body>
+</div></body>
 </html>
