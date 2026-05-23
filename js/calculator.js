@@ -261,7 +261,7 @@ function renderGeoTable(shape) {
     const table = document.getElementById("geoTable");
     const fields = getGeoFields(shape);
     const cols = (shape === "triangle") ? 2 : 1;
-
+    let isActive = geoActiveCell && geoActiveCell.shape === shape && geoActiveCell.field === f.key;
     let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
         <span style="color:#888; font-size:11px;">Введи известные данные</span>
         <button class="calc-btn calc-btn-clear" onclick="clearGeoTable()" style="padding:6px 10px; font-size:11px;">🗑 Очистить</button>
@@ -357,6 +357,14 @@ function editGeoCell(shape, field) {
     if (limits !== null) {
         delete geoData[shape][field];
     }
+    
+    geoActiveCell = { shape, field };
+    document.getElementById("geoCalcPad").style.display = "block";
+    geoCalcExpr = geoData[shape][field] !== undefined ? String(geoData[shape][field]) : "";
+    geoShowAdvanced = false;
+    document.getElementById("geoAdvancedRow").style.display = "none";
+    renderGeoTable(shape);  // ← ВОТ ЭТА СТРОКА ДОЛЖНА БЫТЬ!
+}
 
     geoActiveCell = { shape, field };
     document.getElementById("geoCalcPad").style.display = "block";
