@@ -198,7 +198,7 @@ function solveLinear(input) {
     
     // Переносим всё в левую часть
     a -= rightA;
-    b -= rightB;
+    b += rightB;
     
     if (a === 0) return { error: "❌ Коэффициент при x равен 0" };
     
