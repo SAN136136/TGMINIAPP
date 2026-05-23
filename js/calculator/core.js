@@ -92,7 +92,6 @@ function switchCalcMode(mode) {
     document.getElementById("calcDisplay").style.display = "none";
     document.getElementById("calcResult").style.display = "none";
     renderPhysSolver();  // ← добавь эту строку
-}
     } else if (mode === "converter") {
         document.getElementById("calcConverterOutput").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
