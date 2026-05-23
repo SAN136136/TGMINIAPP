@@ -303,3 +303,9 @@ body {
     cursor: pointer;
 }
 .calc-select option { background: #1A1A2E; color: white; }
+.geo-active-cell {
+    outline: 2px solid rgba(255, 215, 0, 0.5);
+    outline-offset: -2px;
+    border-radius: 3px;
+    background: rgba(255, 215, 0, 0.05);
+}
