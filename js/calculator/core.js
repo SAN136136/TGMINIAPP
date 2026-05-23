@@ -88,10 +88,11 @@ function switchCalcMode(mode) {
         }
         switchGeoShape();
     } else if (mode === "physics") {
-        document.getElementById("calcPhysInputs").style.display = "block";
-        document.getElementById("calcDisplay").style.display = "none";
-        document.getElementById("calcResult").style.display = "none";
-        updatePhysFormula();
+    document.getElementById("calcPhysInputs").style.display = "block";
+    document.getElementById("calcDisplay").style.display = "none";
+    document.getElementById("calcResult").style.display = "none";
+    renderPhysSolver();  // ← добавь эту строку
+}
     } else if (mode === "converter") {
         document.getElementById("calcConverterOutput").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
