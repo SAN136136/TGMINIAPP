@@ -1,4 +1,4 @@
-// ==================== УРАВНЕНИЯ v3.1 (Final) ====================
+// ==================== УРАВНЕНИЯ v3.2 (Final) ====================
 let eqExpression = "";
 let eqExpression2 = "";
 let eqSolved = false;
@@ -168,6 +168,7 @@ function solveLinear(input) {
     let left = expr, right = "0";
     if (expr.includes("=")) [left, right] = expr.split("=");
     
+    // Парсим левую часть
     let a = 0, b = 0;
     let terms = left.match(/([+-]?\d*\.?\d*)x|([+-]?\d+\.?\d*)/g) || [];
     terms.forEach(term => {
@@ -181,8 +182,23 @@ function solveLinear(input) {
         }
     });
     
-    try { b -= eval(right.replace(/x/g, "0")) || 0; }
-    catch(e) { return { error: "❌ Не удалось разобрать уравнение" }; }
+    // Парсим правую часть (вычитаем из левой)
+    let rightA = 0, rightB = 0;
+    let rightTerms = right.match(/([+-]?\d*\.?\d*)x|([+-]?\d+\.?\d*)/g) || [];
+    rightTerms.forEach(term => {
+        if (term.includes("x")) {
+            let coef = term.replace("x", "");
+            if (coef === "" || coef === "+") rightA += 1;
+            else if (coef === "-") rightA -= 1;
+            else rightA += parseFloat(coef);
+        } else {
+            rightB += parseFloat(term);
+        }
+    });
+    
+    // Переносим всё в левую часть
+    a -= rightA;
+    b -= rightB;
     
     if (a === 0) return { error: "❌ Коэффициент при x равен 0" };
     
