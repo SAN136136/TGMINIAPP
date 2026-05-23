@@ -151,7 +151,7 @@ function showResult(result) {
 // ==================== ПАРСЕР ====================
 
 function parseCoefficients(expr, target) {
-    expr = expr.replace(/−/g, "-");  // ФИКС: Unicode-минус → обычный дефис
+    expr = expr.replace(/−/g, "-");
     let s = expr;
     if (s.length > 0 && s[0] !== "+" && s[0] !== "-") {
         s = "+" + s;
@@ -255,7 +255,6 @@ function solveQuadratic(input) {
     let left = s, right = "0";
     if (s.includes("=")) [left, right] = s.split("=");
     
-    // ОТЛАДКА
     console.log("solveQuadratic отладка:");
     console.log("  left:", left);
     console.log("  right:", right);
@@ -267,7 +266,38 @@ function solveQuadratic(input) {
     let b = parseCoefficients(left, "x") - parseCoefficients(right, "x");
     let c = parseCoefficients(left, null) - parseCoefficients(right, null);
     
-    // ... остальной код без изменений
+    if (a === 0) return { error: "❌ a = 0 — не квадратное" };
+    
+    let D = b*b - 4*a*c;
+    let steps = `${a}x² + ${b}x + ${c} = 0\n\n`;
+    steps += `D = b² − 4ac\n`;
+    steps += `D = ${b}² − 4·${a}·${c}\n`;
+    steps += `D = ${b*b} − ${4*a*c}\n`;
+    steps += `D = ${D}\n\n`;
+    
+    if (D > 0) {
+        let x1 = (-b + Math.sqrt(D)) / (2*a);
+        let x2 = (-b - Math.sqrt(D)) / (2*a);
+        steps += `D > 0 → два корня\n\n`;
+        steps += `x₁ = (−b + √D) / 2a\n`;
+        steps += `x₁ = (${-b} + ${Math.sqrt(D).toFixed(2)}) / ${2*a}\n`;
+        steps += `x₁ = ${x1.toFixed(4)}\n\n`;
+        steps += `x₂ = (−b − √D) / 2a\n`;
+        steps += `x₂ = (${-b} − ${Math.sqrt(D).toFixed(2)}) / ${2*a}\n`;
+        steps += `x₂ = ${x2.toFixed(4)}`;
+        return { original: input, steps, answer: `x₁ = ${x1.toFixed(4)}  |  x₂ = ${x2.toFixed(4)}` };
+    } else if (D === 0) {
+        let x = -b / (2*a);
+        steps += `D = 0 → один корень\n\n`;
+        steps += `x = −b / 2a\n`;
+        steps += `x = ${-b} / ${2*a}\n`;
+        steps += `x = ${x.toFixed(4)}`;
+        return { original: input, steps, answer: `x = ${x.toFixed(4)}` };
+    } else {
+        steps += `D < 0 → нет действительных корней`;
+        return { original: input, steps, answer: `Нет действительных корней` };
+    }
+}
 
 function solveSystem(input1, input2) {
     input1 = input1.replace(/−/g, "-");
@@ -350,14 +380,3 @@ console.log("solveQuadratic: " + testQuad.answer + " (ожидаю x₁=3, x₂=
 
 let testSys = solveSystem("x + y = 5", "x − y = 1");
 console.log("solveSystem: " + testSys.answer + " (ожидаю x=3, y=2)");
-
-console.log("=== ОТЛАДКА ПАРСЕРА ===");
-let left = "+2x − 3";
-console.log("Левая часть:", left);
-console.log("  parseCoefficients(x):", parseCoefficients(left, "x"));
-console.log("  parseCoefficients(null):", parseCoefficients(left, null));
-
-let right = "+6x + 5";
-console.log("Правая часть:", right);
-console.log("  parseCoefficients(x):", parseCoefficients(right, "x"));
-console.log("  parseCoefficients(null):", parseCoefficients(right, null));
