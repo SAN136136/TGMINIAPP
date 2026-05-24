@@ -201,6 +201,47 @@
         <div id="eqAnswer" style="margin-top:10px;"></div>
     </div>
 </div>
+
+<!-- ГРАФИКИ -->
+<div id="calcGraphInputs" style="display:none;">
+    <div id="graphCalcPad">
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <input type="text" id="graphInput" placeholder="y = ..." 
+                style="flex:1; padding:14px; background:#0A0A14; border:2px solid #58A6FF; color:#FFD700; font-size:18px; border-radius:8px; text-align:center; letter-spacing:1px;"
+                onfocus="this.select()">
+            <button class="calc-btn" onclick="graphPaste()" style="padding:12px 15px; font-size:18px;">📋</button>
+        </div>
+        
+        <div class="calc-buttons" style="margin-top:5px;">
+            <button class="calc-btn calc-btn-clear" onclick="graphClear()">C</button>
+            <button class="calc-btn calc-btn-clear" onclick="graphBackspace()">⌫</button>
+            <button class="calc-btn" onclick="graphInput('(')">(</button>
+            <button class="calc-btn" onclick="graphInput(')')">)</button>
+            <button class="calc-btn" onclick="graphInput('7')">7</button>
+            <button class="calc-btn" onclick="graphInput('8')">8</button>
+            <button class="calc-btn" onclick="graphInput('9')">9</button>
+            <button class="calc-btn calc-btn-op" onclick="graphInput('/')">/</button>
+            <button class="calc-btn" onclick="graphInput('4')">4</button>
+            <button class="calc-btn" onclick="graphInput('5')">5</button>
+            <button class="calc-btn" onclick="graphInput('6')">6</button>
+            <button class="calc-btn calc-btn-op" onclick="graphInput('*')">*</button>
+            <button class="calc-btn" onclick="graphInput('1')">1</button>
+            <button class="calc-btn" onclick="graphInput('2')">2</button>
+            <button class="calc-btn" onclick="graphInput('3')">3</button>
+            <button class="calc-btn calc-btn-op" onclick="graphInput('-')">−</button>
+            <button class="calc-btn" onclick="graphInput('0')">0</button>
+            <button class="calc-btn" onclick="graphInput('.')">.</button>
+            <button class="calc-btn calc-btn-eq" onclick="graphSolve()" style="font-size:16px;">Построить</button>
+            <button class="calc-btn calc-btn-op" onclick="graphInput('+')">+</button>
+            <button class="calc-btn calc-btn-func" onclick="graphInput('x')">x</button>
+            <button class="calc-btn calc-btn-func" onclick="graphInput('x^2')">x²</button>
+            <button class="calc-btn calc-btn-func" onclick="graphInput('=')">=</button>
+        </div>
+    </div>
+    
+    <div id="graphError" style="color:#FF5555; font-size:14px; text-align:center; margin:10px 0;"></div>
+    <canvas id="graphCanvas" width="400" height="400" style="display:none; width:100%; border-radius:8px;"></canvas>
+</div>
         <!-- КОНВЕРТЕР -->
         <div id="calcConverterOutput" style="display:none;">
             <select id="convType" class="calc-select">
