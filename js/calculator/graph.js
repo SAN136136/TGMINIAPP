@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v1.1 ====================
+// ==================== ГРАФИКИ v1.2 ====================
 let graphExpression = "";
 let graphSolved = false;
 let graphScale = 1;
@@ -28,7 +28,6 @@ function graphInput(val) {
         document.getElementById("graphCalcPad").style.display = "block";
     }
     
-    // Защита от двойного "y ="
     if (val === "y" && graphExpression.includes("y")) return;
     if (val === "=" && graphExpression.includes("=")) return;
     
@@ -81,10 +80,8 @@ function graphSolve() {
 }
 
 function parseFunction(expr) {
-    // Убираем "y =" в начале
     let cleaned = expr.replace(/^y\s*=\s*/, "");
     
-    // Заменяем Unicode-минус и красивые символы
     cleaned = cleaned.replace(/−/g, "-");
     cleaned = cleaned.replace(/×/g, "*");
     cleaned = cleaned.replace(/÷/g, "/");
@@ -96,16 +93,13 @@ function parseFunction(expr) {
     cleaned = cleaned.replace(/tan/g, "Math.tan");
     cleaned = cleaned.replace(/log/g, "Math.log10");
     
-    // Правильно обрабатываем коэффициенты: 2x → 2*x, -3x → -3*x, x → 1*x
-    cleaned = cleaned.replace(/(\d)\(/g, "$1*(");  // 2( → 2*(
-    cleaned = cleaned.replace(/(\d)x/g, "$1*x");   // 2x → 2*x
-    cleaned = cleaned.replace(/(\d)Math/g, "$1*Math"); // 2sin → 2*sin
+    // Правильные коэффициенты: 2x → 2*x, но не трогаем Math.xxx
+    cleaned = cleaned.replace(/(\d)\(/g, "$1*(");
+    cleaned = cleaned.replace(/(\d)x/g, "$1*x");
+    cleaned = cleaned.replace(/(\d)Math/g, "$1*Math");
     
-    // Обрабатываем x без коэффициента: +x → +1*x, -x → -1*x, x → 1*x
-    cleaned = cleaned.replace(/(?<!\*)x/g, "1*x");  // x → 1*x (если перед x нет *)
-    cleaned = cleaned.replace(/\+1\*x/g, "+x");     // +1*x → +x (красивее)
-    cleaned = cleaned.replace(/\-1\*x/g, "-x");     // -1*x → -x (красивее)
-    cleaned = cleaned.replace(/1\*1\*x/g, "1*x");   // фикс двойной замены
+    // x без коэффициента: в начале или после оператора
+    cleaned = cleaned.replace(/(^|[+\-*(])x/g, "$11*x");
     
     return cleaned;
 }
@@ -116,27 +110,22 @@ function drawGraph(expr) {
     const w = canvas.width;
     const h = canvas.height;
     
-    // Очищаем
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = "#0A0A14";
     ctx.fillRect(0, 0, w, h);
     
-    // Парсим функцию
     let func;
     try {
         let parsed = parseFunction(expr);
-        console.log("Parsed:", parsed);
         func = new Function("x", `return ${parsed}`);
-        // Проверяем, что функция работает
         func(0);
     } catch(e) {
-        document.getElementById("graphError").innerHTML = "❌ Ошибка в формуле: " + e.message;
+        document.getElementById("graphError").innerHTML = "❌ Ошибка в формуле";
         return;
     }
     
     document.getElementById("graphError").innerHTML = "";
     
-    // Масштаб
     let scale = graphScale * 20;
     let offsetX = graphOffsetX;
     let offsetY = graphOffsetY;
@@ -147,16 +136,20 @@ function drawGraph(expr) {
     ctx.strokeStyle = "#1A1A2E";
     ctx.lineWidth = 0.5;
     let gridStep = scale;
-    if (gridStep < 10) gridStep = 10;
-    if (gridStep > 100) gridStep = 100;
+    if (gridStep < 15) gridStep = 15;
+    if (gridStep > 120) gridStep = 120;
     
-    for (let x = -20; x <= 20; x++) {
+    for (let x = -30; x <= 30; x++) {
         let px = w/2 + x * gridStep + offsetX;
-        ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+        if (px >= 0 && px <= w) {
+            ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+        }
     }
-    for (let y = -20; y <= 20; y++) {
+    for (let y = -30; y <= 30; y++) {
         let py = h/2 - y * gridStep + offsetY;
-        ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+        if (py >= 0 && py <= h) {
+            ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+        }
     }
     
     // Оси
@@ -170,23 +163,29 @@ function drawGraph(expr) {
     // Числа на осях
     ctx.fillStyle = "#888";
     ctx.font = "11px sans-serif";
-    for (let x = -20; x <= 20; x++) {
+    let stepX = gridStep;
+    let stepY = gridStep;
+    if (stepX < 30) { stepX = 30; stepY = 30; }
+    
+    for (let x = -30; x <= 30; x++) {
         if (x === 0) continue;
-        let px = w/2 + x * gridStep + offsetX;
-        if (px > 10 && px < w - 10) {
+        let px = w/2 + x * stepX + offsetX;
+        if (px > 15 && px < w - 15) {
             ctx.fillText(x, px - 8, axisY + 15);
         }
     }
-    for (let y = -20; y <= 20; y++) {
+    for (let y = -30; y <= 30; y++) {
         if (y === 0) continue;
-        let py = h/2 - y * gridStep + offsetY;
+        let py = h/2 - y * stepY + offsetY;
         if (py > 15 && py < h - 5) {
             ctx.fillText(y, axisX + 5, py + 4);
         }
     }
     ctx.fillText("0", axisX + 5, axisY + 15);
+    ctx.fillText("x", w - 15, axisY - 10);
+    ctx.fillText("y", axisX + 10, 15);
     
-    // Рисуем график
+    // График
     ctx.strokeStyle = "#58A6FF";
     ctx.lineWidth = 3;
     ctx.shadowColor = "#58A6FF";
@@ -194,10 +193,10 @@ function drawGraph(expr) {
     ctx.beginPath();
     
     let firstPoint = true;
-    let step = (xMax - xMin) / 500;
+    let totalPoints = 1000;
     
-    for (let i = 0; i <= 500; i++) {
-        let x = xMin + i * step;
+    for (let i = 0; i <= totalPoints; i++) {
+        let x = xMin + i * (xMax - xMin) / totalPoints;
         let y;
         try {
             y = func(x);
@@ -214,6 +213,11 @@ function drawGraph(expr) {
         let px = w/2 + x * scale + offsetX;
         let py = h/2 - y * scale + offsetY;
         
+        if (px < -50 || px > w + 50 || py < -50 || py > h + 50) {
+            firstPoint = true;
+            continue;
+        }
+        
         if (firstPoint) {
             ctx.moveTo(px, py);
             firstPoint = false;
@@ -224,47 +228,44 @@ function drawGraph(expr) {
     ctx.stroke();
     ctx.shadowBlur = 0;
     
-    // Находим и рисуем корни
-    findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY);
+    // Корни
+    findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY, xMin, xMax);
 }
 
-function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
+function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY, xMin, xMax) {
     let roots = [];
-    let xMin = (-w/2 - offsetX) / scale;
-    let xMax = (w/2 - offsetX) / scale;
-    let step = (xMax - xMin) / 1000;
-    
+    let totalPoints = 2000;
+    let prevX = xMin;
     let prevY;
-    try { prevY = func(xMin); } catch(e) { prevY = NaN; }
+    try { prevY = func(prevX); } catch(e) { prevY = NaN; }
     
-    for (let i = 1; i <= 1000; i++) {
-        let x = xMin + i * step;
+    for (let i = 1; i <= totalPoints; i++) {
+        let x = xMin + i * (xMax - xMin) / totalPoints;
         let y;
         try { y = func(x); } catch(e) { prevY = NaN; continue; }
         
-        if (!isNaN(y) && isFinite(y) && !isNaN(prevY) && isFinite(prevY)) {
-            if (prevY * y <= 0 && Math.abs(y) < 50) {
-                let rootX = x - y * step / (y - prevY);
+        if (!isNaN(y) && isFinite(y) && !isNaN(prevY) && isFinite(prevY) && Math.abs(y) < 100) {
+            if (prevY * y <= 0) {
+                let rootX = x - y * (x - prevX) / (y - prevY);
                 roots.push(rootX);
             }
         }
+        prevX = x;
         prevY = y;
     }
     
-    // Убираем дубликаты
     roots = roots.filter((r, i) => {
         for (let j = 0; j < i; j++) {
-            if (Math.abs(r - roots[j]) < 0.1) return false;
+            if (Math.abs(r - roots[j]) < 0.05) return false;
         }
         return true;
     });
     
-    // Рисуем корни
     roots.forEach(root => {
         let px = w/2 + root * scale + offsetX;
         let py = h/2 + offsetY;
         
-        if (px > 0 && px < w) {
+        if (px > 5 && px < w - 5) {
             ctx.fillStyle = "#FF5555";
             ctx.beginPath();
             ctx.arc(px, py, 6, 0, Math.PI * 2);
@@ -272,7 +273,11 @@ function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
             
             ctx.fillStyle = "#FFD700";
             ctx.font = "bold 14px sans-serif";
-            ctx.fillText(`x=${root.toFixed(2)}`, px + 8, py - 8);
+            let label = `x=${root.toFixed(2)}`;
+            let textWidth = ctx.measureText(label).width;
+            let labelX = px + 8;
+            if (labelX + textWidth > w - 5) labelX = px - textWidth - 8;
+            ctx.fillText(label, labelX, py - 8);
         }
     });
 }
@@ -282,12 +287,12 @@ function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
     let canvas = null;
     let lastTouchDist = 0;
     
-    document.addEventListener("DOMContentLoaded", function() {
+    function initCanvas() {
         canvas = document.getElementById("graphCanvas");
         if (!canvas) return;
         
-        // Мышь (ПК)
         canvas.addEventListener("mousedown", e => {
+            if (!graphSolved) return;
             graphDragging = true;
             graphLastX = e.clientX;
             graphLastY = e.clientY;
@@ -301,22 +306,24 @@ function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
             drawGraph(graphExpression);
         });
         canvas.addEventListener("mouseup", () => { graphDragging = false; });
+        canvas.addEventListener("mouseleave", () => { graphDragging = false; });
         canvas.addEventListener("wheel", e => {
             if (!graphSolved) return;
             e.preventDefault();
             graphScale *= e.deltaY < 0 ? 1.2 : 0.8;
-            graphScale = Math.max(0.1, Math.min(10, graphScale));
+            graphScale = Math.max(0.05, Math.min(10, graphScale));
             drawGraph(graphExpression);
         });
         
-        // Тач (телефон)
         canvas.addEventListener("touchstart", e => {
+            if (!graphSolved) return;
             if (e.touches.length === 1) {
                 graphDragging = true;
                 graphLastX = e.touches[0].clientX;
                 graphLastY = e.touches[0].clientY;
             }
             if (e.touches.length === 2) {
+                graphDragging = false;
                 let dx = e.touches[0].clientX - e.touches[1].clientX;
                 let dy = e.touches[0].clientY - e.touches[1].clientY;
                 lastTouchDist = Math.sqrt(dx*dx + dy*dy);
@@ -328,8 +335,10 @@ function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
                 let dx = e.touches[0].clientX - e.touches[1].clientX;
                 let dy = e.touches[0].clientY - e.touches[1].clientY;
                 let dist = Math.sqrt(dx*dx + dy*dy);
-                graphScale *= dist / lastTouchDist;
-                graphScale = Math.max(0.1, Math.min(10, graphScale));
+                if (lastTouchDist > 0) {
+                    graphScale *= dist / lastTouchDist;
+                    graphScale = Math.max(0.05, Math.min(10, graphScale));
+                }
                 lastTouchDist = dist;
                 drawGraph(graphExpression);
             } else if (graphDragging && e.touches.length === 1) {
@@ -342,10 +351,17 @@ function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
         });
         canvas.addEventListener("touchend", () => { graphDragging = false; });
         canvas.addEventListener("dblclick", () => {
+            if (!graphSolved) return;
             graphScale = 1;
             graphOffsetX = 0;
             graphOffsetY = 0;
             drawGraph(graphExpression);
         });
-    });
+    }
+    
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initCanvas);
+    } else {
+        initCanvas();
+    }
 })();
