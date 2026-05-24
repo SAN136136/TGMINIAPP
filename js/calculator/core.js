@@ -75,6 +75,12 @@ function switchCalcMode(mode) {
         document.getElementById("calcEqInputs").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
         document.getElementById("calcResult").style.display = "none";
+    } else if (mode === "graph") {
+    document.getElementById("calcGraphInputs").style.display = "block";
+    document.getElementById("calcDisplay").style.display = "none";
+    document.getElementById("calcResult").style.display = "none";
+    switchToGraph();
+}
     } else if (mode === "geometry") {
         document.getElementById("calcGeoInputs").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
