@@ -23,6 +23,7 @@ function openCalculator() {
     document.getElementById("calcDisplay").style.display = "block";
     document.getElementById("calcResult").style.display = "block";
     switchCalcMode("basic");
+    document.getElementById("calcGraphInputs").style.display = "none";
 }
 
 function closeCalc() {
