@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v1.2 ====================
+// ==================== ГРАФИКИ v1.3 ====================
 let graphExpression = "";
 let graphSolved = false;
 let graphScale = 1;
@@ -93,7 +93,7 @@ function parseFunction(expr) {
     cleaned = cleaned.replace(/tan/g, "Math.tan");
     cleaned = cleaned.replace(/log/g, "Math.log10");
     
-    // Правильные коэффициенты: 2x → 2*x, но не трогаем Math.xxx
+    // Правильные коэффициенты
     cleaned = cleaned.replace(/(\d)\(/g, "$1*(");
     cleaned = cleaned.replace(/(\d)x/g, "$1*x");
     cleaned = cleaned.replace(/(\d)Math/g, "$1*Math");
@@ -185,72 +185,73 @@ function drawGraph(expr) {
     ctx.fillText("x", w - 15, axisY - 10);
     ctx.fillText("y", axisX + 10, 15);
     
-    // График
+    // График — рисуем ПОПИКСЕЛЬНО для максимальной плавности
     ctx.strokeStyle = "#58A6FF";
     ctx.lineWidth = 3;
     ctx.shadowColor = "#58A6FF";
     ctx.shadowBlur = 8;
     ctx.beginPath();
     
-    let firstPoint = true;
-    let totalPoints = 1000;
+    let prevY = null;
+    let started = false;
     
-    for (let i = 0; i <= totalPoints; i++) {
-        let x = xMin + i * (xMax - xMin) / totalPoints;
+    for (let px = 0; px <= w; px++) {
+        let x = (px - w/2 - offsetX) / scale;
         let y;
         try {
             y = func(x);
         } catch(e) {
-            firstPoint = true;
+            started = false;
             continue;
         }
         
-        if (isNaN(y) || !isFinite(y) || Math.abs(y) > 100) {
-            firstPoint = true;
+        if (isNaN(y) || !isFinite(y) || Math.abs(y) > 1e6) {
+            started = false;
             continue;
         }
         
-        let px = w/2 + x * scale + offsetX;
         let py = h/2 - y * scale + offsetY;
         
-        if (px < -50 || px > w + 50 || py < -50 || py > h + 50) {
-            firstPoint = true;
-            continue;
+        // Проверяем разрыв (резкий скачок)
+        if (prevY !== null && started && Math.abs(y - prevY) > 50) {
+            started = false;
         }
         
-        if (firstPoint) {
+        if (!started) {
             ctx.moveTo(px, py);
-            firstPoint = false;
+            started = true;
         } else {
             ctx.lineTo(px, py);
         }
+        
+        prevY = y;
     }
     ctx.stroke();
     ctx.shadowBlur = 0;
     
     // Корни
-    findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY, xMin, xMax);
+    findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY);
 }
 
-function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY, xMin, xMax) {
+function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
     let roots = [];
-    let totalPoints = 2000;
-    let prevX = xMin;
-    let prevY;
-    try { prevY = func(prevX); } catch(e) { prevY = NaN; }
+    let prevY = null;
     
-    for (let i = 1; i <= totalPoints; i++) {
-        let x = xMin + i * (xMax - xMin) / totalPoints;
+    for (let px = 0; px <= w; px++) {
+        let x = (px - w/2 - offsetX) / scale;
         let y;
-        try { y = func(x); } catch(e) { prevY = NaN; continue; }
+        try { y = func(x); } catch(e) { prevY = null; continue; }
         
-        if (!isNaN(y) && isFinite(y) && !isNaN(prevY) && isFinite(prevY) && Math.abs(y) < 100) {
-            if (prevY * y <= 0) {
-                let rootX = x - y * (x - prevX) / (y - prevY);
-                roots.push(rootX);
-            }
+        if (isNaN(y) || !isFinite(y) || Math.abs(y) > 100) {
+            prevY = null;
+            continue;
         }
-        prevX = x;
+        
+        if (prevY !== null && prevY * y <= 0) {
+            let prevX = x - 1/scale;
+            let rootX = x - y * (x - prevX) / (y - prevY);
+            roots.push(rootX);
+        }
         prevY = y;
     }
     
