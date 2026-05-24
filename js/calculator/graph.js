@@ -48,7 +48,8 @@ function graphSolve() {
     const input = document.getElementById("graphInput").value.trim();
     if (!input) return;
     
-    graphExpression = input;
+   // Убираем "y =" в начале, если есть
+    graphExpression = input.replace(/^y\s*=\s*/, "");
     graphSolved = true;
     document.getElementById("graphCalcPad").style.display = "none";
     document.getElementById("graphCanvas").style.display = "block";
