@@ -44,13 +44,56 @@ function renderGraphInputs() {
     return html;
 }
 
-function setActiveGraph(i) { graphActiveInput = i; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); }
-function addGraphInput() { if (graphExpressions.length >= 3) return; graphExpressions.push(""); graphActiveInput = graphExpressions.length - 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); }
-function removeGraphInput(i) { if (graphExpressions.length <= 1) return; graphExpressions.splice(i, 1); if (graphActiveInput >= graphExpressions.length) graphActiveInput = graphExpressions.length - 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); drawAllGraphs(); }
+function setActiveGraph(i) { 
+    graphActiveInput = i; 
+    document.getElementById("graphInputs").innerHTML = renderGraphInputs(); 
+}
 
-function graphClear() { graphExpressions = [""]; graphActiveInput = 0; graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphParams = {}; graphTracePos = null; graphAnimProgress = 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); document.getElementById("graphParams").innerHTML = ""; clearCanvas(); }
-function graphBackspace() { let expr = graphExpressions[graphActiveInput]; graphExpressions[graphActiveInput] = expr.slice(0, -1); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); startGraphAnimation(); }
-function graphPaste() { navigator.clipboard.readText().then(text => { graphExpressions[graphActiveInput] = text.trim(); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); startGraphAnimation(); }).catch(() => { document.getElementById(`graphInput${graphActiveInput}`).focus(); }); }
+function addGraphInput() { 
+    if (graphExpressions.length >= 3) return; 
+    graphExpressions.push(""); 
+    graphActiveInput = graphExpressions.length - 1; 
+    document.getElementById("graphInputs").innerHTML = renderGraphInputs(); 
+}
+
+function removeGraphInput(i) { 
+    if (graphExpressions.length <= 1) return; 
+    graphExpressions.splice(i, 1); 
+    if (graphActiveInput >= graphExpressions.length) graphActiveInput = graphExpressions.length - 1; 
+    document.getElementById("graphInputs").innerHTML = renderGraphInputs(); 
+    drawAllGraphsInstant(); 
+}
+
+function graphClear() { 
+    graphExpressions = [""]; 
+    graphActiveInput = 0; 
+    graphScale = 1; 
+    graphOffsetX = 0; 
+    graphOffsetY = 0; 
+    graphParams = {}; 
+    graphTracePos = null; 
+    graphAnimProgress = 1; 
+    document.getElementById("graphInputs").innerHTML = renderGraphInputs(); 
+    document.getElementById("graphParams").innerHTML = ""; 
+    clearCanvas(); 
+}
+
+function graphBackspace() { 
+    let expr = graphExpressions[graphActiveInput]; 
+    graphExpressions[graphActiveInput] = expr.slice(0, -1); 
+    document.getElementById("graphInputs").innerHTML = renderGraphInputs(); 
+    startGraphAnimation(); 
+}
+
+function graphPaste() { 
+    navigator.clipboard.readText().then(text => { 
+        graphExpressions[graphActiveInput] = text.trim(); 
+        document.getElementById("graphInputs").innerHTML = renderGraphInputs(); 
+        startGraphAnimation(); 
+    }).catch(() => { 
+        document.getElementById(`graphInput${graphActiveInput}`).focus(); 
+    }); 
+}
 
 function clearCanvas() {
     const canvas = document.getElementById("graphCanvas");
@@ -82,7 +125,7 @@ function animateGraph() {
     });
 }
 
-// Мгновенная отрисовка — для ползунков и зума
+// Мгновенная отрисовка — для ползунков, зума и перетаскивания
 function drawAllGraphsInstant() {
     graphAnimProgress = 1;
     if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
@@ -152,7 +195,10 @@ function drawAllGraphs() {
         } catch(e) { funcs.push(null); }
     }
     
-    if (funcs.every(f => f === null)) { document.getElementById("graphError").innerHTML = ""; return; }
+    if (funcs.every(f => f === null)) { 
+        document.getElementById("graphError").innerHTML = ""; 
+        return; 
+    }
     document.getElementById("graphError").innerHTML = "";
     
     let scale = graphScale * 20;
@@ -174,13 +220,23 @@ function drawAllGraphs() {
     let lastGridX = Math.ceil((w/2 - offsetX) / gridPixels);
     for (let i = firstGridX; i <= lastGridX; i++) {
         let px = w/2 + i * gridPixels + offsetX;
-        if (px >= 0 && px <= w) { ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke(); }
+        if (px >= 0 && px <= w) { 
+            ctx.beginPath(); 
+            ctx.moveTo(px, 0); 
+            ctx.lineTo(px, h); 
+            ctx.stroke(); 
+        }
     }
     let firstGridY = Math.floor((-h/2 + offsetY) / gridPixels);
     let lastGridY = Math.ceil((h/2 + offsetY) / gridPixels);
     for (let i = firstGridY; i <= lastGridY; i++) {
         let py = h/2 - i * gridPixels + offsetY;
-        if (py >= 0 && py <= h) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke(); }
+        if (py >= 0 && py <= h) { 
+            ctx.beginPath(); 
+            ctx.moveTo(0, py); 
+            ctx.lineTo(w, py); 
+            ctx.stroke(); 
+        }
     }
     
     // Оси
@@ -188,15 +244,24 @@ function drawAllGraphs() {
     ctx.lineWidth = 2;
     let axisY = h/2 + offsetY;
     let axisX = w/2 + offsetX;
-    ctx.beginPath(); ctx.moveTo(0, axisY); ctx.lineTo(w, axisY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(axisX, 0); ctx.lineTo(axisX, h); ctx.stroke();
+    ctx.beginPath(); 
+    ctx.moveTo(0, axisY); 
+    ctx.lineTo(w, axisY); 
+    ctx.stroke();
+    ctx.beginPath(); 
+    ctx.moveTo(axisX, 0); 
+    ctx.lineTo(axisX, h); 
+    ctx.stroke();
     
     // Числа на осях
     ctx.fillStyle = "#888";
     ctx.font = "11px sans-serif";
     let labelStep = gridStep;
     let labelPixels = labelStep * scale;
-    while (labelPixels < 50) { labelStep *= 2; labelPixels = labelStep * scale; }
+    while (labelPixels < 50) { 
+        labelStep *= 2; 
+        labelPixels = labelStep * scale; 
+    }
     
     let firstX = Math.ceil((-w/2 - offsetX) / labelPixels);
     let lastX = Math.floor((w/2 - offsetX) / labelPixels);
@@ -233,13 +298,28 @@ function drawAllGraphs() {
         for (let i = 0; i <= totalPoints; i++) {
             let x = xMin + i * (xMax - xMin) / 2000;
             let y;
-            try { y = func(x); } catch(e) { firstPoint = true; continue; }
-            if (isNaN(y) || !isFinite(y) || Math.abs(y) > 1e6) { firstPoint = true; continue; }
+            try { 
+                y = func(x); 
+            } catch(e) { 
+                firstPoint = true; 
+                continue; 
+            }
+            if (isNaN(y) || !isFinite(y) || Math.abs(y) > 1e6) { 
+                firstPoint = true; 
+                continue; 
+            }
             let px = w/2 + x * scale + offsetX;
             let py = h/2 - y * scale + offsetY;
-            if (px < -100 || px > w + 100 || py < -100 || py > h + 100) { firstPoint = true; continue; }
-            if (firstPoint) { ctx.moveTo(px, py); firstPoint = false; }
-            else { ctx.lineTo(px, py); }
+            if (px < -100 || px > w + 100 || py < -100 || py > h + 100) { 
+                firstPoint = true; 
+                continue; 
+            }
+            if (firstPoint) { 
+                ctx.moveTo(px, py); 
+                firstPoint = false; 
+            } else { 
+                ctx.lineTo(px, py); 
+            }
         }
         ctx.stroke();
         ctx.shadowBlur = 0;
@@ -257,22 +337,39 @@ function drawAllGraphs() {
                 if (isFinite(y)) {
                     let py = h/2 - y * scale + offsetY;
                     let dist = Math.abs(py - graphTracePos.canvasY);
-                    if (dist < bestDist) { bestDist = dist; bestIdx = idx; }
+                    if (dist < bestDist) { 
+                        bestDist = dist; 
+                        bestIdx = idx; 
+                    }
                 }
             } catch(e) {}
         });
         
         if (funcs[bestIdx]) {
             let y;
-            try { y = funcs[bestIdx](x); } catch(e) { y = null; }
+            try { 
+                y = funcs[bestIdx](x); 
+            } catch(e) { 
+                y = null; 
+            }
             if (y !== null && isFinite(y)) {
                 let px = w/2 + x * scale + offsetX;
                 let py = h/2 - y * scale + offsetY;
+                
+                // Точка
                 ctx.fillStyle = colors[bestIdx % colors.length];
-                ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); 
+                ctx.arc(px, py, 8, 0, Math.PI*2); 
+                ctx.fill();
+                
+                // Белая обводка
                 ctx.strokeStyle = "#FFF";
                 ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); 
+                ctx.arc(px, py, 8, 0, Math.PI*2); 
+                ctx.stroke();
+                
+                // Координаты
                 ctx.fillStyle = colors[bestIdx % colors.length];
                 ctx.font = "bold 13px sans-serif";
                 let labelX = px + 12;
@@ -301,23 +398,44 @@ function findAndDrawIntersections(ctx, f1, f2, w, h, scale, offsetX, offsetY, xM
     for (let i = 0; i <= totalPoints; i++) {
         let x = xMin + i * (xMax - xMin) / totalPoints;
         let diff;
-        try { diff = f1(x) - f2(x); } catch(e) { prevDiff = null; continue; }
+        try { 
+            diff = f1(x) - f2(x); 
+        } catch(e) { 
+            prevDiff = null; 
+            continue; 
+        }
         if (!isNaN(diff) && isFinite(diff) && prevDiff !== null && prevDiff * diff <= 0 && Math.abs(diff) < 100) {
             let rootX = x - diff * (x - prevX) / (diff - prevDiff);
             intersections.push({x: rootX, y: f1(rootX)});
         }
-        prevDiff = diff; prevX = x;
+        prevDiff = diff; 
+        prevX = x;
     }
-    intersections = intersections.filter((p, i) => { for (let j = 0; j < i; j++) { if (Math.abs(p.x - intersections[j].x) < 0.05) return false; } return true; });
+    intersections = intersections.filter((p, i) => { 
+        for (let j = 0; j < i; j++) { 
+            if (Math.abs(p.x - intersections[j].x) < 0.05) return false; 
+        } 
+        return true; 
+    });
+    
     intersections.forEach(p => {
         let px = w/2 + p.x * scale + offsetX;
         let py = h/2 - p.y * scale + offsetY;
         if (px > 5 && px < w - 5 && py > 5 && py < h - 5) {
+            // Жёлтая точка
             ctx.fillStyle = "#FFD700";
-            ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); 
+            ctx.arc(px, py, 6, 0, Math.PI*2); 
+            ctx.fill();
+            
+            // Чёрная обводка
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); 
+            ctx.arc(px, py, 6, 0, Math.PI*2); 
+            ctx.stroke();
+            
+            // Координаты
             ctx.fillStyle = "#FFD700";
             ctx.font = "bold 12px sans-serif";
             ctx.fillText(`(${p.x.toFixed(2)}, ${p.y.toFixed(2)})`, px + 8, py - 8);
@@ -337,6 +455,7 @@ function graphInputKey(val) {
 function onGraphInput(i, value) {
     graphExpressions[i] = value;
     
+    // Извлекаем параметры из ВСЕХ выражений
     let allLetters = [];
     graphExpressions.forEach(expr => {
         let letters = expr.match(/[a-wzA-WZ]/g);
@@ -344,6 +463,7 @@ function onGraphInput(i, value) {
     });
     let unique = [...new Set(allLetters)];
     
+    // Обновляем HTML ползунков
     let html = "";
     unique.forEach(letter => {
         if (graphParams[letter] === undefined) graphParams[letter] = 1;
@@ -377,9 +497,10 @@ function updateParam(letter, value) {
     }
     
     // МГНОВЕННАЯ отрисовка — без анимации
-    drawAllGraphsInstant():
+    drawAllGraphsInstant();
+}
 
-    // ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ + СЛЕДЯЩАЯ ТОЧКА ====================
+// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ + СЛЕДЯЩАЯ ТОЧКА ====================
 (function() {
     let canvas = null;
     let lastTouchDist = 0;
@@ -414,6 +535,7 @@ function updateParam(letter, value) {
         canvas.addEventListener("touchmove", e => {
             e.preventDefault();
             if (e.touches.length === 2) {
+                // Зум двумя пальцами
                 let dx = e.touches[0].clientX - e.touches[1].clientX;
                 let dy = e.touches[0].clientY - e.touches[1].clientY;
                 let dist = Math.sqrt(dx*dx+dy*dy);
@@ -473,7 +595,6 @@ function updateParam(letter, value) {
             if (mouseIsDown) {
                 if (isNearGraph) {
                     // Близко к графику — только обновляем следящую точку, не двигаем плоскость
-                    // Ничего не делаем с offset
                 } else {
                     // Далеко от графика — перетаскивание плоскости
                     graphOffsetX += e.clientX - graphLastX;
@@ -572,6 +693,3 @@ function updateParam(letter, value) {
         initCanvas();
     }
 })();
-}
-
-            
