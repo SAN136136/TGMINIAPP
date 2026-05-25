@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v2.4 ====================
+// ==================== ГРАФИКИ v2.5 ====================
 let graphExpressions = [""];
 let graphActiveInput = 0;
 let graphScale = 1;
@@ -49,21 +49,29 @@ function addGraphInput() { if (graphExpressions.length >= 3) return; graphExpres
 function removeGraphInput(i) { if (graphExpressions.length <= 1) return; graphExpressions.splice(i, 1); if (graphActiveInput >= graphExpressions.length) graphActiveInput = graphExpressions.length - 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); drawAllGraphs(); }
 
 function graphClear() { graphExpressions = [""]; graphActiveInput = 0; graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphParams = {}; graphTracePos = null; graphAnimProgress = 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); document.getElementById("graphParams").innerHTML = ""; clearCanvas(); }
-function graphBackspace() { let expr = graphExpressions[graphActiveInput]; graphExpressions[graphActiveInput] = expr.slice(0, -1); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0.3; animateGraph(); }
-function graphPaste() { navigator.clipboard.readText().then(text => { graphExpressions[graphActiveInput] = text.trim(); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0.3; animateGraph(); }).catch(() => { document.getElementById(`graphInput${graphActiveInput}`).focus(); }); }
+function graphBackspace() { let expr = graphExpressions[graphActiveInput]; graphExpressions[graphActiveInput] = expr.slice(0, -1); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); startGraphAnimation(); }
+function graphPaste() { navigator.clipboard.readText().then(text => { graphExpressions[graphActiveInput] = text.trim(); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); startGraphAnimation(); }).catch(() => { document.getElementById(`graphInput${graphActiveInput}`).focus(); }); }
 
 function clearCanvas() {
     const canvas = document.getElementById("graphCanvas");
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#0A0A14";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
+// Новая функция для запуска анимации
+function startGraphAnimation() {
+    graphAnimProgress = 0; // Начинаем с нуля каждый раз
+    if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
+    animateGraph();
+}
+
 function animateGraph() {
     if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
     graphAnimFrame = requestAnimationFrame(() => {
-        graphAnimProgress += 0.2;
+        graphAnimProgress += 0.05; // Медленнее для плавности (0.5 секунды при 60fps ≈ 30 шагов, 1/30 ≈ 0.033, берём 0.05 с запасом)
         if (graphAnimProgress >= 1) {
             graphAnimProgress = 1;
             drawAllGraphs();
@@ -115,6 +123,7 @@ function getAdaptiveStep(scale) {
 
 function drawAllGraphs() {
     const canvas = document.getElementById("graphCanvas");
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const w = canvas.width;
     const h = canvas.height;
@@ -200,7 +209,7 @@ function drawAllGraphs() {
     ctx.fillText("x", w - 15, axisY - 10);
     ctx.fillText("y", axisX + 10, 15);
     
-    // Графики
+    // Графики с анимацией
     funcs.forEach((func, idx) => {
         if (!func) return;
         
@@ -229,7 +238,7 @@ function drawAllGraphs() {
         ctx.shadowBlur = 0;
     });
     
-    // Следящая точка — ближайший график к пальцу
+    // Следящая точка — ближайший график к пальцу/курсору
     if (graphTracePos && funcs.some(f => f !== null)) {
         let x = graphTracePos.x;
         let bestIdx = 0;
@@ -240,7 +249,7 @@ function drawAllGraphs() {
                 let y = f(x);
                 if (isFinite(y)) {
                     let py = h/2 - y * scale + offsetY;
-                    let dist = Math.abs(py - graphTracePos.clientY);
+                    let dist = Math.abs(py - graphTracePos.canvasY);
                     if (dist < bestDist) { bestDist = dist; bestIdx = idx; }
                 }
             } catch(e) {}
@@ -254,9 +263,17 @@ function drawAllGraphs() {
                 let py = h/2 - y * scale + offsetY;
                 ctx.fillStyle = colors[bestIdx % colors.length];
                 ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = "#FFF";
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.stroke();
                 ctx.fillStyle = colors[bestIdx % colors.length];
                 ctx.font = "bold 13px sans-serif";
-                ctx.fillText(`(${x.toFixed(2)}, ${y.toFixed(2)})`, px + 10, py - 10);
+                // Выносим текст, чтобы не перекрывал точку
+                let labelX = px + 12;
+                let labelY = py - 10;
+                if (labelX > w - 80) labelX = px - 100;
+                if (labelY < 15) labelY = py + 20;
+                ctx.fillText(`(${x.toFixed(2)}, ${y.toFixed(2)})`, labelX, labelY);
             }
         }
     }
@@ -292,6 +309,9 @@ function findAndDrawIntersections(ctx, f1, f2, w, h, scale, offsetX, offsetY, xM
         if (px > 5 && px < w - 5 && py > 5 && py < h - 5) {
             ctx.fillStyle = "#FFD700";
             ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.stroke();
             ctx.fillStyle = "#FFD700";
             ctx.font = "bold 12px sans-serif";
             ctx.fillText(`(${p.x.toFixed(2)}, ${p.y.toFixed(2)})`, px + 8, py - 8);
@@ -310,36 +330,53 @@ function graphInputKey(val) {
 
 function onGraphInput(i, value) {
     graphExpressions[i] = value;
-    graphAnimProgress = 0.3;
-    let letters = value.match(/[a-wzA-WZ]/g);
-    if (letters && letters.length > 0) {
-        let unique = [...new Set(letters)];
-        let html = "";
-        unique.forEach(letter => {
-            if (graphParams[letter] === undefined) graphParams[letter] = 1;
-            html += `
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
-                    <span style="color:#FFD700; width:20px;">${letter}</span>
-                    <input type="range" min="0.5" max="10" step="0.5" value="${graphParams[letter]}" 
-                        oninput="updateParam('${letter}', this.value)"
-                        style="flex:1;">
-                    <span style="color:#58A6FF; width:30px;">${graphParams[letter]}</span>
-                </div>`;
-        });
-        document.getElementById("graphParams").innerHTML = html;
-    } else {
-        document.getElementById("graphParams").innerHTML = "";
-    }
-    animateGraph();
+    
+    // Извлекаем параметры (a, b и др.) из ВСЕХ выражений, а не только из активного
+    let allLetters = [];
+    graphExpressions.forEach(expr => {
+        let letters = expr.match(/[a-wzA-WZ]/g);
+        if (letters) allLetters = allLetters.concat(letters);
+    });
+    let unique = [...new Set(allLetters)];
+    
+    // Обновляем HTML ползунков, сохраняя текущие значения
+    let html = "";
+    unique.forEach(letter => {
+        if (graphParams[letter] === undefined) graphParams[letter] = 1;
+        html += `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                <span style="color:#FFD700; width:20px;">${letter}</span>
+                <input type="range" min="0.5" max="10" step="0.1" value="${graphParams[letter]}" 
+                    oninput="updateParam('${letter}', this.value)"
+                    style="flex:1;">
+                <span style="color:#58A6FF; width:35px;">${graphParams[letter]}</span>
+            </div>`;
+    });
+    document.getElementById("graphParams").innerHTML = html;
+    
+    startGraphAnimation();
 }
 
+// Новая функция updateParam — НЕ пересоздаёт HTML, только обновляет значение и перерисовывает
 function updateParam(letter, value) {
     graphParams[letter] = parseFloat(value);
-    let expr = graphExpressions[graphActiveInput];
-    onGraphInput(graphActiveInput, expr);
+    
+    // Обновляем только число рядом с ползунком, не трогая весь HTML
+    let paramDivs = document.getElementById("graphParams").children;
+    for (let div of paramDivs) {
+        let label = div.querySelector("span:first-child");
+        if (label && label.textContent === letter) {
+            let valueSpan = div.querySelector("span:last-child");
+            if (valueSpan) valueSpan.textContent = graphParams[letter];
+            break;
+        }
+    }
+    
+    // Перерисовываем график без сброса ползунка
+    startGraphAnimation();
 }
 
-// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ ====================
+// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ + СЛЕДЯЩАЯ ТОЧКА ====================
 (function() {
     let canvas = null;
     let lastTouchDist = 0;
@@ -351,43 +388,127 @@ function updateParam(letter, value) {
         // Блокируем скролл на canvas
         canvas.addEventListener("touchstart", e => {
             e.preventDefault();
-            if (e.touches.length === 1) { graphDragging = true; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; graphTracePos = null; }
-            if (e.touches.length === 2) { graphDragging = false; let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDist = Math.sqrt(dx*dx+dy*dy); }
+            if (e.touches.length === 1) {
+                // Одно касание — начинаем перетаскивание ИЛИ следящую точку
+                graphDragging = true;
+                graphLastX = e.touches[0].clientX;
+                graphLastY = e.touches[0].clientY;
+                // Сразу показываем следящую точку
+                updateTracePosFromTouch(e.touches[0]);
+            }
+            if (e.touches.length === 2) {
+                graphDragging = false;
+                graphTracePos = null;
+                let dx = e.touches[0].clientX - e.touches[1].clientX;
+                let dy = e.touches[0].clientY - e.touches[1].clientY;
+                lastTouchDist = Math.sqrt(dx*dx+dy*dy);
+            }
         }, { passive: false });
         
         canvas.addEventListener("touchmove", e => {
             e.preventDefault();
-            if (e.touches.length === 2) { let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; let dist = Math.sqrt(dx*dx+dy*dy); if (lastTouchDist > 0) { graphScale *= dist / lastTouchDist; graphScale = Math.max(0.02, Math.min(20, graphScale)); } lastTouchDist = dist; graphTracePos = null; drawAllGraphs(); }
-            else if (graphDragging && e.touches.length === 1) { graphOffsetX += e.touches[0].clientX - graphLastX; graphOffsetY += e.touches[0].clientY - graphLastY; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; graphTracePos = null; drawAllGraphs(); }
+            if (e.touches.length === 2) {
+                // Зум двумя пальцами
+                let dx = e.touches[0].clientX - e.touches[1].clientX;
+                let dy = e.touches[0].clientY - e.touches[1].clientY;
+                let dist = Math.sqrt(dx*dx+dy*dy);
+                if (lastTouchDist > 0) {
+                    graphScale *= dist / lastTouchDist;
+                    graphScale = Math.max(0.02, Math.min(20, graphScale));
+                }
+                lastTouchDist = dist;
+                graphTracePos = null;
+                drawAllGraphs();
+            } else if (graphDragging && e.touches.length === 1) {
+                // Перетаскивание одним пальцем
+                graphOffsetX += e.touches[0].clientX - graphLastX;
+                graphOffsetY += e.touches[0].clientY - graphLastY;
+                graphLastX = e.touches[0].clientX;
+                graphLastY = e.touches[0].clientY;
+                // Обновляем следящую точку после перетаскивания
+                updateTracePosFromTouch(e.touches[0]);
+                drawAllGraphs();
+            }
         }, { passive: false });
         
-        canvas.addEventListener("touchend", () => { graphDragging = false; });
-        canvas.addEventListener("dblclick", () => { graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphTracePos = null; drawAllGraphs(); });
+        canvas.addEventListener("touchend", e => {
+            if (e.touches.length === 0) {
+                // Все пальцы убраны — показываем следящую точку в последней позиции
+                graphDragging = false;
+            }
+            drawAllGraphs();
+        });
         
-        // Мышь
+        canvas.addEventListener("dblclick", () => {
+            graphScale = 1;
+            graphOffsetX = 0;
+            graphOffsetY = 0;
+            graphTracePos = null;
+            drawAllGraphs();
+        });
+        
+        // Мышь — ОДИН обработчик для всего
         canvas.addEventListener("mousemove", e => {
+            let rect = canvas.getBoundingClientRect();
+            let scaleW = canvas.width / rect.width;
+            let scaleH = canvas.height / rect.height;
+            let mouseCanvasX = (e.clientX - rect.left) * scaleW;
+            let mouseCanvasY = (e.clientY - rect.top) * scaleH;
+            
             if (graphDragging) {
+                // Перетаскивание
                 graphOffsetX += e.clientX - graphLastX;
                 graphOffsetY += e.clientY - graphLastY;
                 graphLastX = e.clientX;
                 graphLastY = e.clientY;
-                graphTracePos = null;
-                drawAllGraphs();
-            } else {
-                let rect = canvas.getBoundingClientRect();
-                let scaleW = canvas.width / rect.width;
-                let px = (e.clientX - rect.left) * scaleW;
-                let x = (px - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-                graphTracePos = { x, y: 0, clientY: e.clientY };
-                drawAllGraphs();
             }
+            
+            // Всегда обновляем следящую точку (даже при перетаскивании)
+            let x = (mouseCanvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
+            graphTracePos = { x, y: 0, canvasY: mouseCanvasY };
+            
+            drawAllGraphs();
         });
-        canvas.addEventListener("mouseleave", () => { graphTracePos = null; drawAllGraphs(); graphDragging = false; });
-        canvas.addEventListener("mousedown", e => { graphDragging = true; graphLastX = e.clientX; graphLastY = e.clientY; graphTracePos = null; });
-        canvas.addEventListener("mouseup", () => { graphDragging = false; });
-        canvas.addEventListener("wheel", e => { e.preventDefault(); graphScale *= e.deltaY < 0 ? 1.2 : 0.8; graphScale = Math.max(0.02, Math.min(20, graphScale)); graphTracePos = null; drawAllGraphs(); });
+        
+        canvas.addEventListener("mouseleave", () => {
+            graphTracePos = null;
+            graphDragging = false;
+            drawAllGraphs();
+        });
+        
+        canvas.addEventListener("mousedown", e => {
+            graphDragging = true;
+            graphLastX = e.clientX;
+            graphLastY = e.clientY;
+            // Не сбрасываем graphTracePos, чтобы точка оставалась
+        });
+        
+        canvas.addEventListener("mouseup", () => {
+            graphDragging = false;
+            // Не сбрасываем graphTracePos — пусть точка остаётся после отпускания
+        });
+        
+        canvas.addEventListener("wheel", e => {
+            e.preventDefault();
+            graphScale *= e.deltaY < 0 ? 1.2 : 0.8;
+            graphScale = Math.max(0.02, Math.min(20, graphScale));
+            drawAllGraphs();
+        }, { passive: false });
     }
     
-    if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", initCanvas); }
-    else { initCanvas(); }
+    function updateTracePosFromTouch(touch) {
+        let rect = canvas.getBoundingClientRect();
+        let scaleW = canvas.width / rect.width;
+        let scaleH = canvas.height / rect.height;
+        let touchCanvasX = (touch.clientX - rect.left) * scaleW;
+        let touchCanvasY = (touch.clientY - rect.top) * scaleH;
+        let x = (touchCanvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
+        graphTracePos = { x, y: 0, canvasY: touchCanvasY };
+    }
+    
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initCanvas);
+    } else {
+        initCanvas();
+    }
 })();
