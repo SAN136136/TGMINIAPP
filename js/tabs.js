@@ -27,7 +27,7 @@ function renderTab(tab) {
             <div class="section-title" style="margin-top:15px;">ШКОЛА</div>
             <div class="buttons">
                 <button class="btn btn-schedule" onclick="showFullSchedule()">📅 Расписание</button>
-                <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
+                <button class="btn btn-tram" onclick="openTramWindow()">🚋 Трамваи</button>
                 <button class="btn btn-cheatsheet" onclick="openCheatsheetMenu()">📝 Шпаргалки</button>
             </div>
         `;
@@ -43,6 +43,10 @@ function renderTab(tab) {
                 <button class="btn btn-shutdown" onclick="sendCommand('shutdown')">⏻ Выкл ПК</button>
                 <button class="btn btn-cancel" onclick="sendCommand('cancel_shutdown')">❌ Отмена</button>
             </div>
+            <div class="section-title" style="margin-top:15px;">ГОРОД</div>
+            <div class="buttons">
+                <button class="btn btn-tram" onclick="openTramWindow()">🚋 Трамваи</button>
+            </div>
         `;
     } else if (tab === "school") {
         html = `
@@ -50,7 +54,7 @@ function renderTab(tab) {
             <div class="buttons">
                 <button class="btn btn-schedule" onclick="showFullSchedule()">📅 Расписание</button>
                 <button class="btn btn-cheatsheet" onclick="openCheatsheetMenu()">📝 Шпаргалки</button>
-                <button class="btn btn-tram" onclick="showWip('Трамваи')">🚋 Трамваи<span class="wip-badge">WIP</span></button>
+                <button class="btn btn-tram" onclick="openTramWindow()">🚋 Трамваи</button>
                 <button class="btn btn-calc" onclick="openCalculator()">🧮 Калькулятор</button>
             </div>
             <p class="music-hint">Скоро здесь будут:<br>калькулятор и трамваи</p>
@@ -79,6 +83,63 @@ function renderTab(tab) {
     }
     
     container.innerHTML = html;
+}
+
+// ==================== ТРАМВАИ ====================
+function openTramWindow() {
+    // Создаём модальное окно
+    const modal = document.createElement('div');
+    modal.id = 'tramModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0A0A14;
+        z-index: 9999;
+        overflow-y: auto;
+    `;
+    
+    // Ифрейм с tram.html
+    const iframe = document.createElement('iframe');
+    iframe.src = 'tram.html';
+    iframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+    `;
+    
+    // Кнопка закрытия
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = `
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 10000;
+        width: 40px;
+        height: 40px;
+        background: #FF6B6B;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    `;
+    closeBtn.onclick = function() {
+        document.body.removeChild(modal);
+        document.body.removeChild(closeBtn);
+    };
+    
+    modal.appendChild(iframe);
+    document.body.appendChild(modal);
+    document.body.appendChild(closeBtn);
 }
 
 // ==================== МЕНЮ ШПАРГАЛОК ====================
