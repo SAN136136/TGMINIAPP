@@ -26,59 +26,57 @@
             background: var(--bg);
             color: var(--text);
             padding: 16px;
+            padding-bottom: 100px;
             min-height: 100vh;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         
         .header h1 {
             color: var(--gold);
-            font-size: 24px;
+            font-size: 22px;
             margin-bottom: 4px;
         }
         
         .header .subtitle {
             color: #888;
-            font-size: 14px;
+            font-size: 13px;
         }
         
-        .controls {
+        .stop-selector {
             display: flex;
             gap: 8px;
             margin-bottom: 16px;
-            flex-wrap: wrap;
+            overflow-x: auto;
         }
         
-        .btn {
-            padding: 10px 16px;
-            border: 1px solid var(--border);
+        .stop-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: 2px solid var(--border);
             background: var(--card);
             color: var(--text);
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 600;
             transition: all 0.2s;
+            text-align: center;
+            min-width: 0;
+            white-space: nowrap;
         }
         
-        .btn:hover {
+        .stop-btn:hover {
             border-color: var(--gold);
-            color: var(--gold);
         }
         
-        .btn.active {
+        .stop-btn.active {
             background: var(--gold);
             color: #000;
             border-color: var(--gold);
-        }
-        
-        .btn-refresh {
-            margin-left: auto;
-            background: var(--blue);
-            color: #000;
-            border: none;
         }
         
         .loading {
@@ -104,22 +102,16 @@
         .tram-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
         
         .tram-card {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 14px;
+            padding: 12px 14px;
             cursor: pointer;
             transition: all 0.2s;
-            position: relative;
-        }
-        
-        .tram-card:hover {
-            border-color: var(--gold);
-            transform: translateX(4px);
         }
         
         .tram-card.moving {
@@ -130,11 +122,15 @@
             border-left: 3px solid var(--red);
         }
         
-        .tram-header {
+        .tram-card.passed {
+            opacity: 0.4;
+            border-left: 3px solid #555;
+        }
+        
+        .tram-main {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
         }
         
         .tram-route {
@@ -143,55 +139,42 @@
             color: var(--gold);
         }
         
-        .tram-badge {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
+        .tram-speed {
+            font-size: 14px;
             font-weight: 600;
         }
         
-        .tram-badge.moving {
-            background: rgba(76, 175, 80, 0.2);
+        .tram-speed.moving {
             color: #4CAF50;
         }
         
-        .tram-badge.stopped {
-            background: rgba(255, 107, 107, 0.2);
+        .tram-speed.stopped {
             color: var(--red);
         }
         
-        .tram-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            font-size: 13px;
-        }
-        
-        .tram-info .label {
-            color: #888;
-        }
-        
-        .tram-info .value {
-            color: var(--text);
-            text-align: right;
-        }
-        
-        .tram-direction {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid var(--border);
+        .tram-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
             font-size: 13px;
             color: #888;
         }
         
-        .tram-direction .arrow {
-            font-size: 16px;
-            margin-right: 4px;
-        }
-        
-        .tram-direction .eta {
+        .tram-distance {
             color: var(--blue);
-            float: right;
+            font-weight: 600;
+        }
+        
+        .tram-eta {
+            color: var(--blue);
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .tram-passed {
+            color: #666;
+            font-size: 13px;
         }
         
         .empty {
@@ -218,21 +201,89 @@
             text-align: center;
             font-size: 12px;
             color: #555;
-            margin-top: 16px;
+            margin: 12px 0;
+        }
+        
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+        
+        .btn {
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .btn-refresh {
+            flex: 1;
+            background: var(--blue);
+            color: #000;
+            border: none;
+        }
+        
+        .btn-close {
+            flex: 1;
+            background: var(--red);
+            color: #fff;
+            border: none;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .legend .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🚋 Трамваи Магнитогорска</h1>
-        <div class="subtitle">Гагарина → Юность</div>
+        <div class="subtitle" id="stopLabel">Выбери остановку</div>
     </div>
     
-    <div class="controls">
-        <button class="btn active" onclick="filterTrams('all', this)">Все</button>
-        <button class="btn" onclick="filterTrams('moving', this)">🟢 В пути</button>
-        <button class="btn" onclick="filterTrams('stopped', this)">🔴 Стоят</button>
-        <button class="btn btn-refresh" onclick="loadTrams()">🔄 Обновить</button>
+    <div class="stop-selector">
+        <button class="stop-btn active" onclick="selectStop('gagarina', this)">🏫 Гагарина</button>
+        <button class="stop-btn" onclick="selectStop('yunost', this)">🎓 Юность</button>
+        <button class="stop-btn" onclick="selectStop('ploshchad_mira', this)">🌍 Пл. Мира</button>
+    </div>
+    
+    <div class="legend">
+        <span><span class="dot" style="background:#4CAF50;"></span> Едет</span>
+        <span><span class="dot" style="background:#FF6B6B;"></span> Стоит</span>
+        <span><span class="dot" style="background:#555;"></span> Проехал</span>
     </div>
     
     <div id="tramContent">
@@ -244,119 +295,148 @@
     
     <div class="update-time" id="updateTime"></div>
     
+    <div class="bottom-bar">
+        <button class="btn btn-refresh" onclick="loadTrams()">🔄 Обновить</button>
+        <button class="btn btn-close" onclick="closeWindow()">✕ Закрыть</button>
+    </div>
+    
     <script>
-        // Данные о всех трамваях
-        let allTrams = [];
-        let currentFilter = 'all';
+        // ==================== ДАННЫЕ ====================
         
-        // Загружаем данные при открытии
-        document.addEventListener('DOMContentLoaded', loadTrams);
+        // Остановки с координатами и маршрутами, которые через них проходят
+        const STOPS = {
+            gagarina: {
+                name: 'Гагарина',
+                lat: 53.398,
+                lng: 58.978,
+                // Маршруты, проходящие через эту остановку (rid)
+                routes: [10013, 10014, 10017, 10006, 10007, 10009, 10011, 10023, 10024, 10026, 10031, 10032, 10035, 10037, 10039, 10040, 10041, 10042, 10043, 10045, 10046, 10047, 10051, 10053, 10055, 10057, 10058, 10060, 10061, 10063, 10067, 10069, 10070, 10080, 10082, 10083, 10091, 10094, 10097, 10099, 10100, 10101, 10103, 10106, 10107, 10126]
+            },
+            yunost: {
+                name: 'Юность',
+                lat: 53.416,
+                lng: 58.985,
+                routes: [10006, 10007, 10009, 10011, 10013, 10014, 10017, 10021, 10023, 10026, 10031, 10032, 10035, 10037, 10039, 10040, 10041, 10042, 10043, 10045, 10046, 10047, 10051, 10053, 10055, 10057, 10058, 10060, 10061, 10063, 10067, 10069, 10070, 10080, 10082, 10083, 10091, 10094, 10097, 10099, 10100, 10101, 10103, 10106, 10107, 10126]
+            },
+            ploshchad_mira: {
+                name: 'Пл. Мира',
+                lat: 53.405,
+                lng: 58.985,
+                routes: [10006, 10007, 10009, 10011, 10013, 10014, 10017, 10023, 10026, 10031, 10032, 10035, 10037, 10039, 10040, 10041, 10042, 10043, 10045, 10046, 10047, 10051, 10053, 10055, 10057, 10058, 10060, 10061, 10063, 10067, 10069, 10070, 10080, 10082, 10083, 10091, 10094, 10097, 10099, 10100, 10101, 10103, 10106, 10107, 10126]
+            }
+        };
+        
+        let currentStop = 'gagarina';
+        let allTrams = [];
+        
+        // API
+        const API_URL = 'https://smarttransport.online/magnitogorsk/php/apiRequest.php?getVehiclesAnimation.php';
+        const PAYLOAD = {
+            t: '11111111-50b3-4fec-b922-8a50a1d38366',
+            ct: 26,
+            cd: 'getVehiclesAnimation.php',
+            reg: 74004,
+            data: {
+                wuid: 798382819222,
+                rids: '1,3,5,7,9,11,12,14,21,22,23,25,10001,10002,10004,10006,10007,10009,10011,10013,10017,10021,10023,10024,10026,10029,10031,10032,10035,10037,10039,10040,10041,10042,10043,10045,10046,10047,10051,10053,10055,10057,10058,10060,10061,10063,10067,10069,10070,10080,10082,10083,10091,10094,10097,10099,10100,10101,10103,10106,10107,10126',
+                curk: 167713
+            }
+        };
+        
+        // ==================== ФУНКЦИИ ====================
+        
+        function selectStop(stopId, btn) {
+            currentStop = stopId;
+            document.querySelectorAll('.stop-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('stopLabel').textContent = STOPS[stopId].name;
+            filterAndRender();
+        }
         
         async function loadTrams() {
             const content = document.getElementById('tramContent');
             content.innerHTML = '<div class="loading"><div class="spinner"></div>Загружаем данные...</div>';
             
             try {
-                // Отправляем команду через Telegram
-                if (window.Telegram && window.Telegram.WebApp) {
-                    const tg = window.Telegram.WebApp;
-                    tg.sendData(JSON.stringify({ command: 'get_trams' }));
+                const resp = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+                    body: JSON.stringify(PAYLOAD)
+                });
+                const data = await resp.json();
+                
+                if (data.r === 'ok') {
+                    allTrams = data.data.anims.filter(v => v.rtype === 'Тм');
+                    filterAndRender();
                     
-                    // Ждём ответа через callback
-                    window.tramCallback = function(data) {
-                        renderTrams(data);
-                    };
+                    const now = new Date();
+                    document.getElementById('updateTime').textContent = 
+                        '🕐 Обновлено: ' + now.toLocaleTimeString('ru-RU');
                 } else {
-                    // Для теста — моковые данные
-                    const mockData = [
-                        { route: '21', board: '3198', speed: 25, lat: 53.398, lng: 58.978, direction: 90, status: 'moving' },
-                        { route: '15', board: '3205', speed: 0, lat: 53.405, lng: 58.985, direction: 180, status: 'stopped' },
-                        { route: '7', board: '3244', speed: 31, lat: 53.392, lng: 59.005, direction: 270, status: 'moving' },
-                    ];
-                    renderTrams(mockData);
+                    content.innerHTML = '<div class="error">❌ Ошибка API</div>';
                 }
             } catch (e) {
-                content.innerHTML = '<div class="error">❌ Ошибка загрузки данных</div>';
+                console.error(e);
+                content.innerHTML = '<div class="error">❌ Ошибка загрузки данных<br>Проверь подключение к интернету</div>';
             }
         }
         
-        function renderTrams(trams) {
-            allTrams = trams;
+        function filterAndRender() {
+            const stop = STOPS[currentStop];
             const content = document.getElementById('tramContent');
             
-            // Фильтруем только трамваи, едущие от Гагарина к Юности
-            // (примерные координаты коридора)
-            const filtered = trams.filter(t => {
-                const lat = t.lat || 0;
-                const lng = t.lng || 0;
-                // Коридор Гагарина-Юность: широта 53.38-53.42, долгота 58.97-59.01
-                return lat > 53.38 && lat < 53.42 && lng > 58.97 && lng < 59.01;
-            });
+            // Фильтруем: только трамваи нужных маршрутов
+            let filtered = allTrams.filter(t => stop.routes.includes(t.rid));
             
-            applyFilter(filtered);
-            
-            // Время обновления
-            const now = new Date();
-            document.getElementById('updateTime').textContent = 
-                `🕐 Обновлено: ${now.toLocaleTimeString('ru-RU')}`;
-        }
-        
-        function applyFilter(sourceData) {
-            const content = document.getElementById('tramContent');
-            let data = [...sourceData];
-            
-            // Применяем текущий фильтр
-            if (currentFilter === 'moving') {
-                data = data.filter(t => (t.speed || 0) > 0);
-            } else if (currentFilter === 'stopped') {
-                data = data.filter(t => (t.speed || 0) === 0);
-            }
-            
-            if (data.length === 0) {
-                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет трамваев в выбранном направлении</div>';
+            if (filtered.length === 0) {
+                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Трамваев поблизости нет</div>';
                 return;
             }
             
-            // Сортируем по расстоянию (чем ближе к Юности — тем ближе lat к 53.42)
-            data.sort((a, b) => (b.lat || 0) - (a.lat || 0));
+            // Считаем расстояние до остановки
+            filtered = filtered.map(t => {
+                const dist = haversine(stop.lat, stop.lng, t.lat, t.lng);
+                return { ...t, _dist: dist, _passed: isPassed(stop, t) };
+            });
+            
+            // Сортируем: сначала те, что ещё не проехали (по расстоянию), потом проехавшие
+            filtered.sort((a, b) => {
+                if (a._passed && !b._passed) return 1;
+                if (!a._passed && b._passed) return -1;
+                return a._dist - b._dist;
+            });
+            
+            // Показываем больше трамваев (до 15)
+            filtered = filtered.slice(0, 15);
             
             let html = '<div class="tram-list">';
             
-            data.forEach((tram, index) => {
-                const isMoving = (tram.speed || 0) > 0;
-                const statusClass = isMoving ? 'moving' : 'stopped';
-                const badgeClass = isMoving ? 'moving' : 'stopped';
-                const badgeText = isMoving ? '🟢 В пути' : '🔴 Стоит';
+            filtered.forEach(t => {
+                const isMoving = (t.speed || 0) > 0;
+                const statusClass = t._passed ? 'passed' : (isMoving ? 'moving' : 'stopped');
+                const speedClass = isMoving ? 'moving' : 'stopped';
+                const speedText = isMoving ? `${t.speed} км/ч` : 'Стоит';
                 
-                // Направление в стрелку
-                const dir = tram.direction || 0;
-                const arrows = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
-                const arrow = arrows[Math.round(dir / 45) % 8] || '🔄';
-                
-                // Примерное время до Юности (lat ~53.416)
-                const distToTarget = Math.abs((tram.lat || 0) - 53.416) * 111000; // в метрах
+                // Время до остановки
                 let eta = '';
-                if (isMoving && tram.speed > 0) {
-                    const minutes = Math.round(distToTarget / (tram.speed * 1000 / 60));
+                if (!t._passed && isMoving && t.speed > 0) {
+                    const minutes = Math.round(t._dist / (t.speed * 1000 / 60));
                     if (minutes > 0) eta = `⏱ ~${minutes} мин`;
                 }
                 
+                const distText = t._passed 
+                    ? `Проехал ${Math.round(t._dist)}м назад`
+                    : `До остановки ${Math.round(t._dist)}м`;
+                
                 html += `
-                    <div class="tram-card ${statusClass}" onclick="openMap(${tram.lat}, ${tram.lng})">
-                        <div class="tram-header">
-                            <span class="tram-route">№${tram.route || '?'}</span>
-                            <span class="tram-badge ${badgeClass}">${badgeText}</span>
+                    <div class="tram-card ${statusClass}" onclick="openMap(${t.lat}, ${t.lng})">
+                        <div class="tram-main">
+                            <span class="tram-route">№${t.rnum || '?'}</span>
+                            <span class="tram-speed ${speedClass}">${speedText}</span>
                         </div>
-                        <div class="tram-info">
-                            <span class="label">Борт:</span>
-                            <span class="value">${tram.board || '?'}</span>
-                            <span class="label">Скорость:</span>
-                            <span class="value">${tram.speed || 0} км/ч</span>
-                        </div>
-                        <div class="tram-direction">
-                            <span class="arrow">${arrow}</span>
-                            ${dir}°
-                            ${eta ? `<span class="eta">${eta}</span>` : ''}
+                        <div class="tram-details">
+                            <span class="${t._passed ? 'tram-passed' : 'tram-distance'}">${distText}</span>
+                            ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -366,25 +446,47 @@
             content.innerHTML = html;
         }
         
-        function filterTrams(type, btn) {
-            currentFilter = type;
+        function isPassed(stop, tram) {
+            // Определяем, проехал ли трамвай остановку
+            // Для Гагарины (на юг): lat трамвая > lat остановки = проехал
+            // Для Юности (на север): lat трамвая < lat остановки = проехал
+            const latDiff = tram.lat - stop.lat;
+            const lngDiff = tram.lng - stop.lng;
             
-            // Обновляем активную кнопку
-            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            // Основное направление — на юг (Гагарина → Юность)
+            // Если трамвай южнее остановки более чем на 200м — проехал
+            if (latDiff > 0.002) return true; // ~200м южнее
             
-            // Применяем фильтр
-            applyFilter(allTrams);
+            // Если трамвай сильно восточнее или западнее (параллельные улицы) — не показываем как проехавший
+            if (Math.abs(lngDiff) > 0.015) return false; // ~1.5км в сторону — другой маршрут
+            
+            return false;
+        }
+        
+        function haversine(lat1, lng1, lat2, lng2) {
+            const R = 6371000;
+            const dlat = (lat2 - lat1) * Math.PI / 180;
+            const dlng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dlat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dlng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
         
         function openMap(lat, lng) {
-            const url = `https://maps.yandex.ru/?ll=${lng},${lat}&z=16`;
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.openLink(url);
-            } else {
-                window.open(url, '_blank');
+            window.open(`https://maps.yandex.ru/?ll=${lng},${lat}&z=16`, '_blank');
+        }
+        
+        function closeWindow() {
+            // Сообщаем родительскому окну, что нужно закрыть модалку
+            if (window.parent && window.parent !== window) {
+                const modal = window.parent.document.getElementById('tramModal');
+                if (modal) window.parent.document.body.removeChild(modal);
+                const closeBtn = window.parent.document.querySelector('button[style*="position: fixed"][style*="z-index: 10000"]');
+                if (closeBtn) window.parent.document.body.removeChild(closeBtn);
             }
         }
+        
+        // Загружаем при открытии
+        document.addEventListener('DOMContentLoaded', loadTrams);
     </script>
 </body>
 </html>
