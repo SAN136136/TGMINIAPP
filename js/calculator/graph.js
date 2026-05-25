@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v2.3 ====================
+// ==================== ГРАФИКИ v2.4 ====================
 let graphExpressions = [""];
 let graphActiveInput = 0;
 let graphScale = 1;
@@ -102,7 +102,6 @@ function parseFunction(expr) {
 }
 
 function getAdaptiveStep(scale) {
-    // Адаптивный шаг: 0.5, 1, 2, 5, 10, 20...
     let rawStep = 40 / scale;
     let magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
     let residual = rawStep / magnitude;
@@ -306,7 +305,6 @@ function graphInputKey(val) {
     if (val === "=" && expr.includes("=")) return;
     graphExpressions[graphActiveInput] += val;
     document.getElementById("graphInputs").innerHTML = renderGraphInputs();
-    // Вызываем onGraphInput для проверки букв-параметров
     onGraphInput(graphActiveInput, graphExpressions[graphActiveInput]);
 }
 
@@ -341,7 +339,7 @@ function updateParam(letter, value) {
     onGraphInput(graphActiveInput, expr);
 }
 
-// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ (без скролла) ====================
+// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ ====================
 (function() {
     let canvas = null;
     let lastTouchDist = 0;
@@ -353,7 +351,7 @@ function updateParam(letter, value) {
         // Блокируем скролл на canvas
         canvas.addEventListener("touchstart", e => {
             e.preventDefault();
-            if (e.touches.length === 1) { graphDragging = true; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; }
+            if (e.touches.length === 1) { graphDragging = true; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; graphTracePos = null; }
             if (e.touches.length === 2) { graphDragging = false; let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDist = Math.sqrt(dx*dx+dy*dy); }
         }, { passive: false });
         
@@ -367,26 +365,29 @@ function updateParam(letter, value) {
         canvas.addEventListener("dblclick", () => { graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphTracePos = null; drawAllGraphs(); });
         
         // Мышь
-canvas.addEventListener("mousemove", e => {
-    if (graphDragging) {
-        // Режим перетаскивания
-        graphOffsetX += e.clientX - graphLastX;
-        graphOffsetY += e.clientY - graphLastY;
-        graphLastX = e.clientX;
-        graphLastY = e.clientY;
-        graphTracePos = null;
-        drawAllGraphs();
-    } else {
-        // Режим следящей точки
-        let rect = canvas.getBoundingClientRect();
-        let scaleW = canvas.width / rect.width;
-        let px = (e.clientX - rect.left) * scaleW;
-        let x = (px - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-        graphTracePos = { x, y: 0, clientY: e.clientY };
-        drawAllGraphs();
+        canvas.addEventListener("mousemove", e => {
+            if (graphDragging) {
+                graphOffsetX += e.clientX - graphLastX;
+                graphOffsetY += e.clientY - graphLastY;
+                graphLastX = e.clientX;
+                graphLastY = e.clientY;
+                graphTracePos = null;
+                drawAllGraphs();
+            } else {
+                let rect = canvas.getBoundingClientRect();
+                let scaleW = canvas.width / rect.width;
+                let px = (e.clientX - rect.left) * scaleW;
+                let x = (px - canvas.width/2 - graphOffsetX) / (graphScale * 20);
+                graphTracePos = { x, y: 0, clientY: e.clientY };
+                drawAllGraphs();
+            }
+        });
+        canvas.addEventListener("mouseleave", () => { graphTracePos = null; drawAllGraphs(); graphDragging = false; });
+        canvas.addEventListener("mousedown", e => { graphDragging = true; graphLastX = e.clientX; graphLastY = e.clientY; graphTracePos = null; });
+        canvas.addEventListener("mouseup", () => { graphDragging = false; });
+        canvas.addEventListener("wheel", e => { e.preventDefault(); graphScale *= e.deltaY < 0 ? 1.2 : 0.8; graphScale = Math.max(0.02, Math.min(20, graphScale)); graphTracePos = null; drawAllGraphs(); });
     }
-});
-canvas.addEventListener("mouseleave", () => { graphTracePos = null; drawAllGraphs(); graphDragging = false; });
-canvas.addEventListener("mousedown", e => { graphDragging = true; graphLastX = e.clientX; graphLastY = e.clientY; graphTracePos = null; });
-canvas.addEventListener("mouseup", () => { graphDragging = false; });
-canvas.addEventListener("wheel", e => { e.preventDefault(); graphScale *= e.deltaY < 0 ? 1.2 : 0.8; graphScale = Math.max(0.02, Math.min(20, graphScale)); graphTracePos = null; drawAllGraphs(); });
+    
+    if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", initCanvas); }
+    else { initCanvas(); }
+})();
