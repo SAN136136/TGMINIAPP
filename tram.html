@@ -290,38 +290,35 @@
     </div>
     
     <script>
-        // ==================== КОНФИГУРАЦИЯ ====================
-        
-        // Остановки с координатами и списком маршрутов, которые через них проходят
+        // ==================== КОНФИГУРАЦИЯ ОСТАНОВОК ====================
         const STOPS = {
             gagarina: {
                 name: 'Гагарина',
                 lat: 53.398,
                 lng: 58.978,
-                // Номера маршрутов и направления к Юности/ЛПЦ/Товарной
                 routes: [1, 5, 11, 15, 17],
-                targetDirection: [135, 225] // Юг (диапазон градусов)
+                targetDirection: 'south'
             },
             yunost: {
                 name: 'Юность',
                 lat: 53.416,
                 lng: 58.985,
                 routes: [1, 5, 11, 15, 17],
-                targetDirection: [135, 225] // Юг
+                targetDirection: 'north'
             },
             ploshchad_mira: {
                 name: 'Пл. Мира',
                 lat: 53.405,
                 lng: 58.985,
                 routes: [1, 5, 11, 15, 17],
-                targetDirection: [135, 225] // Юг
+                targetDirection: 'south'
             }
         };
         
         let currentStop = 'gagarina';
         let allTrams = [];
         
-        // API
+        // ==================== API ====================
         const API_URL = 'https://smarttransport.online/magnitogorsk/php/apiRequest.php?getVehiclesAnimation.php';
         const PAYLOAD = {
             t: '11111111-50b3-4fec-b922-8a50a1d38366',
@@ -336,7 +333,6 @@
         };
         
         // ==================== ФУНКЦИИ ====================
-        
         function selectStop(stopId, btn) {
             currentStop = stopId;
             document.querySelectorAll('.stop-btn').forEach(b => b.classList.remove('active'));
@@ -358,11 +354,9 @@
                 const data = await resp.json();
                 
                 if (data.r === 'ok') {
-                    // Фильтруем только трамваи и только нужных маршрутов
                     const stopRoutes = STOPS[currentStop].routes;
                     allTrams = data.data.anims.filter(v => {
                         if (v.rtype !== 'Тм') return false;
-                        // Проверяем, что номер маршрута совпадает
                         const rnum = parseInt(v.rnum);
                         return stopRoutes.includes(rnum);
                     });
@@ -380,65 +374,82 @@
             }
         }
         
-       function filterAndRender() {
-    const stop = STOPS[currentStop];
-    const content = document.getElementById('tramContent');
-
-    // ----- ОБНОВЛЕННАЯ ЛОГИКА ФИЛЬТРАЦИИ -----
-    // 1. Берем ВСЕ трамваи нужных маршрутов, без фильтра по углу dir
-    // 2. Для каждой остановки жестко отсекаем те, что находятся южнее (проехали мимо)
-    let filtered = allTrams.filter(t => {
-        // Отсекаем проехавшие: их координата lat больше, чем у остановки
-        return t.lat < stop.lat;
-    });
-    // ----------------------------------------
-
-    if (filtered.length === 0) {
-        content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет трамваев поблизости</div>';
-        return;
-    }
-
-    // Считаем расстояние до остановки
-    filtered = filtered.map(t => {
-        const dist = haversine(stop.lat, stop.lng, t.lat, t.lng);
-        return { ...t, _dist: dist };
-    });
-
-    // Сортируем по расстоянию (ближе к остановке - первыми)
-    filtered.sort((a, b) => a._dist - b._dist);
-
-    let html = '<div class="tram-list">';
-
-    filtered.forEach(t => {
-        const isMoving = (t.speed || 0) > 0;
-        const statusClass = isMoving ? 'moving' : 'stopped';
-        const speedClass = isMoving ? 'moving' : 'stopped';
-        const speedText = isMoving ? `${t.speed} км/ч` : 'Стоит';
-
-        // Время до остановки
-        let eta = '';
-        if (isMoving && t.speed > 0) {
-            const minutes = Math.round(t._dist / (t.speed * 1000 / 60));
-            if (minutes > 0 && minutes < 120) eta = `⏱ ~${minutes} мин`;
+        function filterAndRender() {
+            const stop = STOPS[currentStop];
+            const content = document.getElementById('tramContent');
+            
+            if (allTrams.length === 0) {
+                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет данных о трамваях</div>';
+                return;
+            }
+            
+            // Фильтруем по направлению движения
+            let filtered = allTrams.filter(t => {
+                const dir = t.dir || 0;
+                
+                if (stop.targetDirection === 'south') {
+                    // Направление на юг: 135° - 225°
+                    const isSouth = dir >= 135 && dir <= 225;
+                    // Трамвай еще не проехал остановку (находится севернее)
+                    const isNorthOfStop = t.lat < stop.lat;
+                    return isSouth && isNorthOfStop;
+                } else if (stop.targetDirection === 'north') {
+                    // Направление на север: 0°-45° или 315°-360°
+                    const isNorth = dir <= 45 || dir >= 315;
+                    // Трамвай еще не проехал остановку (находится южнее)
+                    const isSouthOfStop = t.lat > stop.lat;
+                    return isNorth && isSouthOfStop;
+                }
+                
+                return false;
+            });
+            
+            if (filtered.length === 0) {
+                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет трамваев, следующих в вашу сторону</div>';
+                return;
+            }
+            
+            // Считаем расстояние до остановки
+            filtered = filtered.map(t => {
+                const dist = haversine(stop.lat, stop.lng, t.lat, t.lng);
+                return { ...t, _dist: dist };
+            });
+            
+            // Сортируем по расстоянию
+            filtered.sort((a, b) => a._dist - b._dist);
+            
+            // Отрисовка
+            let html = '<div class="tram-list">';
+            
+            filtered.forEach(t => {
+                const isMoving = (t.speed || 0) > 0;
+                const statusClass = isMoving ? 'moving' : 'stopped';
+                const speedClass = isMoving ? 'moving' : 'stopped';
+                const speedText = isMoving ? `${t.speed} км/ч` : 'Стоит';
+                
+                let eta = '';
+                if (isMoving && t.speed > 0) {
+                    const minutes = Math.round(t._dist / (t.speed * 1000 / 60));
+                    if (minutes > 0 && minutes < 120) eta = `⏱ ~${minutes} мин`;
+                }
+                
+                html += `
+                    <div class="tram-card ${statusClass}" onclick="openMap(${t.lat}, ${t.lng})">
+                        <div class="tram-main">
+                            <span class="tram-route">№${t.rnum || '?'}</span>
+                            <span class="tram-speed ${speedClass}">${speedText}</span>
+                        </div>
+                        <div class="tram-details">
+                            <span class="tram-distance">📍 ${Math.round(t._dist)}м до ост.</span>
+                            ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            content.innerHTML = html;
         }
-
-        html += `
-            <div class="tram-card ${statusClass}" onclick="openMap(${t.lat}, ${t.lng})">
-                <div class="tram-main">
-                    <span class="tram-route">№${t.rnum || '?'}</span>
-                    <span class="tram-speed ${speedClass}">${speedText}</span>
-                </div>
-                <div class="tram-details">
-                    <span class="tram-distance">📍 ${Math.round(t._dist)}м до ост.</span>
-                    ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
-                </div>
-            </div>
-        `;
-    });
-
-    html += '</div>';
-    content.innerHTML = html;
-}
         
         function haversine(lat1, lng1, lat2, lng2) {
             const R = 6371000;
