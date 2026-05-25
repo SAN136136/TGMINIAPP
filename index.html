@@ -49,7 +49,7 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО РАСПИСАНИЯ -->
+<!-- МОДАЛЬНЫЕ ОКНА -->
 <div class="modal-overlay" id="scheduleModal">
     <div class="modal">
         <h2>📅 Расписание</h2>
@@ -58,7 +58,6 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО ПОДРОБНОСТЕЙ УРОКА -->
 <div class="modal-overlay" id="lessonDetailModal">
     <div class="modal">
         <h2 id="lessonDetailTitle"></h2>
@@ -67,7 +66,6 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО ШПАРГАЛОК -->
 <div class="modal-overlay" id="cheatsheetModal">
     <div class="modal">
         <div id="cheatsheetContent"></div>
@@ -75,7 +73,7 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО КАЛЬКУЛЯТОРА -->
+<!-- КАЛЬКУЛЯТОР -->
 <div class="modal-overlay" id="calcModal">
     <div class="modal calc-modal">
         <h2>🧮 Калькулятор</h2>
@@ -100,10 +98,8 @@
                 <option value="rectangle">Прямоугольник</option>
                 <option value="cylinder">Цилиндр</option>
             </select>
-            
             <div id="geoTable" style="display:none;"></div>
             <div id="geoError" style="color:#FF5555; font-size:12px; text-align:center; margin-top:5px;"></div>
-            
             <div id="geoCalcPad" style="display:none;">
                 <div class="calc-buttons" id="geoAdvancedRow" style="display:none; margin-top:5px;">
                     <button class="calc-btn calc-btn-func" onclick="geoCalcInput('+')">+</button>
@@ -117,7 +113,6 @@
                     <button class="calc-btn calc-btn-func" onclick="geoCalcInput('pi')">π</button>
                     <button class="calc-btn calc-btn-func" onclick="geoCalcInput('.')">.</button>
                 </div>
-
                 <div class="calc-buttons" style="margin-top:5px;">
                     <button class="calc-btn calc-btn-clear" onclick="geoCalcClear()">C</button>
                     <button class="calc-btn calc-btn-clear" onclick="geoCalcBackspace()">⌫</button>
@@ -141,109 +136,99 @@
             <div id="physSolver"></div>
         </div>
         
-      <!-- УРАВНЕНИЯ -->
-<div id="calcEqInputs" style="display:none;">
-    <div style="display:flex; gap:6px; margin-bottom:10px;">
-        <button class="calc-mode-btn eq-type-btn active" id="eqType_linear" onclick="switchEqType('linear')">Линейные</button>
-        <button class="calc-mode-btn eq-type-btn" id="eqType_quadratic" onclick="switchEqType('quadratic')">Квадратные</button>
-        <button class="calc-mode-btn eq-type-btn" id="eqType_system" onclick="switchEqType('system')">Системы</button>
-    </div>
-    
-    <div id="eqCalcPad">
-        <!-- Первое поле -->
-        <div style="display:flex; gap:8px; margin-bottom:5px;">
-            <input type="text" id="eqInput1" placeholder="" 
-                style="flex:1; padding:14px; background:#0A0A14; border:2px solid #FFD700; color:#FFD700; font-size:20px; border-radius:8px; text-align:center; letter-spacing:1px;"
-                onfocus="focusEqInput(1)" onclick="focusEqInput(1)">
-            <button class="calc-btn" onclick="eqPaste()" style="padding:12px 15px; font-size:18px;">📋</button>
+        <!-- УРАВНЕНИЯ -->
+        <div id="calcEqInputs" style="display:none;">
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+                <button class="calc-mode-btn eq-type-btn active" id="eqType_linear" onclick="switchEqType('linear')">Линейные</button>
+                <button class="calc-mode-btn eq-type-btn" id="eqType_quadratic" onclick="switchEqType('quadratic')">Квадратные</button>
+                <button class="calc-mode-btn eq-type-btn" id="eqType_system" onclick="switchEqType('system')">Системы</button>
+            </div>
+            <div id="eqCalcPad">
+                <div style="display:flex; gap:8px; margin-bottom:5px;">
+                    <input type="text" id="eqInput1" placeholder="" 
+                        style="flex:1; padding:14px; background:#0A0A14; border:2px solid #3A5A6B; color:#FFD700; font-size:20px; border-radius:8px; text-align:center; letter-spacing:1px;"
+                        onfocus="focusEqInput(1)" onclick="focusEqInput(1)">
+                    <button class="calc-btn" onclick="eqPaste()" style="padding:12px 15px; font-size:18px;">📋</button>
+                </div>
+                <div id="eqInput2Row" style="display:none; gap:8px; margin-bottom:8px;">
+                    <input type="text" id="eqInput2" placeholder="" 
+                        style="flex:1; padding:14px; background:#0A0A14; border:2px solid #3A5A6B; color:#FFD700; font-size:20px; border-radius:8px; text-align:center; letter-spacing:1px;"
+                        onfocus="focusEqInput(2)" onclick="focusEqInput(2)">
+                    <div style="width:52px;"></div>
+                </div>
+                <div class="calc-buttons" style="margin-top:5px;">
+                    <button class="calc-btn calc-btn-clear" onclick="eqClear()">C</button>
+                    <button class="calc-btn calc-btn-clear" onclick="eqBackspace()">⌫</button>
+                    <button class="calc-btn" onclick="eqInput('(')">(</button>
+                    <button class="calc-btn" onclick="eqInput(')')">)</button>
+                    <button class="calc-btn" onclick="eqInput('7')">7</button>
+                    <button class="calc-btn" onclick="eqInput('8')">8</button>
+                    <button class="calc-btn" onclick="eqInput('9')">9</button>
+                    <button class="calc-btn calc-btn-op" onclick="eqInput('/')">/</button>
+                    <button class="calc-btn" onclick="eqInput('4')">4</button>
+                    <button class="calc-btn" onclick="eqInput('5')">5</button>
+                    <button class="calc-btn" onclick="eqInput('6')">6</button>
+                    <button class="calc-btn calc-btn-op" onclick="eqInput('*')">*</button>
+                    <button class="calc-btn" onclick="eqInput('1')">1</button>
+                    <button class="calc-btn" onclick="eqInput('2')">2</button>
+                    <button class="calc-btn" onclick="eqInput('3')">3</button>
+                    <button class="calc-btn calc-btn-op" onclick="eqInput('-')">−</button>
+                    <button class="calc-btn" onclick="eqInput('0')">0</button>
+                    <button class="calc-btn" onclick="eqInput('.')">.</button>
+                    <button class="calc-btn calc-btn-eq" onclick="eqSolve()" style="font-size:16px;">Решить</button>
+                    <button class="calc-btn calc-btn-op" onclick="eqInput('+')">+</button>
+                    <button class="calc-btn calc-btn-func" onclick="eqInput('x')">x</button>
+                    <button class="calc-btn calc-btn-func" id="eqYBtn" onclick="eqInput('y')">y</button>
+                    <button class="calc-btn calc-btn-func" onclick="eqInput('=')">=</button>
+                </div>
+            </div>
+            <div id="eqSolution" style="display:none;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; background:#1A1A2E; padding:10px; border-radius:8px;">
+                    <span style="color:#FFD700; font-size:16px; flex:1;" id="eqOriginal"></span>
+                    <button class="calc-btn" onclick="eqEdit()" style="padding:8px 12px; font-size:16px;">✏️</button>
+                </div>
+                <div id="eqSteps" style="color:#CCC; font-size:14px;"></div>
+                <div id="eqAnswer" style="margin-top:10px;"></div>
+            </div>
         </div>
         
-        <!-- Второе поле (только для систем) -->
-        <div id="eqInput2Row" style="display:none; gap:8px; margin-bottom:8px;">
-            <input type="text" id="eqInput2" placeholder="" 
-                style="flex:1; padding:14px; background:#0A0A14; border:2px solid #3A5A6B; color:#FFD700; font-size:20px; border-radius:8px; text-align:center; letter-spacing:1px;"
-                onfocus="focusEqInput(2)" onclick="focusEqInput(2)">
-            <div style="width:52px;"></div>
+        <!-- ГРАФИКИ -->
+        <div id="calcGraphInputs" style="display:none;">
+            <div id="graphInputs"></div>
+            
+            <div class="calc-buttons" style="margin-top:5px;">
+                <button class="calc-btn calc-btn-clear" onclick="graphClear()">C</button>
+                <button class="calc-btn calc-btn-clear" onclick="graphBackspace()">⌫</button>
+                <button class="calc-btn" onclick="graphInputKey('(')">(</button>
+                <button class="calc-btn" onclick="graphInputKey(')')">)</button>
+                <button class="calc-btn" onclick="graphInputKey('7')">7</button>
+                <button class="calc-btn" onclick="graphInputKey('8')">8</button>
+                <button class="calc-btn" onclick="graphInputKey('9')">9</button>
+                <button class="calc-btn calc-btn-op" onclick="graphInputKey('/')">/</button>
+                <button class="calc-btn" onclick="graphInputKey('4')">4</button>
+                <button class="calc-btn" onclick="graphInputKey('5')">5</button>
+                <button class="calc-btn" onclick="graphInputKey('6')">6</button>
+                <button class="calc-btn calc-btn-op" onclick="graphInputKey('*')">*</button>
+                <button class="calc-btn" onclick="graphInputKey('1')">1</button>
+                <button class="calc-btn" onclick="graphInputKey('2')">2</button>
+                <button class="calc-btn" onclick="graphInputKey('3')">3</button>
+                <button class="calc-btn calc-btn-op" onclick="graphInputKey('-')">−</button>
+                <button class="calc-btn" onclick="graphInputKey('0')">0</button>
+                <button class="calc-btn" onclick="graphInputKey('.')">.</button>
+                <button class="calc-btn calc-btn-eq" onclick="drawAllGraphs()" style="font-size:16px;">Обновить</button>
+                <button class="calc-btn calc-btn-op" onclick="graphInputKey('+')">+</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('x')">x</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('y')">y</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('=')">=</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('x^2')">x²</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('^')">xⁿ</button>
+            </div>
+            
+            <div id="graphParams" style="margin-top:5px;"></div>
+            <div id="graphError" style="color:#FF5555; font-size:14px; text-align:center; margin:5px 0;"></div>
+            <canvas id="graphCanvas" width="400" height="400" style="width:100%; border-radius:8px; margin-top:5px;"></canvas>
         </div>
         
-        <div class="calc-buttons" style="margin-top:5px;">
-            <button class="calc-btn calc-btn-clear" onclick="eqClear()">C</button>
-            <button class="calc-btn calc-btn-clear" onclick="eqBackspace()">⌫</button>
-            <button class="calc-btn" onclick="eqInput('(')">(</button>
-            <button class="calc-btn" onclick="eqInput(')')">)</button>
-            <button class="calc-btn" onclick="eqInput('7')">7</button>
-            <button class="calc-btn" onclick="eqInput('8')">8</button>
-            <button class="calc-btn" onclick="eqInput('9')">9</button>
-            <button class="calc-btn calc-btn-op" onclick="eqInput('/')">/</button>
-            <button class="calc-btn" onclick="eqInput('4')">4</button>
-            <button class="calc-btn" onclick="eqInput('5')">5</button>
-            <button class="calc-btn" onclick="eqInput('6')">6</button>
-            <button class="calc-btn calc-btn-op" onclick="eqInput('*')">*</button>
-            <button class="calc-btn" onclick="eqInput('1')">1</button>
-            <button class="calc-btn" onclick="eqInput('2')">2</button>
-            <button class="calc-btn" onclick="eqInput('3')">3</button>
-            <button class="calc-btn calc-btn-op" onclick="eqInput('-')">−</button>
-            <button class="calc-btn" onclick="eqInput('0')">0</button>
-            <button class="calc-btn" onclick="eqInput('.')">.</button>
-            <button class="calc-btn calc-btn-eq" onclick="eqSolve()" style="font-size:16px;">Решить</button>
-            <button class="calc-btn calc-btn-op" onclick="eqInput('+')">+</button>
-            <button class="calc-btn calc-btn-func" onclick="eqInput('x')">x</button>
-            <button class="calc-btn calc-btn-func" id="eqYBtn" onclick="eqInput('y')">y</button>
-            <button class="calc-btn calc-btn-func" onclick="eqInput('=')">=</button>
-        </div>
-    </div>
-    
-    <div id="eqSolution" style="display:none;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; background:#1A1A2E; padding:10px; border-radius:8px;">
-            <span style="color:#FFD700; font-size:16px; flex:1;" id="eqOriginal"></span>
-            <button class="calc-btn" onclick="eqEdit()" style="padding:8px 12px; font-size:16px;">✏️</button>
-        </div>
-        <div id="eqSteps" style="color:#CCC; font-size:14px;"></div>
-        <div id="eqAnswer" style="margin-top:10px;"></div>
-    </div>
-</div>
-
-<!-- ГРАФИКИ -->
-<div id="calcGraphInputs" style="display:none;">
-    <div id="graphCalcPad">
-        <div style="display:flex; gap:8px; margin-bottom:8px;">
-            <input type="text" id="graphInput" placeholder="y = ..." 
-                style="flex:1; padding:14px; background:#0A0A14; border:2px solid #58A6FF; color:#FFD700; font-size:18px; border-radius:8px; text-align:center; letter-spacing:1px;"
-                onfocus="this.select()">
-            <button class="calc-btn" onclick="graphPaste()" style="padding:12px 15px; font-size:18px;">📋</button>
-        </div>
-        
-        <div class="calc-buttons" style="margin-top:5px;">
-            <button class="calc-btn calc-btn-clear" onclick="graphClear()">C</button>
-            <button class="calc-btn calc-btn-clear" onclick="graphBackspace()">⌫</button>
-            <button class="calc-btn" onclick="graphInput('(')">(</button>
-            <button class="calc-btn" onclick="graphInput(')')">)</button>
-            <button class="calc-btn" onclick="graphInput('7')">7</button>
-            <button class="calc-btn" onclick="graphInput('8')">8</button>
-            <button class="calc-btn" onclick="graphInput('9')">9</button>
-            <button class="calc-btn calc-btn-op" onclick="graphInput('/')">/</button>
-            <button class="calc-btn" onclick="graphInput('4')">4</button>
-            <button class="calc-btn" onclick="graphInput('5')">5</button>
-            <button class="calc-btn" onclick="graphInput('6')">6</button>
-            <button class="calc-btn calc-btn-op" onclick="graphInput('*')">*</button>
-            <button class="calc-btn" onclick="graphInput('1')">1</button>
-            <button class="calc-btn" onclick="graphInput('2')">2</button>
-            <button class="calc-btn" onclick="graphInput('3')">3</button>
-            <button class="calc-btn calc-btn-op" onclick="graphInput('-')">−</button>
-            <button class="calc-btn" onclick="graphInput('0')">0</button>
-            <button class="calc-btn" onclick="graphInput('.')">.</button>
-            <button class="calc-btn calc-btn-eq" onclick="graphSolve()" style="font-size:16px;">Построить</button>
-            <button class="calc-btn calc-btn-op" onclick="graphInput('+')">+</button>
-            <button class="calc-btn calc-btn-func" onclick="graphInput('x')">x</button>
-            <button class="calc-btn calc-btn-func" onclick="graphInput('y')">y</button>
-            <button class="calc-btn calc-btn-func" onclick="graphInput('x^2')">x²</button>
-            <button class="calc-btn calc-btn-func" onclick="graphInput('=')">=</button>
-        </div>
-    </div>
-    
-    <div id="graphError" style="color:#FF5555; font-size:14px; text-align:center; margin:10px 0;"></div>
-    <canvas id="graphCanvas" width="400" height="400" style="display:none; width:100%; border-radius:8px;"></canvas>
-</div>
         <!-- КОНВЕРТЕР -->
         <div id="calcConverterOutput" style="display:none;">
             <select id="convType" class="calc-select">
@@ -262,22 +247,18 @@
             <button class="calc-btn calc-btn-clear" onclick="calcBackspace()">⌫</button>
             <button class="calc-btn" onclick="calcBrackets()">( )</button>
             <button class="calc-btn" onclick="calcToggleHistory()">📋</button>
-            
             <button class="calc-btn" onclick="calcInput('7')">7</button>
             <button class="calc-btn" onclick="calcInput('8')">8</button>
             <button class="calc-btn" onclick="calcInput('9')">9</button>
             <button class="calc-btn calc-btn-op" onclick="calcInput('÷')">÷</button>
-            
             <button class="calc-btn" onclick="calcInput('4')">4</button>
             <button class="calc-btn" onclick="calcInput('5')">5</button>
             <button class="calc-btn" onclick="calcInput('6')">6</button>
             <button class="calc-btn calc-btn-op" onclick="calcInput('×')">×</button>
-            
             <button class="calc-btn" onclick="calcInput('1')">1</button>
             <button class="calc-btn" onclick="calcInput('2')">2</button>
             <button class="calc-btn" onclick="calcInput('3')">3</button>
             <button class="calc-btn calc-btn-op" onclick="calcInput('−')">−</button>
-            
             <button class="calc-btn" onclick="calcInput('0')">0</button>
             <button class="calc-btn" onclick="calcInput('.')">.</button>
             <button class="calc-btn calc-btn-eq" onclick="calcCalculate()">=</button>
@@ -292,7 +273,7 @@
             <button class="calc-btn calc-btn-func" onclick="calcInput('pi')">π</button>
         </div>
         
-        <!-- ТРИГОНОМЕТРИЯ (скрытая) -->
+        <!-- ТРИГОНОМЕТРИЯ -->
         <div class="calc-buttons" id="calcTrigRow" style="display:none; margin-top:5px;">
             <button class="calc-btn calc-btn-func" onclick="calcInput('sin(')">sin</button>
             <button class="calc-btn calc-btn-func" onclick="calcInput('cos(')">cos</button>
@@ -300,7 +281,6 @@
             <button class="calc-btn calc-btn-func" onclick="calcInput('log(')">log</button>
         </div>
         
-        <!-- История -->
         <div class="calc-history" id="calcHistory" style="display:none;"></div>
         
         <button class="modal-close" onclick="closeCalc()" style="margin-top:10px;">Закрыть</button>
@@ -318,9 +298,9 @@
 <script src="js/calculator/geometry.js"></script>
 <script src="js/calculator/physics.js"></script>
 <script src="js/calculator/equations.js"></script>
+<script src="js/calculator/graph.js"></script>
 <script src="js/calculator/converter.js"></script>
 <script src="js/calculator/keyboard.js"></script>
-<script src="js/calculator/graph.js"></script>
 
 </body>
 </html>
