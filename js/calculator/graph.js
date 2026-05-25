@@ -367,30 +367,26 @@ function updateParam(letter, value) {
         canvas.addEventListener("dblclick", () => { graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphTracePos = null; drawAllGraphs(); });
         
         // Мышь
-        canvas.addEventListener("mousemove", e => {
-            if (graphDragging) return;
-            let rect = canvas.getBoundingClientRect();
-            let scaleW = canvas.width / rect.width;
-            let px = (e.clientX - rect.left) * scaleW;
-            let clientY = e.clientY;
-            let x = (px - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-            graphTracePos = {x, y: 0, clientY};
-            drawAllGraphs();
-        });
-        canvas.addEventListener("mouseleave", () => { graphTracePos = null; drawAllGraphs(); graphDragging = false; });
-        canvas.addEventListener("mousedown", e => { graphDragging = true; graphLastX = e.clientX; graphLastY = e.clientY; });
-        canvas.addEventListener("mousemove", e => {
-            if (!graphDragging) return;
-            graphOffsetX += e.clientX - graphLastX;
-            graphOffsetY += e.clientY - graphLastY;
-            graphLastX = e.clientX; graphLastY = e.clientY;
-            graphTracePos = null;
-            drawAllGraphs();
-        });
-        canvas.addEventListener("mouseup", () => { graphDragging = false; });
-        canvas.addEventListener("wheel", e => { e.preventDefault(); graphScale *= e.deltaY < 0 ? 1.2 : 0.8; graphScale = Math.max(0.02, Math.min(20, graphScale)); graphTracePos = null; drawAllGraphs(); });
+canvas.addEventListener("mousemove", e => {
+    if (graphDragging) {
+        // Режим перетаскивания
+        graphOffsetX += e.clientX - graphLastX;
+        graphOffsetY += e.clientY - graphLastY;
+        graphLastX = e.clientX;
+        graphLastY = e.clientY;
+        graphTracePos = null;
+        drawAllGraphs();
+    } else {
+        // Режим следящей точки
+        let rect = canvas.getBoundingClientRect();
+        let scaleW = canvas.width / rect.width;
+        let px = (e.clientX - rect.left) * scaleW;
+        let x = (px - canvas.width/2 - graphOffsetX) / (graphScale * 20);
+        graphTracePos = { x, y: 0, clientY: e.clientY };
+        drawAllGraphs();
     }
-    
-    if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", initCanvas); }
-    else { initCanvas(); }
-})();
+});
+canvas.addEventListener("mouseleave", () => { graphTracePos = null; drawAllGraphs(); graphDragging = false; });
+canvas.addEventListener("mousedown", e => { graphDragging = true; graphLastX = e.clientX; graphLastY = e.clientY; graphTracePos = null; });
+canvas.addEventListener("mouseup", () => { graphDragging = false; });
+canvas.addEventListener("wheel", e => { e.preventDefault(); graphScale *= e.deltaY < 0 ? 1.2 : 0.8; graphScale = Math.max(0.02, Math.min(20, graphScale)); graphTracePos = null; drawAllGraphs(); });
