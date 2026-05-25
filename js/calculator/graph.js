@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v2.7 ====================
+// ==================== ГРАФИКИ v2.8 ====================
 let graphExpressions = [""];
 let graphActiveInput = 0;
 let graphScale = 1;
@@ -188,6 +188,45 @@ function getFuncs() {
     return funcs;
 }
 
+// Пересчёт экранных координат в математические
+function screenToMath(clientX, clientY) {
+    const canvas = document.getElementById("graphCanvas");
+    if (!canvas) return { mathX: 0, canvasY: 0 };
+    let rect = canvas.getBoundingClientRect();
+    let scaleW = canvas.width / rect.width;
+    let scaleH = canvas.height / rect.height;
+    let canvasX = (clientX - rect.left) * scaleW;
+    let canvasY = (clientY - rect.top) * scaleH;
+    let mathX = (canvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
+    return { canvasX, canvasY, mathX };
+}
+
+// Проверяет, есть ли график в пределах 30px от указанной точки
+function findNearestGraphIndex(mathX, canvasY) {
+    let funcs = getFuncs();
+    let scale = graphScale * 20;
+    let offsetY = graphOffsetY;
+    let bestIdx = -1;
+    let bestDist = 30; // Порог
+    
+    funcs.forEach((f, idx) => {
+        if (!f) return;
+        try {
+            let y = f(mathX);
+            if (isFinite(y) && Math.abs(y) < 1e6) {
+                let py = canvas.height/2 - y * scale + offsetY;
+                let dist = Math.abs(py - canvasY);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestIdx = idx;
+                }
+            }
+        } catch(e) {}
+    });
+    
+    return bestIdx;
+}
+
 function drawAllGraphs() {
     const canvas = document.getElementById("graphCanvas");
     if (!canvas) return;
@@ -334,41 +373,28 @@ function drawAllGraphs() {
     
     // Следящая точка
     if (graphTracePos && funcs.some(f => f !== null)) {
-        let x = graphTracePos.x;
+        let mathX = graphTracePos.mathX;
+        let canvasY = graphTracePos.canvasY;
         let idx;
         
-        if (graphTraceLockedIdx >= 0 && funcs[graphTraceLockedIdx]) {
+        if (graphTraceLockedIdx >= 0 && graphTraceLockedIdx < funcs.length && funcs[graphTraceLockedIdx]) {
             // Залочена на конкретный график
             idx = graphTraceLockedIdx;
         } else {
             // Ищем ближайший
-            let bestDist = Infinity;
-            idx = 0;
-            funcs.forEach((f, i) => {
-                if (!f) return;
-                try {
-                    let y = f(x);
-                    if (isFinite(y)) {
-                        let py = h/2 - y * scale + offsetY;
-                        let dist = Math.abs(py - graphTracePos.canvasY);
-                        if (dist < bestDist) { 
-                            bestDist = dist; 
-                            idx = i; 
-                        }
-                    }
-                } catch(e) {}
-            });
+            idx = findNearestGraphIndex(mathX, canvasY);
+            if (idx < 0) idx = 0; // Если ничего не нашли — берём первый
         }
         
-        if (funcs[idx]) {
+        if (idx >= 0 && funcs[idx]) {
             let y;
             try { 
-                y = funcs[idx](x); 
+                y = funcs[idx](mathX); 
             } catch(e) { 
                 y = null; 
             }
             if (y !== null && isFinite(y)) {
-                let px = w/2 + x * scale + offsetX;
+                let px = w/2 + mathX * scale + offsetX;
                 let py = h/2 - y * scale + offsetY;
                 
                 // Точка с цветом графика
@@ -391,7 +417,7 @@ function drawAllGraphs() {
                 let labelY = py - 10;
                 if (labelX > w - 80) labelX = px - 100;
                 if (labelY < 15) labelY = py + 20;
-                ctx.fillText(`(${x.toFixed(2)}, ${y.toFixed(2)})`, labelX, labelY);
+                ctx.fillText(`(${mathX.toFixed(2)}, ${y.toFixed(2)})`, labelX, labelY);
             }
         }
     }
@@ -437,20 +463,17 @@ function findAndDrawIntersections(ctx, f1, f2, w, h, scale, offsetX, offsetY, xM
         let px = w/2 + p.x * scale + offsetX;
         let py = h/2 - p.y * scale + offsetY;
         if (px > 5 && px < w - 5 && py > 5 && py < h - 5) {
-            // Жёлтая точка
             ctx.fillStyle = "#FFD700";
             ctx.beginPath(); 
             ctx.arc(px, py, 6, 0, Math.PI*2); 
             ctx.fill();
             
-            // Чёрная обводка
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1.5;
             ctx.beginPath(); 
             ctx.arc(px, py, 6, 0, Math.PI*2); 
             ctx.stroke();
             
-            // Координаты
             ctx.fillStyle = "#FFD700";
             ctx.font = "bold 12px sans-serif";
             ctx.fillText(`(${p.x.toFixed(2)}, ${p.y.toFixed(2)})`, px + 8, py - 8);
@@ -516,43 +539,80 @@ function updateParam(letter, value) {
     let lastTouchDist = 0;
     let mouseIsDown = false;
     let isNearGraph = false;
-    let traceCanvasStartX = 0; // Начальная позиция пальца/мыши по X при нажатии
-    let traceMathStartX = 0; // Начальная математическая координата x при нажатии
+    let traceCanvasStartX = 0; // Начальная позиция пальца/мыши по X (clientX)
+    let traceMathStartX = 0;   // Начальная математическая координата x
+    let moveThreshold = 3;     // Пикселей движения, после которых считаем что был драг, а не клик
     
     function initCanvas() {
         canvas = document.getElementById("graphCanvas");
         if (!canvas) return;
         
+        // При нажатии
+        function handleStart(clientX, clientY) {
+            mouseIsDown = true;
+            graphLastX = clientX;
+            graphLastY = clientY;
+            traceCanvasStartX = clientX;
+            
+            let pos = screenToMath(clientX, clientY);
+            traceMathStartX = pos.mathX;
+            
+            graphTracePos = { mathX: pos.mathX, canvasY: pos.canvasY };
+            
+            // Проверяем близость к графику
+            let nearIdx = findNearestGraphIndex(pos.mathX, pos.canvasY);
+            
+            if (nearIdx >= 0) {
+                graphTraceLockedIdx = nearIdx;
+                isNearGraph = true;
+            } else {
+                graphTraceLockedIdx = -1;
+                isNearGraph = false;
+            }
+        }
+        
+        // При движении
+        function handleMove(clientX, clientY) {
+            let pos = screenToMath(clientX, clientY);
+            
+            if (mouseIsDown && isNearGraph) {
+                // Двигаем следящую точку по залоченному графику
+                let deltaClientX = clientX - traceCanvasStartX;
+                let rect = canvas.getBoundingClientRect();
+                let scaleW = canvas.width / rect.width;
+                let mathX = traceMathStartX + deltaClientX / (graphScale * 20 * scaleW);
+                graphTracePos = { mathX, canvasY: pos.canvasY };
+            } else if (mouseIsDown && !isNearGraph) {
+                // Перетаскивание плоскости
+                let dx = clientX - graphLastX;
+                let dy = clientY - graphLastY;
+                graphOffsetX += dx;
+                graphOffsetY += dy;
+                graphTracePos = null;
+            } else {
+                // Мышь не зажата — просто показываем точку (без лока)
+                graphTraceLockedIdx = -1;
+                graphTracePos = { mathX: pos.mathX, canvasY: pos.canvasY };
+            }
+            
+            graphLastX = clientX;
+            graphLastY = clientY;
+            drawAllGraphsInstant();
+        }
+        
+        // При отпускании
+        function handleEnd() {
+            mouseIsDown = false;
+            isNearGraph = false;
+            // Оставляем точку на месте, не сбрасываем
+            drawAllGraphsInstant();
+        }
+        
+        // === TOUCH ===
         canvas.addEventListener("touchstart", e => {
             e.preventDefault();
             if (e.touches.length === 1) {
-                mouseIsDown = true;
-                graphLastX = e.touches[0].clientX;
-                graphLastY = e.touches[0].clientY;
-                
-                // Сохраняем начальные координаты для плавного движения точки
-                traceCanvasStartX = e.touches[0].clientX;
-                let rect = canvas.getBoundingClientRect();
-                let scaleW = canvas.width / rect.width;
-                let touchCanvasX = (e.touches[0].clientX - rect.left) * scaleW;
-                let touchCanvasY = (e.touches[0].clientY - rect.top) * scaleH;
-                traceMathStartX = (touchCanvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-                
-                graphTracePos = { x: traceMathStartX, y: 0, canvasY: touchCanvasY };
-                
-                // Определяем, близко ли к графику, и лочимся на него
-                let funcs = getFuncs();
-                let nearIdx = findNearestGraph(funcs, touchCanvasY);
-                
-                if (nearIdx >= 0) {
-                    // Близко к графику — лочимся
-                    graphTraceLockedIdx = nearIdx;
-                    isNearGraph = true;
-                } else {
-                    // Далеко — открепляем, будет драг
-                    graphTraceLockedIdx = -1;
-                    isNearGraph = false;
-                }
+                handleStart(e.touches[0].clientX, e.touches[0].clientY);
             }
             if (e.touches.length === 2) {
                 mouseIsDown = false;
@@ -577,76 +637,20 @@ function updateParam(letter, value) {
                 lastTouchDist = dist;
                 graphTracePos = null;
                 drawAllGraphsInstant();
-            } else if (mouseIsDown && e.touches.length === 1) {
-                if (isNearGraph) {
-                    // Двигаем следящую точку — пересчитываем x от начальной позиции
-                    let deltaClientX = e.touches[0].clientX - traceCanvasStartX;
-                    let rect = canvas.getBoundingClientRect();
-                    let scaleW = canvas.width / rect.width;
-                    let touchCanvasY = (e.touches[0].clientY - rect.top) * scaleH;
-                    // x меняется плавно от движения пальца
-                    let x = traceMathStartX + deltaClientX / (graphScale * 20 * scaleW);
-                    graphTracePos = { x, y: 0, canvasY: touchCanvasY };
-                } else {
-                    // Перетаскивание плоскости
-                    graphOffsetX += e.touches[0].clientX - graphLastX;
-                    graphOffsetY += e.touches[0].clientY - graphLastY;
-                    graphTracePos = null;
-                }
-                graphLastX = e.touches[0].clientX;
-                graphLastY = e.touches[0].clientY;
-                drawAllGraphsInstant();
+            } else if (e.touches.length === 1) {
+                handleMove(e.touches[0].clientX, e.touches[0].clientY);
             }
         }, { passive: false });
         
         canvas.addEventListener("touchend", e => {
             if (e.touches.length === 0) {
-                mouseIsDown = false;
-                isNearGraph = false;
+                handleEnd();
             }
-            drawAllGraphsInstant();
         });
         
-        canvas.addEventListener("dblclick", () => {
-            graphScale = 1;
-            graphOffsetX = 0;
-            graphOffsetY = 0;
-            graphTracePos = null;
-            graphTraceLockedIdx = -1;
-            drawAllGraphsInstant();
-        });
-        
-        // МЫШЬ
+        // === MOUSE ===
         canvas.addEventListener("mousemove", e => {
-            let rect = canvas.getBoundingClientRect();
-            let scaleW = canvas.width / rect.width;
-            let scaleH = canvas.height / rect.height;
-            let mouseCanvasX = (e.clientX - rect.left) * scaleW;
-            let mouseCanvasY = (e.clientY - rect.top) * scaleH;
-            
-            if (mouseIsDown) {
-                if (isNearGraph) {
-                    // Двигаем следящую точку плавно
-                    let deltaClientX = e.clientX - traceCanvasStartX;
-                    let x = traceMathStartX + deltaClientX / (graphScale * 20 * scaleW);
-                    graphTracePos = { x, y: 0, canvasY: mouseCanvasY };
-                } else {
-                    // Перетаскивание
-                    graphOffsetX += e.clientX - graphLastX;
-                    graphOffsetY += e.clientY - graphLastY;
-                    graphTracePos = null;
-                }
-                graphLastX = e.clientX;
-                graphLastY = e.clientY;
-            } else {
-                // Мышь не зажата — просто показываем точку
-                let x = (mouseCanvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-                graphTracePos = { x, y: 0, canvasY: mouseCanvasY };
-                // Без зажатия не лочим — показываем ближайший
-                graphTraceLockedIdx = -1;
-            }
-            
-            drawAllGraphsInstant();
+            handleMove(e.clientX, e.clientY);
         });
         
         canvas.addEventListener("mouseleave", () => {
@@ -658,94 +662,43 @@ function updateParam(letter, value) {
         });
         
         canvas.addEventListener("mousedown", e => {
-            mouseIsDown = true;
-            graphLastX = e.clientX;
-            graphLastY = e.clientY;
-            traceCanvasStartX = e.clientX;
-            
-            let rect = canvas.getBoundingClientRect();
-            let scaleW = canvas.width / rect.width;
-            let scaleH = canvas.height / rect.height;
-            let mouseCanvasX = (e.clientX - rect.left) * scaleW;
-            let mouseCanvasY = (e.clientY - rect.top) * scaleH;
-            traceMathStartX = (mouseCanvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-            
-            graphTracePos = { x: traceMathStartX, y: 0, canvasY: mouseCanvasY };
-            
-            // Проверяем близость к графику
-            let funcs = getFuncs();
-            let nearIdx = findNearestGraph(funcs, mouseCanvasY);
-            
-            if (nearIdx >= 0) {
-                graphTraceLockedIdx = nearIdx;
-                isNearGraph = true;
-            } else {
-                graphTraceLockedIdx = -1;
-                isNearGraph = false;
-            }
+            handleStart(e.clientX, e.clientY);
         });
         
         canvas.addEventListener("mouseup", () => {
-            mouseIsDown = false;
-            isNearGraph = false;
-            // НЕ сбрасываем graphTraceLockedIdx — точка остаётся на том же графике
+            handleEnd();
         });
         
-        // Клик для переключения графика
+        // Клик для смены залоченного графика
         canvas.addEventListener("click", e => {
-            // Если короткий клик (не драг) — проверяем, не попали ли по другому графику
-            let rect = canvas.getBoundingClientRect();
-            let scaleH = canvas.height / rect.height;
-            let mouseCanvasY = (e.clientY - rect.top) * scaleH;
-            let mouseCanvasX = (e.clientX - rect.left) * (canvas.width / rect.width);
-            let x = (mouseCanvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-            
-            let funcs = getFuncs();
-            let nearIdx = findNearestGraph(funcs, mouseCanvasY);
+            let pos = screenToMath(e.clientX, e.clientY);
+            let nearIdx = findNearestGraphIndex(pos.mathX, pos.canvasY);
             
             if (nearIdx >= 0 && nearIdx !== graphTraceLockedIdx) {
                 // Переключаем лок на другой график
                 graphTraceLockedIdx = nearIdx;
-                graphTracePos = { x, y: 0, canvasY: mouseCanvasY };
+                graphTracePos = { mathX: pos.mathX, canvasY: pos.canvasY };
                 drawAllGraphsInstant();
             }
         });
         
+        // Двойной клик — сброс
+        canvas.addEventListener("dblclick", () => {
+            graphScale = 1;
+            graphOffsetX = 0;
+            graphOffsetY = 0;
+            graphTracePos = null;
+            graphTraceLockedIdx = -1;
+            drawAllGraphsInstant();
+        });
+        
+        // Зум колёсиком
         canvas.addEventListener("wheel", e => {
             e.preventDefault();
             graphScale *= e.deltaY < 0 ? 1.2 : 0.8;
             graphScale = Math.max(0.02, Math.min(20, graphScale));
             drawAllGraphsInstant();
         }, { passive: false });
-    }
-    
-    // Ищет индекс ближайшего графика к cursorY (в координатах канваса)
-    // Возвращает -1 если все графики дальше 30px
-    function findNearestGraph(funcs, cursorCanvasY) {
-        if (!graphTracePos) return -1;
-        
-        let scale = graphScale * 20;
-        let offsetY = graphOffsetY;
-        let x = graphTracePos.x;
-        let bestIdx = -1;
-        let bestDist = Infinity;
-        
-        funcs.forEach((f, idx) => {
-            if (!f) return;
-            try {
-                let y = f(x);
-                if (isFinite(y) && Math.abs(y) < 1e6) {
-                    let py = canvas.height/2 - y * scale + offsetY;
-                    let dist = Math.abs(py - cursorCanvasY);
-                    if (dist < 30 && dist < bestDist) {
-                        bestDist = dist;
-                        bestIdx = idx;
-                    }
-                }
-            } catch(e) {}
-        });
-        
-        return bestIdx;
     }
     
     if (document.readyState === "loading") {
