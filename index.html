@@ -218,4 +218,91 @@
                 <button class="calc-btn calc-btn-eq" onclick="drawAllGraphs()" style="font-size:16px;">Обновить</button>
                 <button class="calc-btn calc-btn-op" onclick="graphInputKey('+')">+</button>
                 <button class="calc-btn calc-btn-func" onclick="graphInputKey('x')">x</button>
-                <button class="calc-btn calc-btn-func" onclick="graphInputKey('y')">y</
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('y')">y</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('a')">a</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('b')">b</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('=')">=</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('x^2')">x²</button>
+                <button class="calc-btn calc-btn-func" onclick="graphInputKey('^')">xⁿ</button>
+            </div>
+            
+            <div id="graphParams" style="margin-top:5px;"></div>
+            <div id="graphError" style="color:#FF5555; font-size:14px; text-align:center; margin:5px 0;"></div>
+            <canvas id="graphCanvas" width="400" height="400" style="width:100%; border-radius:8px; margin-top:5px;"></canvas>
+        </div>
+        
+        <!-- КОНВЕРТЕР -->
+        <div id="calcConverterOutput" style="display:none;">
+            <select id="convType" class="calc-select">
+                <option value="length">Длина (м)</option>
+                <option value="mass">Масса (кг)</option>
+                <option value="speed">Скорость (км/ч)</option>
+                <option value="temp">Температура (°C)</option>
+            </select>
+            <input id="convValue" type="number" step="any" placeholder="Значение" class="calc-input" style="width:100%; margin:8px 0;">
+            <button class="calc-btn calc-btn-eq" onclick="calcConvert()" style="width:100%;">Перевести</button>
+        </div>
+        
+        <!-- ОСНОВНЫЕ КНОПКИ -->
+        <div class="calc-buttons" id="calcMainButtons">
+            <button class="calc-btn calc-btn-clear" onclick="calcClear()">C</button>
+            <button class="calc-btn calc-btn-clear" onclick="calcBackspace()">⌫</button>
+            <button class="calc-btn" onclick="calcBrackets()">( )</button>
+            <button class="calc-btn" onclick="calcToggleHistory()">📋</button>
+            <button class="calc-btn" onclick="calcInput('7')">7</button>
+            <button class="calc-btn" onclick="calcInput('8')">8</button>
+            <button class="calc-btn" onclick="calcInput('9')">9</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('÷')">÷</button>
+            <button class="calc-btn" onclick="calcInput('4')">4</button>
+            <button class="calc-btn" onclick="calcInput('5')">5</button>
+            <button class="calc-btn" onclick="calcInput('6')">6</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('×')">×</button>
+            <button class="calc-btn" onclick="calcInput('1')">1</button>
+            <button class="calc-btn" onclick="calcInput('2')">2</button>
+            <button class="calc-btn" onclick="calcInput('3')">3</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('−')">−</button>
+            <button class="calc-btn" onclick="calcInput('0')">0</button>
+            <button class="calc-btn" onclick="calcInput('.')">.</button>
+            <button class="calc-btn calc-btn-eq" onclick="calcCalculate()">=</button>
+            <button class="calc-btn calc-btn-op" onclick="calcInput('+')">+</button>
+        </div>
+        
+        <!-- ДОП. ФУНКЦИИ -->
+        <div class="calc-buttons" id="calcExtraBtns" style="margin-top:5px;">
+            <button class="calc-btn calc-btn-func" onclick="calcToggleTrig()">📐 Триг</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('sqrt(')">√</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('^2')">x²</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('pi')">π</button>
+        </div>
+        
+        <!-- ТРИГОНОМЕТРИЯ -->
+        <div class="calc-buttons" id="calcTrigRow" style="display:none; margin-top:5px;">
+            <button class="calc-btn calc-btn-func" onclick="calcInput('sin(')">sin</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('cos(')">cos</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('tan(')">tan</button>
+            <button class="calc-btn calc-btn-func" onclick="calcInput('log(')">log</button>
+        </div>
+        
+        <div class="calc-history" id="calcHistory" style="display:none;"></div>
+        
+        <button class="modal-close" onclick="closeCalc()" style="margin-top:10px;">Закрыть</button>
+    </div>
+</div>
+
+<!-- Скрипты -->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/schedule.js"></script>
+<script src="js/tabs.js"></script>
+<script src="js/commands.js"></script>
+<script src="js/calculator/core.js"></script>
+<script src="js/calculator/basic.js"></script>
+<script src="js/calculator/geometry.js"></script>
+<script src="js/calculator/physics.js"></script>
+<script src="js/calculator/equations.js"></script>
+<script src="js/calculator/graph.js"></script>
+<script src="js/calculator/converter.js"></script>
+<script src="js/calculator/keyboard.js"></script>
+
+</body>
+    </html>
