@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v2.2 ====================
+// ==================== ГРАФИКИ v2.3 ====================
 let graphExpressions = [""];
 let graphActiveInput = 0;
 let graphScale = 1;
@@ -101,6 +101,19 @@ function parseFunction(expr) {
     return cleaned;
 }
 
+function getAdaptiveStep(scale) {
+    // Адаптивный шаг: 0.5, 1, 2, 5, 10, 20...
+    let rawStep = 40 / scale;
+    let magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    let residual = rawStep / magnitude;
+    let niceStep;
+    if (residual <= 1.5) niceStep = 1;
+    else if (residual <= 3.5) niceStep = 2;
+    else if (residual <= 7.5) niceStep = 5;
+    else niceStep = 10;
+    return niceStep * magnitude;
+}
+
 function drawAllGraphs() {
     const canvas = document.getElementById("graphCanvas");
     const ctx = canvas.getContext("2d");
@@ -133,21 +146,25 @@ function drawAllGraphs() {
     let xMin = (-w/2 - offsetX) / scale;
     let xMax = (w/2 - offsetX) / scale;
     
-    // Сетка
+    // Адаптивная сетка
     ctx.strokeStyle = "#1A1A2E";
     ctx.lineWidth = 0.5;
-    let gridStep = scale;
-    if (gridStep < 15) gridStep = 15;
-    if (gridStep > 200) gridStep = 200;
-    let labelStep = gridStep;
-    while (labelStep < 40) labelStep *= 2;
+    let gridStep = getAdaptiveStep(scale);
+    let gridPixels = gridStep * scale;
+    if (gridPixels < 20) gridStep = getAdaptiveStep(scale * 2);
+    if (gridPixels > 150) gridStep = getAdaptiveStep(scale / 2);
+    gridPixels = gridStep * scale;
     
-    for (let x = -50; x <= 50; x++) {
-        let px = w/2 + x * gridStep + offsetX;
+    let firstGridX = Math.floor((-w/2 - offsetX) / gridPixels);
+    let lastGridX = Math.ceil((w/2 - offsetX) / gridPixels);
+    for (let i = firstGridX; i <= lastGridX; i++) {
+        let px = w/2 + i * gridPixels + offsetX;
         if (px >= 0 && px <= w) { ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke(); }
     }
-    for (let y = -50; y <= 50; y++) {
-        let py = h/2 - y * gridStep + offsetY;
+    let firstGridY = Math.floor((-h/2 + offsetY) / gridPixels);
+    let lastGridY = Math.ceil((h/2 + offsetY) / gridPixels);
+    for (let i = firstGridY; i <= lastGridY; i++) {
+        let py = h/2 - i * gridPixels + offsetY;
         if (py >= 0 && py <= h) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke(); }
     }
     
@@ -162,19 +179,23 @@ function drawAllGraphs() {
     // Числа на осях
     ctx.fillStyle = "#888";
     ctx.font = "11px sans-serif";
-    let firstX = Math.ceil((-w/2 - offsetX) / labelStep);
-    let lastX = Math.floor((w/2 - offsetX) / labelStep);
+    let labelStep = gridStep;
+    let labelPixels = labelStep * scale;
+    while (labelPixels < 50) { labelStep *= 2; labelPixels = labelStep * scale; }
+    
+    let firstX = Math.ceil((-w/2 - offsetX) / labelPixels);
+    let lastX = Math.floor((w/2 - offsetX) / labelPixels);
     for (let x = firstX; x <= lastX; x++) {
         if (x === 0) continue;
-        let px = w/2 + x * labelStep + offsetX;
-        if (px > 15 && px < w - 15) ctx.fillText(x, px - 8, axisY + 15);
+        let px = w/2 + x * labelPixels + offsetX;
+        if (px > 15 && px < w - 15) ctx.fillText(x * labelStep, px - 8, axisY + 15);
     }
-    let firstY = Math.ceil((-h/2 + offsetY) / labelStep);
-    let lastY = Math.floor((h/2 + offsetY) / labelStep);
+    let firstY = Math.ceil((-h/2 + offsetY) / labelPixels);
+    let lastY = Math.floor((h/2 + offsetY) / labelPixels);
     for (let y = firstY; y <= lastY; y++) {
         if (y === 0) continue;
-        let py = h/2 - y * labelStep + offsetY;
-        if (py > 15 && py < h - 5) ctx.fillText(y, axisX + 5, py + 4);
+        let py = h/2 - y * labelPixels + offsetY;
+        if (py > 15 && py < h - 5) ctx.fillText(y * labelStep, axisX + 5, py + 4);
     }
     ctx.fillText("0", axisX + 5, axisY + 15);
     ctx.fillText("x", w - 15, axisY - 10);
@@ -209,19 +230,35 @@ function drawAllGraphs() {
         ctx.shadowBlur = 0;
     });
     
-    // Следящая точка
-    if (graphTracePos && funcs[0]) {
+    // Следящая точка — ближайший график к пальцу
+    if (graphTracePos && funcs.some(f => f !== null)) {
         let x = graphTracePos.x;
-        let y;
-        try { y = funcs[0](x); } catch(e) { y = null; }
-        if (y !== null && isFinite(y)) {
-            let px = w/2 + x * scale + offsetX;
-            let py = h/2 - y * scale + offsetY;
-            ctx.fillStyle = "#FFD700";
-            ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = "#FFD700";
-            ctx.font = "bold 13px sans-serif";
-            ctx.fillText(`(${x.toFixed(2)}, ${y.toFixed(2)})`, px + 10, py - 10);
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        funcs.forEach((f, idx) => {
+            if (!f) return;
+            try {
+                let y = f(x);
+                if (isFinite(y)) {
+                    let py = h/2 - y * scale + offsetY;
+                    let dist = Math.abs(py - graphTracePos.clientY);
+                    if (dist < bestDist) { bestDist = dist; bestIdx = idx; }
+                }
+            } catch(e) {}
+        });
+        
+        if (funcs[bestIdx]) {
+            let y;
+            try { y = funcs[bestIdx](x); } catch(e) { y = null; }
+            if (y !== null && isFinite(y)) {
+                let px = w/2 + x * scale + offsetX;
+                let py = h/2 - y * scale + offsetY;
+                ctx.fillStyle = colors[bestIdx % colors.length];
+                ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = colors[bestIdx % colors.length];
+                ctx.font = "bold 13px sans-serif";
+                ctx.fillText(`(${x.toFixed(2)}, ${y.toFixed(2)})`, px + 10, py - 10);
+            }
         }
     }
     
@@ -269,8 +306,8 @@ function graphInputKey(val) {
     if (val === "=" && expr.includes("=")) return;
     graphExpressions[graphActiveInput] += val;
     document.getElementById("graphInputs").innerHTML = renderGraphInputs();
-    graphAnimProgress = 0.3;
-    animateGraph();
+    // Вызываем onGraphInput для проверки букв-параметров
+    onGraphInput(graphActiveInput, graphExpressions[graphActiveInput]);
 }
 
 function onGraphInput(i, value) {
@@ -285,7 +322,7 @@ function onGraphInput(i, value) {
             html += `
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
                     <span style="color:#FFD700; width:20px;">${letter}</span>
-                    <input type="range" min="1" max="10" step="0.5" value="${graphParams[letter]}" 
+                    <input type="range" min="0.5" max="10" step="0.5" value="${graphParams[letter]}" 
                         oninput="updateParam('${letter}', this.value)"
                         style="flex:1;">
                     <span style="color:#58A6FF; width:30px;">${graphParams[letter]}</span>
@@ -304,7 +341,7 @@ function updateParam(letter, value) {
     onGraphInput(graphActiveInput, expr);
 }
 
-// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ ====================
+// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ (без скролла) ====================
 (function() {
     let canvas = null;
     let lastTouchDist = 0;
@@ -313,13 +350,31 @@ function updateParam(letter, value) {
         canvas = document.getElementById("graphCanvas");
         if (!canvas) return;
         
+        // Блокируем скролл на canvas
+        canvas.addEventListener("touchstart", e => {
+            e.preventDefault();
+            if (e.touches.length === 1) { graphDragging = true; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; }
+            if (e.touches.length === 2) { graphDragging = false; let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDist = Math.sqrt(dx*dx+dy*dy); }
+        }, { passive: false });
+        
+        canvas.addEventListener("touchmove", e => {
+            e.preventDefault();
+            if (e.touches.length === 2) { let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; let dist = Math.sqrt(dx*dx+dy*dy); if (lastTouchDist > 0) { graphScale *= dist / lastTouchDist; graphScale = Math.max(0.02, Math.min(20, graphScale)); } lastTouchDist = dist; graphTracePos = null; drawAllGraphs(); }
+            else if (graphDragging && e.touches.length === 1) { graphOffsetX += e.touches[0].clientX - graphLastX; graphOffsetY += e.touches[0].clientY - graphLastY; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; graphTracePos = null; drawAllGraphs(); }
+        }, { passive: false });
+        
+        canvas.addEventListener("touchend", () => { graphDragging = false; });
+        canvas.addEventListener("dblclick", () => { graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphTracePos = null; drawAllGraphs(); });
+        
+        // Мышь
         canvas.addEventListener("mousemove", e => {
             if (graphDragging) return;
             let rect = canvas.getBoundingClientRect();
             let scaleW = canvas.width / rect.width;
             let px = (e.clientX - rect.left) * scaleW;
+            let clientY = e.clientY;
             let x = (px - canvas.width/2 - graphOffsetX) / (graphScale * 20);
-            graphTracePos = {x, y: 0};
+            graphTracePos = {x, y: 0, clientY};
             drawAllGraphs();
         });
         canvas.addEventListener("mouseleave", () => { graphTracePos = null; drawAllGraphs(); graphDragging = false; });
@@ -334,16 +389,6 @@ function updateParam(letter, value) {
         });
         canvas.addEventListener("mouseup", () => { graphDragging = false; });
         canvas.addEventListener("wheel", e => { e.preventDefault(); graphScale *= e.deltaY < 0 ? 1.2 : 0.8; graphScale = Math.max(0.02, Math.min(20, graphScale)); graphTracePos = null; drawAllGraphs(); });
-        canvas.addEventListener("touchstart", e => {
-            if (e.touches.length === 1) { graphDragging = true; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; }
-            if (e.touches.length === 2) { graphDragging = false; let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDist = Math.sqrt(dx*dx+dy*dy); }
-        });
-        canvas.addEventListener("touchmove", e => {
-            if (e.touches.length === 2) { let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; let dist = Math.sqrt(dx*dx+dy*dy); if (lastTouchDist > 0) { graphScale *= dist / lastTouchDist; graphScale = Math.max(0.02, Math.min(20, graphScale)); } lastTouchDist = dist; graphTracePos = null; drawAllGraphs(); }
-            else if (graphDragging && e.touches.length === 1) { graphOffsetX += e.touches[0].clientX - graphLastX; graphOffsetY += e.touches[0].clientY - graphLastY; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; graphTracePos = null; drawAllGraphs(); }
-        });
-        canvas.addEventListener("touchend", () => { graphDragging = false; });
-        canvas.addEventListener("dblclick", () => { graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphTracePos = null; drawAllGraphs(); });
     }
     
     if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", initCanvas); }
