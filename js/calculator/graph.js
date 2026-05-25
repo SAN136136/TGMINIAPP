@@ -1,110 +1,105 @@
-// ==================== ГРАФИКИ v1.3 ====================
-let graphExpression = "";
-let graphSolved = false;
+// ==================== ГРАФИКИ v2.1 ====================
+let graphExpressions = [""];
+let graphActiveInput = 0;
 let graphScale = 1;
 let graphOffsetX = 0;
 let graphOffsetY = 0;
 let graphDragging = false;
 let graphLastX = 0;
 let graphLastY = 0;
+let graphParams = {};
+let graphShowParams = false;
+let graphTracePos = null;
+let graphAnimProgress = 1;
 
 function switchToGraph() {
-    graphExpression = "";
-    graphSolved = false;
+    graphExpressions = [""];
+    graphActiveInput = 0;
     graphScale = 1;
     graphOffsetX = 0;
     graphOffsetY = 0;
-    document.getElementById("graphInput").value = "";
-    document.getElementById("graphCanvas").style.display = "none";
-    document.getElementById("graphCalcPad").style.display = "block";
+    graphParams = {};
+    graphShowParams = false;
+    graphTracePos = null;
+    graphAnimProgress = 1;
+    document.getElementById("graphInputs").innerHTML = renderGraphInputs();
+    document.getElementById("graphParams").innerHTML = "";
     document.getElementById("graphError").innerHTML = "";
+    clearCanvas();
 }
 
-function graphInput(val) {
-    if (graphSolved) {
-        graphExpression = "";
-        graphSolved = false;
-        document.getElementById("graphCanvas").style.display = "none";
-        document.getElementById("graphCalcPad").style.display = "block";
-    }
-    
-    if (val === "y" && graphExpression.includes("y")) return;
-    if (val === "=" && graphExpression.includes("=")) return;
-    
-    graphExpression += val;
-    document.getElementById("graphInput").value = graphExpression;
-}
-
-function graphClear() {
-    graphExpression = "";
-    graphSolved = false;
-    graphScale = 1;
-    graphOffsetX = 0;
-    graphOffsetY = 0;
-    document.getElementById("graphInput").value = "";
-    document.getElementById("graphCanvas").style.display = "none";
-    document.getElementById("graphCalcPad").style.display = "block";
-}
-
-function graphBackspace() {
-    graphExpression = graphExpression.slice(0, -1);
-    document.getElementById("graphInput").value = graphExpression;
-}
-
-function graphPaste() {
-    navigator.clipboard.readText().then(text => {
-        graphExpression = text.trim();
-        document.getElementById("graphInput").value = graphExpression;
-    }).catch(() => {
-        document.getElementById("graphInput").focus();
+function renderGraphInputs() {
+    let html = "";
+    graphExpressions.forEach((expr, i) => {
+        html += `
+            <div style="display:flex; gap:8px; margin-bottom:5px;">
+                <input type="text" id="graphInput${i}" value="${expr}" 
+                    style="flex:1; padding:12px; background:#0A0A14; border:2px solid ${i === graphActiveInput ? '#FFD700' : '#3A5A6B'}; color:#FFD700; font-size:16px; border-radius:8px; text-align:center;"
+                    onfocus="setActiveGraph(${i})"
+                    oninput="onGraphInput(${i}, this.value)">
+                ${i === graphExpressions.length - 1 ? 
+                    `<button class="calc-btn" onclick="addGraphInput()" style="padding:12px 15px; font-size:18px;">+</button>` : 
+                    `<button class="calc-btn calc-btn-clear" onclick="removeGraphInput(${i})" style="padding:12px 15px; font-size:18px;">✕</button>`}
+            </div>`;
     });
+    return html;
 }
 
-function graphEdit() {
-    graphSolved = false;
-    document.getElementById("graphCanvas").style.display = "none";
-    document.getElementById("graphCalcPad").style.display = "block";
-    document.getElementById("graphInput").value = graphExpression;
+function setActiveGraph(i) { graphActiveInput = i; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); }
+function addGraphInput() { if (graphExpressions.length >= 3) return; graphExpressions.push(""); graphActiveInput = graphExpressions.length - 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); }
+function removeGraphInput(i) { if (graphExpressions.length <= 1) return; graphExpressions.splice(i, 1); if (graphActiveInput >= graphExpressions.length) graphActiveInput = graphExpressions.length - 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); drawAllGraphs(); }
+function onGraphInput(i, value) { graphExpressions[i] = value; graphAnimProgress = 0; animateGraph(); }
+
+function graphClear() { graphExpressions = [""]; graphActiveInput = 0; graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphParams = {}; graphTracePos = null; graphAnimProgress = 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); document.getElementById("graphParams").innerHTML = ""; clearCanvas(); }
+function graphBackspace() { let expr = graphExpressions[graphActiveInput]; graphExpressions[graphActiveInput] = expr.slice(0, -1); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0; animateGraph(); }
+function graphPaste() { navigator.clipboard.readText().then(text => { graphExpressions[graphActiveInput] = text.trim(); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0; animateGraph(); }).catch(() => { document.getElementById(`graphInput${graphActiveInput}`).focus(); }); }
+
+function clearCanvas() {
+    const canvas = document.getElementById("graphCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#0A0A14";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-function graphSolve() {
-    const input = document.getElementById("graphInput").value.trim();
-    if (!input) return;
-    
-    graphExpression = input;
-    graphSolved = true;
-    document.getElementById("graphCalcPad").style.display = "none";
-    document.getElementById("graphCanvas").style.display = "block";
-    
-    drawGraph(graphExpression);
+function animateGraph() {
+    if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
+    graphAnimFrame = requestAnimationFrame(() => {
+        graphAnimProgress += 0.15;
+        if (graphAnimProgress > 1) graphAnimProgress = 1;
+        drawAllGraphs();
+        if (graphAnimProgress < 1) animateGraph();
+    });
 }
 
 function parseFunction(expr) {
     let cleaned = expr.replace(/^y\s*=\s*/, "");
-    
     cleaned = cleaned.replace(/−/g, "-");
     cleaned = cleaned.replace(/×/g, "*");
     cleaned = cleaned.replace(/÷/g, "/");
     cleaned = cleaned.replace(/²/g, "**2");
+    cleaned = cleaned.replace(/\^2/g, "**2");
+    cleaned = cleaned.replace(/(\d)\^(\d)/g, "$1**$2");
+    cleaned = cleaned.replace(/\^/g, "**");
     cleaned = cleaned.replace(/√\(/g, "Math.sqrt(");
     cleaned = cleaned.replace(/π/g, "Math.PI");
     cleaned = cleaned.replace(/sin/g, "Math.sin");
     cleaned = cleaned.replace(/cos/g, "Math.cos");
     cleaned = cleaned.replace(/tan/g, "Math.tan");
     cleaned = cleaned.replace(/log/g, "Math.log10");
-    
-    // Правильные коэффициенты
     cleaned = cleaned.replace(/(\d)\(/g, "$1*(");
     cleaned = cleaned.replace(/(\d)x/g, "$1*x");
     cleaned = cleaned.replace(/(\d)Math/g, "$1*Math");
-    
-    // x без коэффициента: в начале или после оператора
     cleaned = cleaned.replace(/(^|[+\-*(])x/g, "$11*x");
+    
+    for (let [key, val] of Object.entries(graphParams)) {
+        cleaned = cleaned.replace(new RegExp(key, "g"), val);
+    }
     
     return cleaned;
 }
 
-function drawGraph(expr) {
+function drawAllGraphs() {
     const canvas = document.getElementById("graphCanvas");
     const ctx = canvas.getContext("2d");
     const w = canvas.width;
@@ -114,16 +109,20 @@ function drawGraph(expr) {
     ctx.fillStyle = "#0A0A14";
     ctx.fillRect(0, 0, w, h);
     
-    let func;
-    try {
-        let parsed = parseFunction(expr);
-        func = new Function("x", `return ${parsed}`);
-        func(0);
-    } catch(e) {
-        document.getElementById("graphError").innerHTML = "❌ Ошибка в формуле";
-        return;
+    let funcs = [];
+    let colors = ["#58A6FF", "#FF6B6B", "#FFD93D"];
+    
+    for (let expr of graphExpressions) {
+        if (!expr.trim()) { funcs.push(null); continue; }
+        try {
+            let parsed = parseFunction(expr);
+            let f = new Function("x", `return ${parsed}`);
+            f(0);
+            funcs.push(f);
+        } catch(e) { funcs.push(null); }
     }
     
+    if (funcs.every(f => f === null)) { document.getElementById("graphError").innerHTML = ""; return; }
     document.getElementById("graphError").innerHTML = "";
     
     let scale = graphScale * 20;
@@ -132,27 +131,24 @@ function drawGraph(expr) {
     let xMin = (-w/2 - offsetX) / scale;
     let xMax = (w/2 - offsetX) / scale;
     
-    // Сетка
     ctx.strokeStyle = "#1A1A2E";
     ctx.lineWidth = 0.5;
     let gridStep = scale;
     if (gridStep < 15) gridStep = 15;
-    if (gridStep > 120) gridStep = 120;
+    if (gridStep > 200) gridStep = 200;
     
-    for (let x = -30; x <= 30; x++) {
+    let labelStep = gridStep;
+    while (labelStep < 40) labelStep *= 2;
+    
+    for (let x = -50; x <= 50; x++) {
         let px = w/2 + x * gridStep + offsetX;
-        if (px >= 0 && px <= w) {
-            ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
-        }
+        if (px >= 0 && px <= w) { ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke(); }
     }
-    for (let y = -30; y <= 30; y++) {
+    for (let y = -50; y <= 50; y++) {
         let py = h/2 - y * gridStep + offsetY;
-        if (py >= 0 && py <= h) {
-            ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
-        }
+        if (py >= 0 && py <= h) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke(); }
     }
     
-    // Оси
     ctx.strokeStyle = "#555";
     ctx.lineWidth = 2;
     let axisY = h/2 + offsetY;
@@ -160,130 +156,149 @@ function drawGraph(expr) {
     ctx.beginPath(); ctx.moveTo(0, axisY); ctx.lineTo(w, axisY); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(axisX, 0); ctx.lineTo(axisX, h); ctx.stroke();
     
-    // Числа на осях
     ctx.fillStyle = "#888";
     ctx.font = "11px sans-serif";
-    let stepX = gridStep;
-    let stepY = gridStep;
-    if (stepX < 30) { stepX = 30; stepY = 30; }
-    
-    for (let x = -30; x <= 30; x++) {
+    let firstX = Math.ceil((-w/2 - offsetX) / labelStep);
+    let lastX = Math.floor((w/2 - offsetX) / labelStep);
+    for (let x = firstX; x <= lastX; x++) {
         if (x === 0) continue;
-        let px = w/2 + x * stepX + offsetX;
-        if (px > 15 && px < w - 15) {
-            ctx.fillText(x, px - 8, axisY + 15);
-        }
+        let px = w/2 + x * labelStep + offsetX;
+        if (px > 15 && px < w - 15) ctx.fillText(x, px - 8, axisY + 15);
     }
-    for (let y = -30; y <= 30; y++) {
+    let firstY = Math.ceil((-h/2 + offsetY) / labelStep);
+    let lastY = Math.floor((h/2 + offsetY) / labelStep);
+    for (let y = firstY; y <= lastY; y++) {
         if (y === 0) continue;
-        let py = h/2 - y * stepY + offsetY;
-        if (py > 15 && py < h - 5) {
-            ctx.fillText(y, axisX + 5, py + 4);
-        }
+        let py = h/2 - y * labelStep + offsetY;
+        if (py > 15 && py < h - 5) ctx.fillText(y, axisX + 5, py + 4);
     }
     ctx.fillText("0", axisX + 5, axisY + 15);
     ctx.fillText("x", w - 15, axisY - 10);
     ctx.fillText("y", axisX + 10, 15);
     
-    // График — рисуем ПОПИКСЕЛЬНО для максимальной плавности
-    ctx.strokeStyle = "#58A6FF";
-    ctx.lineWidth = 3;
-    ctx.shadowColor = "#58A6FF";
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    
-    let prevY = null;
-    let started = false;
-    
-    for (let px = 0; px <= w; px++) {
-        let x = (px - w/2 - offsetX) / scale;
-        let y;
-        try {
-            y = func(x);
-        } catch(e) {
-            started = false;
-            continue;
-        }
+    funcs.forEach((func, idx) => {
+        if (!func) return;
         
-        if (isNaN(y) || !isFinite(y) || Math.abs(y) > 1e6) {
-            started = false;
-            continue;
-        }
+        ctx.strokeStyle = colors[idx % colors.length];
+        ctx.lineWidth = 3;
+        ctx.shadowColor = colors[idx % colors.length];
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
         
-        let py = h/2 - y * scale + offsetY;
+        let firstPoint = true;
+        let totalPoints = Math.floor(2000 * graphAnimProgress);
+        if (totalPoints < 2) totalPoints = 2;
         
-        // Проверяем разрыв (резкий скачок)
-        if (prevY !== null && started && Math.abs(y - prevY) > 50) {
-            started = false;
+        for (let i = 0; i <= totalPoints; i++) {
+            let x = xMin + i * (xMax - xMin) / 2000;
+            let y;
+            try { y = func(x); } catch(e) { firstPoint = true; continue; }
+            if (isNaN(y) || !isFinite(y) || Math.abs(y) > 1e6) { firstPoint = true; continue; }
+            let px = w/2 + x * scale + offsetX;
+            let py = h/2 - y * scale + offsetY;
+            if (px < -100 || px > w + 100 || py < -100 || py > h + 100) { firstPoint = true; continue; }
+            if (firstPoint) { ctx.moveTo(px, py); firstPoint = false; }
+            else { ctx.lineTo(px, py); }
         }
-        
-        if (!started) {
-            ctx.moveTo(px, py);
-            started = true;
-        } else {
-            ctx.lineTo(px, py);
-        }
-        
-        prevY = y;
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    
-    // Корни
-    findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY);
-}
-
-function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
-    let roots = [];
-    let prevY = null;
-    
-    for (let px = 0; px <= w; px++) {
-        let x = (px - w/2 - offsetX) / scale;
-        let y;
-        try { y = func(x); } catch(e) { prevY = null; continue; }
-        
-        if (isNaN(y) || !isFinite(y) || Math.abs(y) > 100) {
-            prevY = null;
-            continue;
-        }
-        
-        if (prevY !== null && prevY * y <= 0) {
-            let prevX = x - 1/scale;
-            let rootX = x - y * (x - prevX) / (y - prevY);
-            roots.push(rootX);
-        }
-        prevY = y;
-    }
-    
-    roots = roots.filter((r, i) => {
-        for (let j = 0; j < i; j++) {
-            if (Math.abs(r - roots[j]) < 0.05) return false;
-        }
-        return true;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
     });
     
-    roots.forEach(root => {
-        let px = w/2 + root * scale + offsetX;
-        let py = h/2 + offsetY;
-        
-        if (px > 5 && px < w - 5) {
-            ctx.fillStyle = "#FF5555";
-            ctx.beginPath();
-            ctx.arc(px, py, 6, 0, Math.PI * 2);
-            ctx.fill();
-            
+    if (graphTracePos && funcs[0]) {
+        let x = graphTracePos.x;
+        let y;
+        try { y = funcs[0](x); } catch(e) { y = null; }
+        if (y !== null && isFinite(y)) {
+            let px = w/2 + x * scale + offsetX;
+            let py = h/2 - y * scale + offsetY;
             ctx.fillStyle = "#FFD700";
-            ctx.font = "bold 14px sans-serif";
-            let label = `x=${root.toFixed(2)}`;
-            let textWidth = ctx.measureText(label).width;
-            let labelX = px + 8;
-            if (labelX + textWidth > w - 5) labelX = px - textWidth - 8;
-            ctx.fillText(label, labelX, py - 8);
+            ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#FFD700";
+            ctx.font = "bold 13px sans-serif";
+            ctx.fillText(`(${x.toFixed(2)}, ${y.toFixed(2)})`, px + 10, py - 10);
+        }
+    }
+    
+    for (let i = 0; i < funcs.length; i++) {
+        for (let j = i + 1; j < funcs.length; j++) {
+            if (funcs[i] && funcs[j]) {
+                findAndDrawIntersections(ctx, funcs[i], funcs[j], w, h, scale, offsetX, offsetY, xMin, xMax);
+            }
+        }
+    }
+}
+
+function findAndDrawIntersections(ctx, f1, f2, w, h, scale, offsetX, offsetY, xMin, xMax) {
+    let intersections = [];
+    let totalPoints = 2000;
+    let prevDiff = null, prevX = xMin;
+    for (let i = 0; i <= totalPoints; i++) {
+        let x = xMin + i * (xMax - xMin) / totalPoints;
+        let diff;
+        try { diff = f1(x) - f2(x); } catch(e) { prevDiff = null; continue; }
+        if (!isNaN(diff) && isFinite(diff) && prevDiff !== null && prevDiff * diff <= 0 && Math.abs(diff) < 100) {
+            let rootX = x - diff * (x - prevX) / (diff - prevDiff);
+            intersections.push({x: rootX, y: f1(rootX)});
+        }
+        prevDiff = diff; prevX = x;
+    }
+    intersections = intersections.filter((p, i) => { for (let j = 0; j < i; j++) { if (Math.abs(p.x - intersections[j].x) < 0.05) return false; } return true; });
+    intersections.forEach(p => {
+        let px = w/2 + p.x * scale + offsetX;
+        let py = h/2 - p.y * scale + offsetY;
+        if (px > 5 && px < w - 5 && py > 5 && py < h - 5) {
+            ctx.fillStyle = "#FFD700";
+            ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#FFD700";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText(`(${p.x.toFixed(2)}, ${p.y.toFixed(2)})`, px + 8, py - 8);
         }
     });
 }
 
-// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ ====================
+function graphInputKey(val) {
+    let expr = graphExpressions[graphActiveInput];
+    if (val === "y" && expr.includes("y")) return;
+    if (val === "=" && expr.includes("=")) return;
+    graphExpressions[graphActiveInput] += val;
+    document.getElementById("graphInputs").innerHTML = renderGraphInputs();
+    graphAnimProgress = 0;
+    animateGraph();
+}
+
+function onGraphInput(i, value) {
+    graphExpressions[i] = value;
+    let letters = value.match(/[a-wzA-WZ]/g);
+    if (letters && letters.length > 0) {
+        let unique = [...new Set(letters)];
+        graphShowParams = true;
+        let html = "";
+        unique.forEach(letter => {
+            if (graphParams[letter] === undefined) graphParams[letter] = 1;
+            html += `
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                    <span style="color:#FFD700; width:20px;">${letter}</span>
+                    <input type="range" min="1" max="10" step="0.5" value="${graphParams[letter]}" 
+                        oninput="updateParam('${letter}', this.value)"
+                        style="flex:1;">
+                    <span style="color:#58A6FF; width:30px;">${graphParams[letter]}</span>
+                </div>`;
+        });
+        document.getElementById("graphParams").innerHTML = html;
+    } else {
+        document.getElementById("graphParams").innerHTML = "";
+    }
+    graphAnimProgress = 0;
+    animateGraph();
+}
+
+function updateParam(letter, value) {
+    graphParams[letter] = parseFloat(value);
+    let expr = graphExpressions[graphActiveInput];
+    onGraphInput(graphActiveInput, expr);
+}
+
+// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ + СЛЕДЯЩАЯ ТОЧКА ====================
 (function() {
     let canvas = null;
     let lastTouchDist = 0;
@@ -292,77 +307,39 @@ function findAndDrawRoots(ctx, func, w, h, scale, offsetX, offsetY) {
         canvas = document.getElementById("graphCanvas");
         if (!canvas) return;
         
-        canvas.addEventListener("mousedown", e => {
-            if (!graphSolved) return;
-            graphDragging = true;
-            graphLastX = e.clientX;
-            graphLastY = e.clientY;
-        });
         canvas.addEventListener("mousemove", e => {
-            if (!graphDragging || !graphSolved) return;
+            if (graphDragging) return;
+            let rect = canvas.getBoundingClientRect();
+            let scaleW = canvas.width / rect.width;
+            let px = (e.clientX - rect.left) * scaleW;
+            let x = (px - canvas.width/2 - graphOffsetX) / (graphScale * 20);
+            graphTracePos = {x, y: 0};
+            drawAllGraphs();
+        });
+        canvas.addEventListener("mouseleave", () => { graphTracePos = null; drawAllGraphs(); graphDragging = false; });
+        canvas.addEventListener("mousedown", e => { graphDragging = true; graphLastX = e.clientX; graphLastY = e.clientY; });
+        canvas.addEventListener("mousemove", e => {
+            if (!graphDragging) return;
             graphOffsetX += e.clientX - graphLastX;
             graphOffsetY += e.clientY - graphLastY;
-            graphLastX = e.clientX;
-            graphLastY = e.clientY;
-            drawGraph(graphExpression);
+            graphLastX = e.clientX; graphLastY = e.clientY;
+            graphTracePos = null;
+            drawAllGraphs();
         });
         canvas.addEventListener("mouseup", () => { graphDragging = false; });
-        canvas.addEventListener("mouseleave", () => { graphDragging = false; });
-        canvas.addEventListener("wheel", e => {
-            if (!graphSolved) return;
-            e.preventDefault();
-            graphScale *= e.deltaY < 0 ? 1.2 : 0.8;
-            graphScale = Math.max(0.05, Math.min(10, graphScale));
-            drawGraph(graphExpression);
-        });
-        
+        canvas.addEventListener("wheel", e => { e.preventDefault(); graphScale *= e.deltaY < 0 ? 1.2 : 0.8; graphScale = Math.max(0.02, Math.min(20, graphScale)); graphTracePos = null; drawAllGraphs(); });
         canvas.addEventListener("touchstart", e => {
-            if (!graphSolved) return;
-            if (e.touches.length === 1) {
-                graphDragging = true;
-                graphLastX = e.touches[0].clientX;
-                graphLastY = e.touches[0].clientY;
-            }
-            if (e.touches.length === 2) {
-                graphDragging = false;
-                let dx = e.touches[0].clientX - e.touches[1].clientX;
-                let dy = e.touches[0].clientY - e.touches[1].clientY;
-                lastTouchDist = Math.sqrt(dx*dx + dy*dy);
-            }
+            if (e.touches.length === 1) { graphDragging = true; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; }
+            if (e.touches.length === 2) { graphDragging = false; let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDist = Math.sqrt(dx*dx+dy*dy); }
         });
         canvas.addEventListener("touchmove", e => {
-            if (!graphSolved) return;
-            if (e.touches.length === 2) {
-                let dx = e.touches[0].clientX - e.touches[1].clientX;
-                let dy = e.touches[0].clientY - e.touches[1].clientY;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (lastTouchDist > 0) {
-                    graphScale *= dist / lastTouchDist;
-                    graphScale = Math.max(0.05, Math.min(10, graphScale));
-                }
-                lastTouchDist = dist;
-                drawGraph(graphExpression);
-            } else if (graphDragging && e.touches.length === 1) {
-                graphOffsetX += e.touches[0].clientX - graphLastX;
-                graphOffsetY += e.touches[0].clientY - graphLastY;
-                graphLastX = e.touches[0].clientX;
-                graphLastY = e.touches[0].clientY;
-                drawGraph(graphExpression);
-            }
+            if (e.touches.length === 2) { let dx = e.touches[0].clientX - e.touches[1].clientX; let dy = e.touches[0].clientY - e.touches[1].clientY; let dist = Math.sqrt(dx*dx+dy*dy); if (lastTouchDist > 0) { graphScale *= dist / lastTouchDist; graphScale = Math.max(0.02, Math.min(20, graphScale)); } lastTouchDist = dist; graphTracePos = null; drawAllGraphs(); }
+            else if (graphDragging && e.touches.length === 1) { graphOffsetX += e.touches[0].clientX - graphLastX; graphOffsetY += e.touches[0].clientY - graphLastY; graphLastX = e.touches[0].clientX; graphLastY = e.touches[0].clientY; graphTracePos = null; drawAllGraphs(); }
         });
         canvas.addEventListener("touchend", () => { graphDragging = false; });
-        canvas.addEventListener("dblclick", () => {
-            if (!graphSolved) return;
-            graphScale = 1;
-            graphOffsetX = 0;
-            graphOffsetY = 0;
-            drawGraph(graphExpression);
-        });
+        canvas.addEventListener("dblclick", () => { graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphTracePos = null; drawAllGraphs(); });
     }
     
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initCanvas);
-    } else {
-        initCanvas();
-    }
+    if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", initCanvas); }
+    else { initCanvas(); }
 })();
