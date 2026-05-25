@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v2.5 ====================
+// ==================== ГРАФИКИ v2.6 ====================
 let graphExpressions = [""];
 let graphActiveInput = 0;
 let graphScale = 1;
@@ -61,9 +61,9 @@ function clearCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// Новая функция для запуска анимации
+// Анимация — только для ввода с клавиатуры
 function startGraphAnimation() {
-    graphAnimProgress = 0; // Начинаем с нуля каждый раз
+    graphAnimProgress = 0;
     if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
     animateGraph();
 }
@@ -71,7 +71,7 @@ function startGraphAnimation() {
 function animateGraph() {
     if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
     graphAnimFrame = requestAnimationFrame(() => {
-        graphAnimProgress += 0.05; // Медленнее для плавности (0.5 секунды при 60fps ≈ 30 шагов, 1/30 ≈ 0.033, берём 0.05 с запасом)
+        graphAnimProgress += 0.05;
         if (graphAnimProgress >= 1) {
             graphAnimProgress = 1;
             drawAllGraphs();
@@ -80,6 +80,13 @@ function animateGraph() {
             animateGraph();
         }
     });
+}
+
+// Мгновенная отрисовка — для ползунков и зума
+function drawAllGraphsInstant() {
+    graphAnimProgress = 1;
+    if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
+    drawAllGraphs();
 }
 
 function parseFunction(expr) {
@@ -238,7 +245,7 @@ function drawAllGraphs() {
         ctx.shadowBlur = 0;
     });
     
-    // Следящая точка — ближайший график к пальцу/курсору
+    // Следящая точка — ближайший график к курсору
     if (graphTracePos && funcs.some(f => f !== null)) {
         let x = graphTracePos.x;
         let bestIdx = 0;
@@ -268,7 +275,6 @@ function drawAllGraphs() {
                 ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.stroke();
                 ctx.fillStyle = colors[bestIdx % colors.length];
                 ctx.font = "bold 13px sans-serif";
-                // Выносим текст, чтобы не перекрывал точку
                 let labelX = px + 12;
                 let labelY = py - 10;
                 if (labelX > w - 80) labelX = px - 100;
@@ -331,7 +337,6 @@ function graphInputKey(val) {
 function onGraphInput(i, value) {
     graphExpressions[i] = value;
     
-    // Извлекаем параметры (a, b и др.) из ВСЕХ выражений, а не только из активного
     let allLetters = [];
     graphExpressions.forEach(expr => {
         let letters = expr.match(/[a-wzA-WZ]/g);
@@ -339,7 +344,6 @@ function onGraphInput(i, value) {
     });
     let unique = [...new Set(allLetters)];
     
-    // Обновляем HTML ползунков, сохраняя текущие значения
     let html = "";
     unique.forEach(letter => {
         if (graphParams[letter] === undefined) graphParams[letter] = 1;
@@ -357,11 +361,11 @@ function onGraphInput(i, value) {
     startGraphAnimation();
 }
 
-// Новая функция updateParam — НЕ пересоздаёт HTML, только обновляет значение и перерисовывает
+// Ползунок — мгновенное обновление, без анимации
 function updateParam(letter, value) {
     graphParams[letter] = parseFloat(value);
     
-    // Обновляем только число рядом с ползунком, не трогая весь HTML
+    // Обновляем только число рядом с ползунком
     let paramDivs = document.getElementById("graphParams").children;
     for (let div of paramDivs) {
         let label = div.querySelector("span:first-child");
@@ -372,14 +376,15 @@ function updateParam(letter, value) {
         }
     }
     
-    // Перерисовываем график без сброса ползунка
-    startGraphAnimation();
+    // МГНОВЕННАЯ отрисовка — без анимации
+    drawAllGraphsInstant();
 }
 
 // ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ + СЛЕДЯЩАЯ ТОЧКА ====================
 (function() {
     let canvas = null;
     let lastTouchDist = 0;
+    let mouseIsDown = false; // Флаг: зажата ли кнопка мыши
     
     function initCanvas() {
         canvas = document.getElementById("graphCanvas");
@@ -389,15 +394,13 @@ function updateParam(letter, value) {
         canvas.addEventListener("touchstart", e => {
             e.preventDefault();
             if (e.touches.length === 1) {
-                // Одно касание — начинаем перетаскивание ИЛИ следящую точку
-                graphDragging = true;
+                mouseIsDown = true; // Для тача — всегда «зажато»
                 graphLastX = e.touches[0].clientX;
                 graphLastY = e.touches[0].clientY;
-                // Сразу показываем следящую точку
                 updateTracePosFromTouch(e.touches[0]);
             }
             if (e.touches.length === 2) {
-                graphDragging = false;
+                mouseIsDown = false;
                 graphTracePos = null;
                 let dx = e.touches[0].clientX - e.touches[1].clientX;
                 let dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -408,7 +411,6 @@ function updateParam(letter, value) {
         canvas.addEventListener("touchmove", e => {
             e.preventDefault();
             if (e.touches.length === 2) {
-                // Зум двумя пальцами
                 let dx = e.touches[0].clientX - e.touches[1].clientX;
                 let dy = e.touches[0].clientY - e.touches[1].clientY;
                 let dist = Math.sqrt(dx*dx+dy*dy);
@@ -418,25 +420,23 @@ function updateParam(letter, value) {
                 }
                 lastTouchDist = dist;
                 graphTracePos = null;
-                drawAllGraphs();
-            } else if (graphDragging && e.touches.length === 1) {
-                // Перетаскивание одним пальцем
+                drawAllGraphsInstant();
+            } else if (mouseIsDown && e.touches.length === 1) {
+                // Перетаскивание
                 graphOffsetX += e.touches[0].clientX - graphLastX;
                 graphOffsetY += e.touches[0].clientY - graphLastY;
                 graphLastX = e.touches[0].clientX;
                 graphLastY = e.touches[0].clientY;
-                // Обновляем следящую точку после перетаскивания
                 updateTracePosFromTouch(e.touches[0]);
-                drawAllGraphs();
+                drawAllGraphsInstant();
             }
         }, { passive: false });
         
         canvas.addEventListener("touchend", e => {
             if (e.touches.length === 0) {
-                // Все пальцы убраны — показываем следящую точку в последней позиции
-                graphDragging = false;
+                mouseIsDown = false;
             }
-            drawAllGraphs();
+            drawAllGraphsInstant();
         });
         
         canvas.addEventListener("dblclick", () => {
@@ -444,10 +444,10 @@ function updateParam(letter, value) {
             graphOffsetX = 0;
             graphOffsetY = 0;
             graphTracePos = null;
-            drawAllGraphs();
+            drawAllGraphsInstant();
         });
         
-        // Мышь — ОДИН обработчик для всего
+        // МЫШЬ — единый обработчик
         canvas.addEventListener("mousemove", e => {
             let rect = canvas.getBoundingClientRect();
             let scaleW = canvas.width / rect.width;
@@ -455,44 +455,48 @@ function updateParam(letter, value) {
             let mouseCanvasX = (e.clientX - rect.left) * scaleW;
             let mouseCanvasY = (e.clientY - rect.top) * scaleH;
             
-            if (graphDragging) {
-                // Перетаскивание
+            // Перетаскивание ТОЛЬКО если кнопка зажата
+            if (mouseIsDown) {
                 graphOffsetX += e.clientX - graphLastX;
                 graphOffsetY += e.clientY - graphLastY;
                 graphLastX = e.clientX;
                 graphLastY = e.clientY;
+                drawAllGraphsInstant();
             }
             
-            // Всегда обновляем следящую точку (даже при перетаскивании)
+            // Следящая точка — ВСЕГДА (и при драге, и без)
             let x = (mouseCanvasX - canvas.width/2 - graphOffsetX) / (graphScale * 20);
             graphTracePos = { x, y: 0, canvasY: mouseCanvasY };
             
-            drawAllGraphs();
+            // Если не драг — перерисовываем для следящей точки
+            if (!mouseIsDown) {
+                drawAllGraphsInstant();
+            }
         });
         
         canvas.addEventListener("mouseleave", () => {
             graphTracePos = null;
-            graphDragging = false;
-            drawAllGraphs();
+            mouseIsDown = false;
+            drawAllGraphsInstant();
         });
         
         canvas.addEventListener("mousedown", e => {
-            graphDragging = true;
+            mouseIsDown = true;
             graphLastX = e.clientX;
             graphLastY = e.clientY;
-            // Не сбрасываем graphTracePos, чтобы точка оставалась
+            // Не сбрасываем tracePos, точка остаётся
         });
         
         canvas.addEventListener("mouseup", () => {
-            graphDragging = false;
-            // Не сбрасываем graphTracePos — пусть точка остаётся после отпускания
+            mouseIsDown = false;
+            // Точка остаётся на месте
         });
         
         canvas.addEventListener("wheel", e => {
             e.preventDefault();
             graphScale *= e.deltaY < 0 ? 1.2 : 0.8;
             graphScale = Math.max(0.02, Math.min(20, graphScale));
-            drawAllGraphs();
+            drawAllGraphsInstant();
         }, { passive: false });
     }
     
