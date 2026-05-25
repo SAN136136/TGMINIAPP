@@ -122,11 +122,6 @@
             border-left: 3px solid var(--red);
         }
         
-        .tram-card.passed {
-            opacity: 0.4;
-            border-left: 3px solid #555;
-        }
-        
         .tram-main {
             display: flex;
             justify-content: space-between;
@@ -170,11 +165,6 @@
             color: var(--blue);
             font-weight: 600;
             font-size: 14px;
-        }
-        
-        .tram-passed {
-            color: #666;
-            font-size: 13px;
         }
         
         .empty {
@@ -283,7 +273,6 @@
     <div class="legend">
         <span><span class="dot" style="background:#4CAF50;"></span> Едет</span>
         <span><span class="dot" style="background:#FF6B6B;"></span> Стоит</span>
-        <span><span class="dot" style="background:#555;"></span> Проехал</span>
     </div>
     
     <div id="tramContent">
@@ -301,28 +290,31 @@
     </div>
     
     <script>
-        // ==================== ДАННЫЕ ====================
+        // ==================== КОНФИГУРАЦИЯ ====================
         
-        // Остановки с координатами и маршрутами, которые через них проходят
+        // Остановки с координатами и списком маршрутов, которые через них проходят
         const STOPS = {
             gagarina: {
                 name: 'Гагарина',
                 lat: 53.398,
                 lng: 58.978,
-                // Маршруты, проходящие через эту остановку (rid)
-                routes: [10013, 10014, 10017, 10006, 10007, 10009, 10011, 10023, 10024, 10026, 10031, 10032, 10035, 10037, 10039, 10040, 10041, 10042, 10043, 10045, 10046, 10047, 10051, 10053, 10055, 10057, 10058, 10060, 10061, 10063, 10067, 10069, 10070, 10080, 10082, 10083, 10091, 10094, 10097, 10099, 10100, 10101, 10103, 10106, 10107, 10126]
+                // Номера маршрутов и направления к Юности/ЛПЦ/Товарной
+                routes: [1, 5, 11, 15, 17],
+                targetDirection: [135, 225] // Юг (диапазон градусов)
             },
             yunost: {
                 name: 'Юность',
                 lat: 53.416,
                 lng: 58.985,
-                routes: [10006, 10007, 10009, 10011, 10013, 10014, 10017, 10021, 10023, 10026, 10031, 10032, 10035, 10037, 10039, 10040, 10041, 10042, 10043, 10045, 10046, 10047, 10051, 10053, 10055, 10057, 10058, 10060, 10061, 10063, 10067, 10069, 10070, 10080, 10082, 10083, 10091, 10094, 10097, 10099, 10100, 10101, 10103, 10106, 10107, 10126]
+                routes: [1, 5, 11, 15, 17],
+                targetDirection: [135, 225] // Юг
             },
             ploshchad_mira: {
                 name: 'Пл. Мира',
                 lat: 53.405,
                 lng: 58.985,
-                routes: [10006, 10007, 10009, 10011, 10013, 10014, 10017, 10023, 10026, 10031, 10032, 10035, 10037, 10039, 10040, 10041, 10042, 10043, 10045, 10046, 10047, 10051, 10053, 10055, 10057, 10058, 10060, 10061, 10063, 10067, 10069, 10070, 10080, 10082, 10083, 10091, 10094, 10097, 10099, 10100, 10101, 10103, 10106, 10107, 10126]
+                routes: [1, 5, 11, 15, 17],
+                targetDirection: [135, 225] // Юг
             }
         };
         
@@ -338,7 +330,7 @@
             reg: 74004,
             data: {
                 wuid: 798382819222,
-                rids: '1,3,5,7,9,11,12,14,21,22,23,25,10001,10002,10004,10006,10007,10009,10011,10013,10017,10021,10023,10024,10026,10029,10031,10032,10035,10037,10039,10040,10041,10042,10043,10045,10046,10047,10051,10053,10055,10057,10058,10060,10061,10063,10067,10069,10070,10080,10082,10083,10091,10094,10097,10099,10100,10101,10103,10106,10107,10126',
+                rids: '10001,10002,10004,10006,10007,10009,10011,10013,10017,10021,10023,10024,10026,10029,10031,10032,10035,10037,10039,10040,10041,10042,10043,10045,10046,10047,10051,10053,10055,10057,10058,10060,10061,10063,10067,10069,10070,10080,10082,10083,10091,10094,10097,10099,10100,10101,10103,10106,10107,10126',
                 curk: 167713
             }
         };
@@ -366,7 +358,14 @@
                 const data = await resp.json();
                 
                 if (data.r === 'ok') {
-                    allTrams = data.data.anims.filter(v => v.rtype === 'Тм');
+                    // Фильтруем только трамваи и только нужных маршрутов
+                    const stopRoutes = STOPS[currentStop].routes;
+                    allTrams = data.data.anims.filter(v => {
+                        if (v.rtype !== 'Тм') return false;
+                        // Проверяем, что номер маршрута совпадает
+                        const rnum = parseInt(v.rnum);
+                        return stopRoutes.includes(rnum);
+                    });
                     filterAndRender();
                     
                     const now = new Date();
@@ -377,7 +376,7 @@
                 }
             } catch (e) {
                 console.error(e);
-                content.innerHTML = '<div class="error">❌ Ошибка загрузки данных<br>Проверь подключение к интернету</div>';
+                content.innerHTML = '<div class="error">❌ Ошибка загрузки данных</div>';
             }
         }
         
@@ -385,48 +384,46 @@
             const stop = STOPS[currentStop];
             const content = document.getElementById('tramContent');
             
-            // Фильтруем: только трамваи нужных маршрутов
-            let filtered = allTrams.filter(t => stop.routes.includes(t.rid));
-            
-            if (filtered.length === 0) {
-                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Трамваев поблизости нет</div>';
+            if (allTrams.length === 0) {
+                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет данных о трамваях</div>';
                 return;
             }
             
-            // Считаем расстояние до остановки
+            // Фильтруем по направлению: только те, что едут на юг (к Юности/ЛПЦ/Товарной)
+            const [dirMin, dirMax] = stop.targetDirection;
+            let filtered = allTrams.filter(t => {
+                const dir = t.dir || 0;
+                // Направление в диапазоне (южное)
+                return dir >= dirMin && dir <= dirMax;
+            });
+            
+            // Если по направлению ничего не нашли — показываем все (на случай ошибок GPS)
+            if (filtered.length === 0) {
+                filtered = [...allTrams];
+            }
+            
+            // Считаем расстояние и сортируем
             filtered = filtered.map(t => {
                 const dist = haversine(stop.lat, stop.lng, t.lat, t.lng);
-                return { ...t, _dist: dist, _passed: isPassed(stop, t) };
+                return { ...t, _dist: dist };
             });
             
-            // Сортируем: сначала те, что ещё не проехали (по расстоянию), потом проехавшие
-            filtered.sort((a, b) => {
-                if (a._passed && !b._passed) return 1;
-                if (!a._passed && b._passed) return -1;
-                return a._dist - b._dist;
-            });
-            
-            // Показываем больше трамваев (до 15)
-            filtered = filtered.slice(0, 15);
+            filtered.sort((a, b) => a._dist - b._dist);
             
             let html = '<div class="tram-list">';
             
             filtered.forEach(t => {
                 const isMoving = (t.speed || 0) > 0;
-                const statusClass = t._passed ? 'passed' : (isMoving ? 'moving' : 'stopped');
+                const statusClass = isMoving ? 'moving' : 'stopped';
                 const speedClass = isMoving ? 'moving' : 'stopped';
                 const speedText = isMoving ? `${t.speed} км/ч` : 'Стоит';
                 
                 // Время до остановки
                 let eta = '';
-                if (!t._passed && isMoving && t.speed > 0) {
+                if (isMoving && t.speed > 0) {
                     const minutes = Math.round(t._dist / (t.speed * 1000 / 60));
-                    if (minutes > 0) eta = `⏱ ~${minutes} мин`;
+                    if (minutes > 0 && minutes < 120) eta = `⏱ ~${minutes} мин`;
                 }
-                
-                const distText = t._passed 
-                    ? `Проехал ${Math.round(t._dist)}м назад`
-                    : `До остановки ${Math.round(t._dist)}м`;
                 
                 html += `
                     <div class="tram-card ${statusClass}" onclick="openMap(${t.lat}, ${t.lng})">
@@ -435,7 +432,7 @@
                             <span class="tram-speed ${speedClass}">${speedText}</span>
                         </div>
                         <div class="tram-details">
-                            <span class="${t._passed ? 'tram-passed' : 'tram-distance'}">${distText}</span>
+                            <span class="tram-distance">📍 ${Math.round(t._dist)}м до ост.</span>
                             ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
                         </div>
                     </div>
@@ -444,23 +441,6 @@
             
             html += '</div>';
             content.innerHTML = html;
-        }
-        
-        function isPassed(stop, tram) {
-            // Определяем, проехал ли трамвай остановку
-            // Для Гагарины (на юг): lat трамвая > lat остановки = проехал
-            // Для Юности (на север): lat трамвая < lat остановки = проехал
-            const latDiff = tram.lat - stop.lat;
-            const lngDiff = tram.lng - stop.lng;
-            
-            // Основное направление — на юг (Гагарина → Юность)
-            // Если трамвай южнее остановки более чем на 200м — проехал
-            if (latDiff > 0.002) return true; // ~200м южнее
-            
-            // Если трамвай сильно восточнее или западнее (параллельные улицы) — не показываем как проехавший
-            if (Math.abs(lngDiff) > 0.015) return false; // ~1.5км в сторону — другой маршрут
-            
-            return false;
         }
         
         function haversine(lat1, lng1, lat2, lng2) {
@@ -476,7 +456,6 @@
         }
         
         function closeWindow() {
-            // Сообщаем родительскому окну, что нужно закрыть модалку
             if (window.parent && window.parent !== window) {
                 const modal = window.parent.document.getElementById('tramModal');
                 if (modal) window.parent.document.body.removeChild(modal);
