@@ -1,4 +1,4 @@
-// ==================== ГРАФИКИ v2.1 ====================
+// ==================== ГРАФИКИ v2.2 ====================
 let graphExpressions = [""];
 let graphActiveInput = 0;
 let graphScale = 1;
@@ -8,9 +8,9 @@ let graphDragging = false;
 let graphLastX = 0;
 let graphLastY = 0;
 let graphParams = {};
-let graphShowParams = false;
 let graphTracePos = null;
 let graphAnimProgress = 1;
+let graphAnimFrame = null;
 
 function switchToGraph() {
     graphExpressions = [""];
@@ -19,7 +19,6 @@ function switchToGraph() {
     graphOffsetX = 0;
     graphOffsetY = 0;
     graphParams = {};
-    graphShowParams = false;
     graphTracePos = null;
     graphAnimProgress = 1;
     document.getElementById("graphInputs").innerHTML = renderGraphInputs();
@@ -48,11 +47,10 @@ function renderGraphInputs() {
 function setActiveGraph(i) { graphActiveInput = i; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); }
 function addGraphInput() { if (graphExpressions.length >= 3) return; graphExpressions.push(""); graphActiveInput = graphExpressions.length - 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); }
 function removeGraphInput(i) { if (graphExpressions.length <= 1) return; graphExpressions.splice(i, 1); if (graphActiveInput >= graphExpressions.length) graphActiveInput = graphExpressions.length - 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); drawAllGraphs(); }
-function onGraphInput(i, value) { graphExpressions[i] = value; graphAnimProgress = 0; animateGraph(); }
 
 function graphClear() { graphExpressions = [""]; graphActiveInput = 0; graphScale = 1; graphOffsetX = 0; graphOffsetY = 0; graphParams = {}; graphTracePos = null; graphAnimProgress = 1; document.getElementById("graphInputs").innerHTML = renderGraphInputs(); document.getElementById("graphParams").innerHTML = ""; clearCanvas(); }
-function graphBackspace() { let expr = graphExpressions[graphActiveInput]; graphExpressions[graphActiveInput] = expr.slice(0, -1); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0; animateGraph(); }
-function graphPaste() { navigator.clipboard.readText().then(text => { graphExpressions[graphActiveInput] = text.trim(); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0; animateGraph(); }).catch(() => { document.getElementById(`graphInput${graphActiveInput}`).focus(); }); }
+function graphBackspace() { let expr = graphExpressions[graphActiveInput]; graphExpressions[graphActiveInput] = expr.slice(0, -1); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0.3; animateGraph(); }
+function graphPaste() { navigator.clipboard.readText().then(text => { graphExpressions[graphActiveInput] = text.trim(); document.getElementById("graphInputs").innerHTML = renderGraphInputs(); graphAnimProgress = 0.3; animateGraph(); }).catch(() => { document.getElementById(`graphInput${graphActiveInput}`).focus(); }); }
 
 function clearCanvas() {
     const canvas = document.getElementById("graphCanvas");
@@ -65,10 +63,14 @@ function clearCanvas() {
 function animateGraph() {
     if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
     graphAnimFrame = requestAnimationFrame(() => {
-        graphAnimProgress += 0.15;
-        if (graphAnimProgress > 1) graphAnimProgress = 1;
-        drawAllGraphs();
-        if (graphAnimProgress < 1) animateGraph();
+        graphAnimProgress += 0.2;
+        if (graphAnimProgress >= 1) {
+            graphAnimProgress = 1;
+            drawAllGraphs();
+        } else {
+            drawAllGraphs();
+            animateGraph();
+        }
     });
 }
 
@@ -131,12 +133,12 @@ function drawAllGraphs() {
     let xMin = (-w/2 - offsetX) / scale;
     let xMax = (w/2 - offsetX) / scale;
     
+    // Сетка
     ctx.strokeStyle = "#1A1A2E";
     ctx.lineWidth = 0.5;
     let gridStep = scale;
     if (gridStep < 15) gridStep = 15;
     if (gridStep > 200) gridStep = 200;
-    
     let labelStep = gridStep;
     while (labelStep < 40) labelStep *= 2;
     
@@ -149,6 +151,7 @@ function drawAllGraphs() {
         if (py >= 0 && py <= h) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke(); }
     }
     
+    // Оси
     ctx.strokeStyle = "#555";
     ctx.lineWidth = 2;
     let axisY = h/2 + offsetY;
@@ -156,6 +159,7 @@ function drawAllGraphs() {
     ctx.beginPath(); ctx.moveTo(0, axisY); ctx.lineTo(w, axisY); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(axisX, 0); ctx.lineTo(axisX, h); ctx.stroke();
     
+    // Числа на осях
     ctx.fillStyle = "#888";
     ctx.font = "11px sans-serif";
     let firstX = Math.ceil((-w/2 - offsetX) / labelStep);
@@ -176,6 +180,7 @@ function drawAllGraphs() {
     ctx.fillText("x", w - 15, axisY - 10);
     ctx.fillText("y", axisX + 10, 15);
     
+    // Графики
     funcs.forEach((func, idx) => {
         if (!func) return;
         
@@ -204,6 +209,7 @@ function drawAllGraphs() {
         ctx.shadowBlur = 0;
     });
     
+    // Следящая точка
     if (graphTracePos && funcs[0]) {
         let x = graphTracePos.x;
         let y;
@@ -219,6 +225,7 @@ function drawAllGraphs() {
         }
     }
     
+    // Точки пересечения
     for (let i = 0; i < funcs.length; i++) {
         for (let j = i + 1; j < funcs.length; j++) {
             if (funcs[i] && funcs[j]) {
@@ -262,16 +269,16 @@ function graphInputKey(val) {
     if (val === "=" && expr.includes("=")) return;
     graphExpressions[graphActiveInput] += val;
     document.getElementById("graphInputs").innerHTML = renderGraphInputs();
-    graphAnimProgress = 0;
+    graphAnimProgress = 0.3;
     animateGraph();
 }
 
 function onGraphInput(i, value) {
     graphExpressions[i] = value;
+    graphAnimProgress = 0.3;
     let letters = value.match(/[a-wzA-WZ]/g);
     if (letters && letters.length > 0) {
         let unique = [...new Set(letters)];
-        graphShowParams = true;
         let html = "";
         unique.forEach(letter => {
             if (graphParams[letter] === undefined) graphParams[letter] = 1;
@@ -288,7 +295,6 @@ function onGraphInput(i, value) {
     } else {
         document.getElementById("graphParams").innerHTML = "";
     }
-    graphAnimProgress = 0;
     animateGraph();
 }
 
@@ -298,7 +304,7 @@ function updateParam(letter, value) {
     onGraphInput(graphActiveInput, expr);
 }
 
-// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ + СЛЕДЯЩАЯ ТОЧКА ====================
+// ==================== ЗУМ И ПЕРЕТАСКИВАНИЕ ====================
 (function() {
     let canvas = null;
     let lastTouchDist = 0;
