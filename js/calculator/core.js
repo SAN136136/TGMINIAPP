@@ -17,13 +17,13 @@ function openCalculator() {
     document.getElementById("calcGeoInputs").style.display = "none";
     document.getElementById("calcPhysInputs").style.display = "none";
     document.getElementById("calcEqInputs").style.display = "none";
+    document.getElementById("calcGraphInputs").style.display = "none";
     document.getElementById("calcConverterOutput").style.display = "none";
     document.getElementById("calcMainButtons").style.display = "grid";
     document.getElementById("calcExtraBtns").style.display = "grid";
     document.getElementById("calcDisplay").style.display = "block";
     document.getElementById("calcResult").style.display = "block";
     switchCalcMode("basic");
-    document.getElementById("calcGraphInputs").style.display = "none";
 }
 
 function closeCalc() {
@@ -63,6 +63,7 @@ function switchCalcMode(mode) {
     document.getElementById("calcGeoInputs").style.display = "none";
     document.getElementById("calcPhysInputs").style.display = "none";
     document.getElementById("calcEqInputs").style.display = "none";
+    document.getElementById("calcGraphInputs").style.display = "none";
     document.getElementById("calcConverterOutput").style.display = "none";
     document.getElementById("calcTrigRow").style.display = "none";
     calcShowTrig = false;
@@ -76,11 +77,6 @@ function switchCalcMode(mode) {
         document.getElementById("calcEqInputs").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
         document.getElementById("calcResult").style.display = "none";
-    } else if (mode === "graph") {
-    document.getElementById("calcGraphInputs").style.display = "block";
-    document.getElementById("calcDisplay").style.display = "none";
-    document.getElementById("calcResult").style.display = "none";
-    switchToGraph();
     } else if (mode === "geometry") {
         document.getElementById("calcGeoInputs").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
@@ -94,6 +90,11 @@ function switchCalcMode(mode) {
         document.getElementById("calcDisplay").style.display = "none";
         document.getElementById("calcResult").style.display = "none";
         renderPhysSolver();
+    } else if (mode === "graph") {
+        document.getElementById("calcGraphInputs").style.display = "block";
+        document.getElementById("calcDisplay").style.display = "none";
+        document.getElementById("calcResult").style.display = "none";
+        switchToGraph();
     } else if (mode === "converter") {
         document.getElementById("calcConverterOutput").style.display = "block";
         document.getElementById("calcDisplay").style.display = "none";
