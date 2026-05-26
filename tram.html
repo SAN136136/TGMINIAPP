@@ -377,21 +377,36 @@
         return;
     }
     
-    // НОВАЯ ЛОГИКА (твоя идея):
-    // Просто берём ВСЕ трамваи с нужных маршрутов, считаем расстояние до остановки,
-    // сортируем и показываем ближайшие. Без всяких фильтров по направлению.
+    // ТВОЯ НОВАЯ ЛОГИКА:
+    // 1. Показываем ВООБЩЕ ВСЕ трамваи с нужных маршрутов.
+    // 2. Сортируем их не по расстоянию, а по ПРИМЕРНОМУ ВРЕМЕНИ ДО ПРИБЫТИЯ (ETA).
     
     let filtered = allTrams.map(t => {
         const dist = haversine(stop.lat, stop.lng, t.lat, t.lng);
-        return { ...t, _dist: dist };
+        const speed = t.speed || 0;
+        
+        // Рассчитываем примерное время в минутах
+        let etaMinutes = Infinity;
+        if (speed > 0) {
+            etaMinutes = dist / (speed * 1000 / 60);
+        }
+        
+        return { ...t, _dist: dist, _eta: etaMinutes };
     });
     
-    // Сортируем по расстоянию: ближайшие — сверху
-    filtered.sort((a, b) => a._dist - b._dist);
+    // Сортируем по времени (кто быстрее приедет) + те, кто стоит, уходят вниз
+    filtered.sort((a, b) => {
+        // Если трамвай стоит (ETA = Infinity), он должен быть внизу
+        if (!isFinite(a._eta) && !isFinite(b._eta)) return a._dist - b._dist;
+        if (!isFinite(a._eta)) return 1;
+        if (!isFinite(b._eta)) return -1;
+        return a._eta - b._eta;
+    });
     
-    // Показываем топ-15 ближайших
+    // Показываем топ-15
     filtered = filtered.slice(0, 15);
     
+    // Отрисовка
     let html = '<div class="tram-list">';
     
     filtered.forEach(t => {
@@ -400,10 +415,16 @@
         const speedClass = isMoving ? 'moving' : 'stopped';
         const speedText = isMoving ? `${t.speed} км/ч` : 'Стоит';
         
-        let eta = '';
-        if (isMoving && t.speed > 0) {
-            const minutes = Math.round(t._dist / (t.speed * 1000 / 60));
-            if (minutes > 0 && minutes < 120) eta = `⏱ ~${minutes} мин`;
+        let etaText = '';
+        if (isFinite(t._eta)) {
+            const minutes = Math.round(t._eta);
+            if (minutes < 1) {
+                etaText = '⏱ < 1 мин';
+            } else if (minutes < 60) {
+                etaText = `⏱ ~${minutes} мин`;
+            } else {
+                etaText = `⏱ > 1 ч`;
+            }
         }
         
         html += `
@@ -413,8 +434,8 @@
                     <span class="tram-speed ${speedClass}">${speedText}</span>
                 </div>
                 <div class="tram-details">
-                    <span class="tram-distance">📍 ${Math.round(t._dist)}м до ост.</span>
-                    ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
+                    <span class="tram-distance">📍 ${Math.round(t._dist)}м</span>
+                    ${etaText ? `<span class="tram-eta">${etaText}</span>` : ''}
                 </div>
             </div>
         `;
