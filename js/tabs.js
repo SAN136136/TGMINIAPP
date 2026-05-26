@@ -23,6 +23,7 @@ function renderTab(tab) {
                 <button class="btn btn-status" onclick="sendCommand('status')">📊 Статус ПК</button>
                 <button class="btn btn-weather" onclick="sendCommand('weather')">🌤 Погода</button>
                 <button class="btn btn-news" onclick="sendCommand('news')">📰 Новости</button>
+                <button class="btn btn-camera" onclick="sendCommand('снимок')">📸 Снимок</button>
             </div>
             <div class="section-title" style="margin-top:15px;">ШКОЛА</div>
             <div class="buttons">
