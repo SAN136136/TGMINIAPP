@@ -368,78 +368,109 @@
             }
         }
         
-        function filterAndRender() {
-            const stop = STOPS[currentStop];
-            const content = document.getElementById('tramContent');
-            
-            if (allTrams.length === 0) {
-                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет данных о трамваях</div>';
-                return;
-            }
-            
-            // Фильтруем по направлению движения
-            let filtered = allTrams.filter(t => {
-                const dir = t.dir || 0;
-                
-                if (stop.targetDirection === 'south') {
-                    const isSouth = dir >= 135 && dir <= 225;
-                    const isNorthOfStop = t.lat < stop.lat;
-                    return isSouth && isNorthOfStop;
-                } else if (stop.targetDirection === 'north') {
-                    const isNorth = dir <= 45 || dir >= 315;
-                    const isSouthOfStop = t.lat > stop.lat;
-                    return isNorth && isSouthOfStop;
-                }
-                
-                return false;
-            });
-            
-            if (filtered.length === 0) {
-                content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет трамваев, следующих в вашу сторону</div>';
-                return;
-            }
-            
-            // Считаем расстояние до остановки
-            filtered = filtered.map(t => {
-                const dist = haversine(stop.lat, stop.lng, t.lat, t.lng);
-                return { ...t, _dist: dist };
-            });
-            
-            // Сортируем по расстоянию
-            filtered.sort((a, b) => a._dist - b._dist);
-            
-            // Отрисовка
-            let html = '<div class="tram-list">';
-            
-            filtered.forEach(t => {
-                const isMoving = (t.speed || 0) > 0;
-                const statusClass = isMoving ? 'moving' : 'stopped';
-                const speedClass = isMoving ? 'moving' : 'stopped';
-                const speedText = isMoving ? `${t.speed} км/ч` : 'Стоит';
-                
-                let eta = '';
-                if (isMoving && t.speed > 0) {
-                    const minutes = Math.round(t._dist / (t.speed * 1000 / 60));
-                    if (minutes > 0 && minutes < 120) eta = `⏱ ~${minutes} мин`;
-                }
-                
-                html += `
-                    <div class="tram-card ${statusClass}" onclick="openMap(${t.lat}, ${t.lng})">
-                        <div class="tram-main">
-                            <span class="tram-route">№${t.rnum || '?'}</span>
-                            <span class="tram-speed ${speedClass}">${speedText}</span>
-                        </div>
-                        <div class="tram-details">
-                            <span class="tram-distance">📍 ${Math.round(t._dist)}м до ост.</span>
-                            ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += '</div>';
-            content.innerHTML = html;
+       function filterAndRender() {
+    const stop = STOPS[currentStop];
+    const content = document.getElementById('tramContent');
+    
+    if (allTrams.length === 0) {
+        content.innerHTML = '<div class="empty"><div class="icon">🚋</div>Нет данных о трамваях</div>';
+        return;
+    }
+    
+    // ═══════════ РЕЖИМ ОТЛАДКИ ═══════════
+    // Показываем ВООБЩЕ ВСЕ трамваи на маршрутах, без фильтров
+    // Сортировка: по расстоянию до остановки
+    // Цвет карточки зависит от того, прошёл ли фильтр или нет
+    
+    let filtered = allTrams.map(t => {
+        const dist = haversine(stop.lat, stop.lng, t.lat, t.lng);
+        
+        // Проверяем, прошёл бы этот трамвай фильтр
+        const dir = t.dir || 0;
+        let passesFilter = false;
+        let filterReason = '';
+        
+        if (stop.targetDirection === 'south') {
+            const isSouth = dir >= 135 && dir <= 225;
+            const isNorthOfStop = t.lat < stop.lat;
+            passesFilter = isSouth && isNorthOfStop;
+            if (!isSouth && !isNorthOfStop) filterReason = 'не на юг и уже проехал';
+            else if (!isSouth) filterReason = 'направление не на юг (' + dir + '°)';
+            else if (!isNorthOfStop) filterReason = 'уже проехал остановку';
+        } else if (stop.targetDirection === 'north') {
+            const isNorth = dir <= 45 || dir >= 315;
+            const isSouthOfStop = t.lat > stop.lat;
+            passesFilter = isNorth && isSouthOfStop;
+            if (!isNorth && !isSouthOfStop) filterReason = 'не на север и уже проехал';
+            else if (!isNorth) filterReason = 'направление не на север (' + dir + '°)';
+            else if (!isSouthOfStop) filterReason = 'уже проехал остановку';
         }
+        
+        return { 
+            ...t, 
+            _dist: dist, 
+            _passes: passesFilter, 
+            _reason: filterReason,
+            _isMoving: (t.speed || 0) > 0
+        };
+    });
+    
+    // Сортируем: сначала те, что проходят фильтр, потом остальные, по расстоянию
+    filtered.sort((a, b) => {
+        if (a._passes && !b._passes) return -1;
+        if (!a._passes && b._passes) return 1;
+        return a._dist - b._dist;
+    });
+    
+    // Статистика
+    const passed = filtered.filter(t => t._passes).length;
+    const total = filtered.length;
+    
+    let html = '<div style="background:#1A1A2E; padding:8px 12px; border-radius:8px; margin-bottom:10px; font-size:12px; color:#888; text-align:center;">';
+    html += `🔍 ОТЛАДКА: Всего на маршрутах: <b style="color:#FFD700">${total}</b> | `;
+    html += `Проходят фильтр: <b style="color:#4CAF50">${passed}</b> | `;
+    html += `Отсеяно: <b style="color:#FF6B6B">${total - passed}</b>`;
+    html += '</div>';
+    
+    html += '<div class="tram-list">';
+    
+    filtered.forEach(t => {
+        const statusClass = t._passes ? (t._isMoving ? 'moving' : 'stopped') : 'stopped';
+        const speedClass = t._isMoving ? 'moving' : 'stopped';
+        const speedText = t._isMoving ? `${t.speed} км/ч` : 'Стоит';
+        
+        let eta = '';
+        if (t._passes && t._isMoving && t.speed > 0) {
+            const minutes = Math.round(t._dist / (t.speed * 1000 / 60));
+            if (minutes > 0 && minutes < 120) eta = `⏱ ~${minutes} мин`;
+        }
+        
+        // Для отсеянных показываем причину
+        const reasonHTML = !t._passes && t._reason 
+            ? `<div style="font-size:11px; color:#FF6B6B; margin-top:4px;">⚠️ ${t._reason}</div>` 
+            : '';
+        
+        // Полупрозрачные для отсеянных
+        const opacityStyle = !t._passes ? 'opacity: 0.5;' : '';
+        
+        html += `
+            <div class="tram-card ${statusClass}" onclick="openMap(${t.lat}, ${t.lng})" style="${opacityStyle}">
+                <div class="tram-main">
+                    <span class="tram-route">№${t.rnum || '?'} ${t._passes ? '✅' : '❌'}</span>
+                    <span class="tram-speed ${speedClass}">${speedText}</span>
+                </div>
+                <div class="tram-details">
+                    <span class="tram-distance">📍 ${Math.round(t._dist)}м | 🧭 ${t.dir || 0}°</span>
+                    ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
+                </div>
+                ${reasonHTML}
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    content.innerHTML = html;
+}
         
         function haversine(lat1, lng1, lat2, lng2) {
             const R = 6371000;
