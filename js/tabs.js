@@ -102,7 +102,7 @@ function openTramWindow() {
     `;
     
     const iframe = document.createElement('iframe');
-    iframe.src = 'tram-map.html';
+    iframe.src = 'tram/map.html';
     iframe.style.cssText = `
         width: 100%;
         height: 100%;
@@ -148,8 +148,6 @@ function checkForPhoto() {
     const logText = log.innerHTML;
     
     if (logText.includes('/show_photo')) {
-        console.log('🔍 Найдена команда show_photo в логе!');
-        
         let match = logText.match(/\/show_photo\s+(https?:\/\/\S+)/);
         if (!match) {
             match = logText.match(/\/show_photo\s+(.+)/);
@@ -157,18 +155,13 @@ function checkForPhoto() {
         
         if (match) {
             const url = match[1].trim();
-            console.log('📸 Извлечён URL:', url);
             openPhotoModal(url);
             document.getElementById('log').innerHTML = logText.replace(/\/show_photo\s+\S+/, '📸 Фото получено');
-        } else {
-            console.log('❌ Не удалось извлечь URL из лога');
         }
     }
 }
 
 function openPhotoModal(fileUrl) {
-    console.log('🖼️ Открываю модальное окно с URL:', fileUrl);
-    
     const oldModal = document.getElementById('photoModal');
     if (oldModal) document.body.removeChild(oldModal);
     
@@ -203,13 +196,11 @@ function openPhotoModal(fileUrl) {
     `;
     
     img.onload = function() {
-        console.log('✅ Фото загружено успешно');
         loading.style.display = 'none';
         img.style.display = 'block';
     };
     
-    img.onerror = function(e) {
-        console.error('❌ Ошибка загрузки фото:', fileUrl);
+    img.onerror = function() {
         loading.textContent = '❌ Не удалось загрузить фото';
         loading.style.color = '#FF6B6B';
     };
@@ -252,11 +243,8 @@ function openPhotoModal(fileUrl) {
     modal.appendChild(caption);
     modal.appendChild(closeBtn);
     document.body.appendChild(modal);
-    
-    console.log('📦 Модальное окно добавлено в DOM');
 }
 
-// Проверяем логи каждые 2 секунды
 setInterval(checkForPhoto, 2000);
 
 // ==================== МЕНЮ ШПАРГАЛОК ====================
