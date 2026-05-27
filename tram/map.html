@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Трамваи Магнитогорска</title>
-
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
             --bg: #0A0A14;
-            --gold: #FFD700;
-            --blue: #58A6FF;
-            --red: #FF6B6B;
-            --green: #4CAF50;
-            --text: #CCC;
+            --gold: #C9A84C;
+            --blue: #4A8FCC;
+            --red: #CC6B6B;
+            --green: #5A9E6F;
+            --text: #BBB;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,12 +41,13 @@
         
         .legend {
             display: flex; gap: 16px; justify-content: center;
-            font-size: 11px; color: #888; margin: 8px 0;
+            font-size: 11px; color: #888; margin: 8px 0; flex-wrap: wrap;
         }
         .legend span { display: flex; align-items: center; gap: 4px; }
         .legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         
         .tram-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+        
         .tram-row {
             display: flex; align-items: center; gap: 8px;
             background: #141428; padding: 10px 12px;
@@ -84,21 +85,21 @@
         .leaflet-popup-content-wrapper { background: #1A1A2E !important; color: #CCC !important; border-radius: 8px !important; }
         .leaflet-popup-tip { background: #1A1A2E !important; }
         .leaflet-popup-content { font-size: 13px; margin: 8px 12px; }
-        .leaflet-popup-content b { color: #FFD700; }
+        .leaflet-popup-content b { color: var(--gold); }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🚋 Трамваи Магнитогорска</h1>
-        <div class="subtitle">Гагарина ↔ Юность | Пл. Мира</div>
+        <div class="subtitle">Юность ↔ Гагарина | Пл. Мира</div>
     </div>
     
     <div id="map"></div>
     
     <div class="legend">
-        <span><span class="dot" style="background:#4CAF50;"></span> Едет</span>
-        <span><span class="dot" style="background:#FF6B6B;"></span> Стоит</span>
-        <span><span class="dot" style="background:#FFD700;"></span> Остановка</span>
+        <span><span class="dot" style="background:#5A9E6F;"></span> Едет</span>
+        <span><span class="dot" style="background:#CC6B6B;"></span> Стоит</span>
+        <span><span class="dot" style="background:#C9A84C;"></span> Остановка</span>
     </div>
     
     <div class="update-time" id="updateTime"></div>
@@ -126,29 +127,45 @@
         } catch(e) {}
         
         // ==================== КОНФИГУРАЦИЯ ====================
-        // Правильные координаты остановок
+        // Остановки в правильном порядке: Юность (мост) → Гагарина (северо-запад)
         var STOPS = [
-            { lat: 53.398, lng: 58.978, name: 'Гагарина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.405, lng: 58.985, name: 'Пл. Мира', routes: '1, 3, 11, 14, 16, 20, 22, 33' },
-            { lat: 53.416, lng: 58.985, name: 'Юность', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' }
+            { lat: 53.4160, lng: 58.9900, name: 'Юность', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4155, lng: 58.9880, name: 'Дружбы', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4140, lng: 58.9860, name: 'Гостиный двор', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4120, lng: 58.9840, name: 'Завенягина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4090, lng: 58.9820, name: 'Политех', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4065, lng: 58.9800, name: 'Советской Армии', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4050, lng: 58.9780, name: 'Пл. Мира', routes: '1, 3, 11, 14, 16, 20, 22, 33' },
+            { lat: 53.4035, lng: 58.9760, name: 'Карла Маркса', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4005, lng: 58.9740, name: 'Центральный рынок', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.3980, lng: 58.9720, name: 'Гагарина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+            { lat: 53.4030, lng: 58.9800, name: 'Цирк', routes: '11, 14, 16, 22' }
         ];
         
-        // Линии трамвайных путей
+        // Основная линия: Юность → Гагарина
         var LINE_GAGARINA_YUNOST = [
-            [53.393, 58.977],
-            [53.398, 58.978],
-            [53.405, 58.985],
-            [53.416, 58.985],
-            [53.420, 58.986]
+            [53.4160, 58.9920],
+            [53.4160, 58.9900],  // Юность
+            [53.4155, 58.9880],  // Дружбы
+            [53.4140, 58.9860],  // Гостиный двор
+            [53.4120, 58.9840],  // Завенягина
+            [53.4090, 58.9820],  // Политех
+            [53.4065, 58.9800],  // Советской Армии
+            [53.4050, 58.9780],  // Пл. Мира
+            [53.4035, 58.9760],  // Карла Маркса
+            [53.4005, 58.9740],  // Центральный рынок
+            [53.3980, 58.9720],  // Гагарина
+            [53.3950, 58.9700]
         ];
         
+        // Ответвление: Пл. Мира → Цирк
         var LINE_MIRA = [
-            [53.405, 58.985],
-            [53.400, 58.990],
-            [53.395, 59.000]
+            [53.4050, 58.9780],  // Пл. Мира
+            [53.4040, 58.9790],
+            [53.4030, 58.9800]   // Цирк
         ];
         
-        var STOP_ROUTES = [1, 5, 11, 15, 17];
+        var STOP_ROUTES = [1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31];
         
         var API_URL = 'https://smarttransport.online/magnitogorsk/php/apiRequest.php?getVehiclesAnimation.php';
         var PAYLOAD = {
@@ -168,7 +185,7 @@
         var tramMarkers = {};
         
         // ==================== КАРТА ====================
-        var map = L.map('map').setView([53.407, 58.982], 14);
+        var map = L.map('map').setView([53.407, 58.981], 15);
         
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '© CartoDB',
@@ -176,28 +193,32 @@
             maxZoom: 19
         }).addTo(map);
         
-        // Линия Гагарина-Юность
+        // Линия Гагарина-Юность (приглушённый жёлтый)
         L.polyline(LINE_GAGARINA_YUNOST, {
-            color: '#FFD700', weight: 5, opacity: 0.8
+            color: '#8B7D3C', weight: 4, opacity: 0.7
         }).addTo(map);
         
-        // Линия на Пл. Мира
+        // Линия на Цирк (приглушённый серо-жёлтый, пунктир)
         L.polyline(LINE_MIRA, {
-            color: '#FFD700', weight: 3, opacity: 0.5, dashArray: '8, 8'
+            color: '#6B5D2C', weight: 3, opacity: 0.5, dashArray: '6, 6'
         }).addTo(map);
         
-        // Остановки
+        // Остановки (приглушённые)
         STOPS.forEach(function(stop) {
             var marker = L.circleMarker([stop.lat, stop.lng], {
-                radius: 9, color: '#FFD700', fillColor: '#FFD700', fillOpacity: 0.9
+                radius: 7,
+                color: '#8B7D3C',
+                fillColor: '#5A4E2C',
+                fillOpacity: 0.8,
+                weight: 1.5
             }).addTo(map);
             
-            marker.bindPopup('<b>' + stop.name + '</b><br>🚋 Маршруты: ' + stop.routes);
+            marker.bindPopup('<b>' + stop.name + '</b><br>🚋 ' + stop.routes);
             
             L.marker([stop.lat, stop.lng], {
                 icon: L.divIcon({
                     className: '',
-                    html: '<div style="color:#FFD700;font-size:10px;font-weight:bold;text-shadow:0 0 4px #000;white-space:nowrap;transform:translate(-50%,-160%);">' + stop.name + '</div>',
+                    html: '<div style="color:#8B7D3C;font-size:9px;font-weight:bold;text-shadow:0 0 3px #000;white-space:nowrap;transform:translate(-50%,-160%);">' + stop.name + '</div>',
                     iconSize: [0, 0]
                 })
             }).addTo(map);
@@ -207,18 +228,18 @@
         
         // ==================== ФУНКЦИИ ====================
         function getTramIcon(speed, routeNum) {
-            var color = speed > 0 ? '#4CAF50' : '#FF6B6B';
+            var color = speed > 0 ? '#5A9E6F' : '#CC6B6B';
             return L.divIcon({
                 className: '',
                 html: '<div style="' +
-                    'width:26px;height:26px;border-radius:50%;' +
+                    'width:24px;height:24px;border-radius:50%;' +
                     'background:' + color + ';' +
                     'display:flex;align-items:center;justify-content:center;' +
                     'color:#000;font-weight:bold;font-size:10px;' +
-                    'border:2px solid #FFF;box-shadow:0 0 6px ' + color + ';' +
+                    'border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 4px ' + color + ';' +
                     '">' + routeNum + '</div>',
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
             });
         }
         
@@ -278,13 +299,13 @@
             }
             
             var sorted = [...trams].sort(function(a, b) {
-                return haversine(53.398, 58.978, a.lat, a.lng) - haversine(53.398, 58.978, b.lat, b.lng);
+                return haversine(53.398, 58.972, a.lat, a.lng) - haversine(53.398, 58.972, b.lat, b.lng);
             });
             
             var html = '<div class="tram-list">';
             sorted.forEach(function(t) {
                 var isMoving = t.speed > 0;
-                var dist = Math.round(haversine(53.398, 58.978, t.lat, t.lng));
+                var dist = Math.round(haversine(53.398, 58.972, t.lat, t.lng));
                 var eta = '';
                 if (isMoving && t.speed > 0) eta = '⏱ ~' + Math.round(dist / (t.speed * 1000 / 60)) + ' мин';
                 
