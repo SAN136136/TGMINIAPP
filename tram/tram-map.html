@@ -134,6 +134,37 @@
     </div>
     
     <script>
+        <script>
+    // НЕМЕДЛЕННО скрываем экран входа, если он есть
+    (function hideLogin() {
+        var loginEl = document.getElementById('loginScreen');
+        if (loginEl) {
+            loginEl.style.display = 'none';
+            loginEl.style.visibility = 'hidden';
+            loginEl.style.pointerEvents = 'none';
+        }
+        var mainEl = document.getElementById('mainScreen');
+        if (mainEl && mainEl.style.display === 'none') {
+            mainEl.style.display = 'block';
+        }
+    })();
+    
+    // Если открыто в iframe — скрываем авторизацию родителя
+    if (window.parent && window.parent !== window) {
+        try {
+            var parentLogin = window.parent.document.getElementById('loginScreen');
+            if (parentLogin && parentLogin.style.display !== 'none') {
+                parentLogin.style.display = 'none';
+            }
+            var parentMain = window.parent.document.getElementById('mainScreen');
+            if (parentMain && parentMain.style.display === 'none') {
+                parentMain.style.display = 'block';
+            }
+        } catch(e) {}
+    }
+    
+    // ... остальной код
+</script>
         // Если открыто в iframe — не показываем авторизацию родителя
         if (window.parent && window.parent !== window) {
             // Скрываем loginScreen родителя, если виден
