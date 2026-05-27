@@ -134,13 +134,26 @@
     </div>
     
     <script>
+        // Если открыто в iframe — не показываем авторизацию родителя
+        if (window.parent && window.parent !== window) {
+            // Скрываем loginScreen родителя, если виден
+            try {
+                var parentLogin = window.parent.document.getElementById('loginScreen');
+                if (parentLogin && parentLogin.style.display !== 'none') {
+                    parentLogin.style.display = 'none';
+                }
+                var parentMain = window.parent.document.getElementById('mainScreen');
+                if (parentMain && parentMain.style.display === 'none') {
+                    parentMain.style.display = 'block';
+                }
+            } catch(e) {}
+        }
+        
         // ==================== КОНФИГУРАЦИЯ ====================
-        // Координаты остановок
         const STOP_GAGARINA = { lat: 53.398, lng: 58.978, name: 'Гагарина' };
         const STOP_YUNOST = { lat: 53.416, lng: 58.985, name: 'Юность' };
         const STOP_MIRA = { lat: 53.405, lng: 58.985, name: 'Пл. Мира' };
         
-        // API
         const API_URL = 'https://smarttransport.online/magnitogorsk/php/apiRequest.php?getVehiclesAnimation.php';
         const PAYLOAD = {
             t: '11111111-50b3-4fec-b922-8a50a1d38366',
@@ -154,9 +167,7 @@
             }
         };
         
-        // Маршруты для остановок
         const STOP_ROUTES = [1, 5, 11, 15, 17];
-        
         let trams = [];
         
         // ==================== КАРТА ====================
@@ -169,12 +180,10 @@
             const W = w / 2;
             const H = h / 2;
             
-            // Фон
             ctx.fillStyle = '#0D0D1A';
             ctx.fillRect(0, 0, W, H);
             
-            // Параметры линии Гагарина-Юность
-            const lineY = H * 0.5; // Горизонтальная линия по центру
+            const lineY = H * 0.5;
             const gagarinaX = W * 0.15;
             const yunostX = W * 0.85;
             
@@ -186,7 +195,7 @@
             ctx.lineTo(W - 10, lineY);
             ctx.stroke();
             
-            // Линия к Пл. Мира (под 45 градусов от середины)
+            // Линия к Пл. Мира
             const miraStartX = (gagarinaX + yunostX) / 2;
             const miraStartY = lineY;
             const miraEndX = miraStartX + 120;
@@ -199,23 +208,16 @@
             ctx.lineTo(miraEndX, miraEndY);
             ctx.stroke();
             
-            // Остановка Гагарина
             drawStop(ctx, gagarinaX, lineY, 'Гагарина');
-            
-            // Остановка Юность
             drawStop(ctx, yunostX, lineY, 'Юность');
-            
-            // Остановка Пл. Мира
             drawStop(ctx, miraEndX, miraEndY, 'Пл. Мира');
             
-            // Трамваи на линии Гагарина-Юность
             const tramsOnMain = trams.filter(t => t._onMainLine);
             tramsOnMain.forEach(t => {
                 const x = gagarinaX + (yunostX - gagarinaX) * t._percent;
                 drawTram(ctx, x, lineY, t);
             });
             
-            // Трамваи на ветке к Пл. Мира
             const tramsOnMira = trams.filter(t => !t._onMainLine);
             tramsOnMira.forEach(t => {
                 const x = miraStartX + (miraEndX - miraStartX) * Math.min(t._percent, 1);
@@ -225,13 +227,10 @@
         }
         
         function drawStop(ctx, x, y, name) {
-            // Круг остановки
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
             ctx.arc(x, y, 10, 0, Math.PI * 2);
             ctx.fill();
-            
-            // Название
             ctx.fillStyle = '#FFD700';
             ctx.font = 'bold 12px sans-serif';
             ctx.textAlign = 'center';
@@ -241,21 +240,15 @@
         function drawTram(ctx, x, y, tram) {
             const isMoving = tram.speed > 0;
             const color = isMoving ? '#4CAF50' : '#FF6B6B';
-            
-            // Круг трамвая
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(x, y, 8, 0, Math.PI * 2);
             ctx.fill();
-            
-            // Белая обводка
             ctx.strokeStyle = '#FFF';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(x, y, 8, 0, Math.PI * 2);
             ctx.stroke();
-            
-            // Номер маршрута
             ctx.fillStyle = '#000';
             ctx.font = 'bold 9px sans-serif';
             ctx.textAlign = 'center';
@@ -273,24 +266,18 @@
                 const data = await resp.json();
                 
                 if (data.r === 'ok') {
-                    // Только трамваи нужных маршрутов
                     const allVehicles = data.data.anims.filter(v => {
                         if (v.rtype !== 'Тм') return false;
                         return STOP_ROUTES.includes(parseInt(v.rnum));
                     });
                     
-                    // Вычисляем позицию на линии
                     trams = allVehicles.map(t => {
                         const distToGagarina = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, t.lat, t.lng);
                         const distToYunost = haversine(STOP_YUNOST.lat, STOP_YUNOST.lng, t.lat, t.lng);
                         const distToMira = haversine(STOP_MIRA.lat, STOP_MIRA.lng, t.lat, t.lng);
-                        
-                        // Определяем, на какой линии трамвай
                         const onMainLine = distToMira > distToGagarina * 0.8 || distToMira > distToYunost * 0.8;
-                        
                         const totalDist = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, STOP_YUNOST.lat, STOP_YUNOST.lng);
                         const percent = Math.max(0, Math.min(1, distToGagarina / totalDist));
-                        
                         return { ...t, _onMainLine: onMainLine, _percent: percent, _distToGagarina: distToGagarina };
                     });
                     
@@ -298,8 +285,7 @@
                     renderList();
                     
                     const now = new Date();
-                    document.getElementById('updateTime').textContent = 
-                        '🕐 ' + now.toLocaleTimeString('ru-RU');
+                    document.getElementById('updateTime').textContent = '🕐 ' + now.toLocaleTimeString('ru-RU');
                 }
             } catch (e) {
                 console.error(e);
@@ -308,21 +294,15 @@
         
         function renderList() {
             const container = document.getElementById('tramList');
-            
             if (trams.length === 0) {
                 container.innerHTML = '<div class="empty">Нет трамваев на линии</div>';
                 return;
             }
-            
             const sorted = [...trams].sort((a, b) => a._distToGagarina - b._distToGagarina);
-            
             let html = '<div class="tram-list">';
             sorted.forEach(t => {
                 const isMoving = t.speed > 0;
-                const eta = isMoving && t.speed > 0
-                    ? `⏱ ~${Math.round(t._distToGagarina / (t.speed * 1000 / 60))} мин`
-                    : '';
-                
+                const eta = isMoving && t.speed > 0 ? `⏱ ~${Math.round(t._distToGagarina / (t.speed * 1000 / 60))} мин` : '';
                 html += `
                     <div class="tram-row ${isMoving ? '' : 'stopped'}">
                         <span class="tram-route-num">№${t.rnum}</span>
@@ -353,18 +333,8 @@
             }
         }
         
-        // Запуск
         document.addEventListener('DOMContentLoaded', loadData);
         setInterval(loadData, 15000);
-<script>
-    // Скрываем экран входа, если мы в iframe
-    if (window.self !== window.top) {
-        var loginEl = document.getElementById('loginScreen');
-        if (loginEl) loginEl.style.display = 'none';
-        var mainEl = document.getElementById('mainScreen');
-        if (mainEl) mainEl.style.display = 'block';
-    }
-</script>
     </script>
 </body>
 </html>
