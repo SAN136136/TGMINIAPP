@@ -187,3 +187,121 @@ function showCheatsheetMenuModal() {
     document.getElementById("cheatsheetContent").innerHTML = html;
     document.getElementById("cheatsheetModal").style.display = "flex";
 }
+// ==================== МОДАЛЬНОЕ ОКНО С ФОТО ====================
+
+// Проверяем появление новых фото в логе
+function checkForPhoto() {
+    const log = document.getElementById('log');
+    if (!log) return;
+    
+    const logText = log.innerHTML;
+    if (logText.includes('/show_photo')) {
+        const match = logText.match(/\/show_photo\s+(.+)/);
+        if (match) {
+            const fileId = match[1].trim();
+            openPhotoModal(fileId);
+            // Очищаем команду из лога
+            log.innerHTML = logText.replace(/\/show_photo\s+\S+/, '📸 Фото получено');
+        }
+    }
+}
+
+// Загружаем токен бота из конфига
+let botToken = '';
+fetch('config.json')
+    .then(res => res.json())
+    .then(cfg => {
+        botToken = cfg.telegram?.server_bot_token || '';
+    })
+    .catch(() => {});
+
+function openPhotoModal(fileId) {
+    // Удаляем старое окно, если есть
+    const oldModal = document.getElementById('photoModal');
+    if (oldModal) document.body.removeChild(oldModal);
+    
+    // Создаём модальное окно
+    const modal = document.createElement('div');
+    modal.id = 'photoModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    // Заглушка на время загрузки
+    const img = document.createElement('img');
+    img.src = `https://api.telegram.org/file/bot${botToken}/${fileId}`;
+    img.style.cssText = `
+        max-width: 95%;
+        max-height: 75vh;
+        border-radius: 12px;
+        object-fit: contain;
+    `;
+    img.onerror = function() {
+        // Пробуем получить URL файла через getFile
+        fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    img.src = `https://api.telegram.org/file/bot${botToken}/${data.result.file_path}`;
+                } else {
+                    img.alt = 'Не удалось загрузить фото';
+                }
+            });
+    };
+    
+    // Подпись
+    const caption = document.createElement('div');
+    caption.textContent = '📸 Снимок с камеры';
+    caption.style.cssText = `
+        color: #FFD700;
+        font-size: 18px;
+        margin-top: 16px;
+        font-weight: bold;
+    `;
+    
+    // Кнопка закрытия
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Закрыть';
+    closeBtn.style.cssText = `
+        margin-top: 20px;
+        padding: 14px 40px;
+        background: #FF6B6B;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.2s;
+    `;
+    closeBtn.onmouseenter = () => closeBtn.style.background = '#E55';
+    closeBtn.onmouseleave = () => closeBtn.style.background = '#FF6B6B';
+    closeBtn.onclick = function() {
+        document.body.removeChild(modal);
+    };
+    
+    // Клик вне фото — закрыть
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    };
+    
+    modal.appendChild(img);
+    modal.appendChild(caption);
+    modal.appendChild(closeBtn);
+    document.body.appendChild(modal);
+}
+
+// Проверяем логи каждые 2 секунды
+setInterval(checkForPhoto, 2000);
