@@ -29,26 +29,19 @@
         .header h1 { color: var(--gold); font-size: 20px; margin-bottom: 2px; }
         .header .subtitle { color: #888; font-size: 12px; }
         
-        #map-container {
+        .map-wrap {
             position: relative;
             width: 100%;
+            background: #0D0D1A;
             border-radius: 12px;
             overflow: hidden;
             border: 1px solid #2A2A4A;
-            background: #000;
-        }
-        
-        #map-container img {
-            width: 100%;
-            display: block;
         }
         
         canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+            display: block;
             width: 100%;
-            height: 100%;
+            height: auto;
         }
         
         .legend {
@@ -100,9 +93,8 @@
         <div class="subtitle">Гагарина → Куранты → Дружбы → Юность → пл. Мира</div>
     </div>
     
-    <div id="map-container">
-        <img id="schemaImg" src="schema.png" alt="Схема">
-        <canvas id="tramCanvas"></canvas>
+    <div class="map-wrap">
+        <canvas id="tramCanvas" width="400" height="750"></canvas>
     </div>
     
     <div class="legend">
@@ -135,22 +127,12 @@
         
         // ==================== КООРДИНАТЫ ОСТАНОВОК НА СХЕМЕ ====================
         var SCHEMA_STOPS = [
-            {"name": "Гагарина", "x": 191, "y": 543},
-            {"name": "Куранты", "x": 191, "y": 569},
-            {"name": "Дружбы", "x": 192, "y": 596},
-            {"name": "Юность", "x": 192, "y": 643},
-            {"name": "Грязнова", "x": 183, "y": 653},
-            {"name": "Пл. Мира", "x": 200, "y": 652}
-        ];
-        
-        // GPS координаты тех же остановок (для привязки трамваев)
-        var GPS_STOPS = [
-            { name: "Гагарина", lat: 53.3936, lng: 58.9898 },
-            { name: "Куранты", lat: 53.3921, lng: 58.9937 },
-            { name: "Дружбы", lat: 53.3902, lng: 58.9979 },
-            { name: "Юность", lat: 53.3880, lng: 59.0022 },
-            { name: "Грязнова", lat: 53.3866, lng: 59.0041 },
-            { name: "Пл. Мира", lat: 53.3858, lng: 59.0060 }
+            { name: "Гагарина", x: 190, y: 540 },
+            { name: "Куранты", x: 190, y: 570 },
+            { name: "Дружбы", x: 190, y: 600 },
+            { name: "Юность", x: 190, y: 650 },
+            { name: "Грязнова", x: 180, y: 660 },
+            { name: "Пл. Мира", x: 210, y: 660 }
         ];
         
         var STOP_ROUTES = [1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31];
@@ -168,110 +150,99 @@
             }
         };
         
+        var GPS_STOPS = [
+            { lat: 53.3936, lng: 58.9898 },
+            { lat: 53.3921, lng: 58.9937 },
+            { lat: 53.3902, lng: 58.9979 },
+            { lat: 53.3880, lng: 59.0022 },
+            { lat: 53.3866, lng: 59.0041 },
+            { lat: 53.3858, lng: 59.0060 }
+        ];
+        
         var trams = [];
-        var canvas, ctx, imgElement;
+        var canvas = document.getElementById('tramCanvas');
+        var ctx = canvas.getContext('2d');
+        var W = canvas.width;
+        var H = canvas.height;
         
-        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-        canvas = document.getElementById('tramCanvas');
-        ctx = canvas.getContext('2d');
-        imgElement = document.getElementById('schemaImg');
-        
-        imgElement.onload = function() {
-            resizeCanvas();
-            drawStaticElements();
-            loadData();
-        };
-        
-        window.addEventListener('resize', function() {
-            resizeCanvas();
-            drawStaticElements();
-            drawTrams();
-        });
-        
-        function resizeCanvas() {
-            var rect = imgElement.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-        }
-        
-        // ==================== ОТРИСОВКА ====================
-        function drawStaticElements() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // ==================== ОТРИСОВКА СХЕМЫ ====================
+        function drawBackground() {
+            ctx.fillStyle = '#0D0D1A';
+            ctx.fillRect(0, 0, W, H);
             
-            var scaleX = canvas.width / imgElement.naturalWidth;
-            var scaleY = canvas.height / imgElement.naturalHeight;
+            // Линии между остановками
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (var i = 0; i < SCHEMA_STOPS.length - 2; i++) {
+                ctx.moveTo(SCHEMA_STOPS[i].x, SCHEMA_STOPS[i].y);
+                ctx.lineTo(SCHEMA_STOPS[i+1].x, SCHEMA_STOPS[i+1].y);
+            }
+            ctx.stroke();
+            
+            // Ответвление Юность → Грязнова → Пл. Мира
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(SCHEMA_STOPS[3].x, SCHEMA_STOPS[3].y);
+            ctx.lineTo(SCHEMA_STOPS[4].x, SCHEMA_STOPS[4].y);
+            ctx.lineTo(SCHEMA_STOPS[5].x, SCHEMA_STOPS[5].y);
+            ctx.stroke();
+            ctx.setLineDash([]);
             
             // Остановки
-            SCHEMA_STOPS.forEach(function(stop, i) {
-                var sx = stop.x * scaleX;
-                var sy = stop.y * scaleY;
-                
+            SCHEMA_STOPS.forEach(function(stop) {
                 ctx.fillStyle = '#C9A84C';
                 ctx.beginPath();
-                ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+                ctx.arc(stop.x, stop.y, 6, 0, Math.PI * 2);
                 ctx.fill();
                 
                 ctx.fillStyle = '#C9A84C';
-                ctx.font = 'bold 9px sans-serif';
+                ctx.font = 'bold 10px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(stop.name, sx, sy - 10);
+                ctx.fillText(stop.name, stop.x, stop.y - 12);
             });
             
-            // Линии между остановками
-            ctx.strokeStyle = 'rgba(201,168,76,0.4)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            for (var i = 0; i < SCHEMA_STOPS.length - 2; i++) {
-                var sx1 = SCHEMA_STOPS[i].x * scaleX;
-                var sy1 = SCHEMA_STOPS[i].y * scaleY;
-                var sx2 = SCHEMA_STOPS[i+1].x * scaleX;
-                var sy2 = SCHEMA_STOPS[i+1].y * scaleY;
-                ctx.moveTo(sx1, sy1);
-                ctx.lineTo(sx2, sy2);
-            }
-            ctx.stroke();
+            // Надписи по краям
+            ctx.fillStyle = '#555';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('⬆ к центру / Гагарина', 10, 20);
+            ctx.fillText('⬇ к мосту / Юность', 10, H - 10);
         }
         
-        function drawTrams() {
-            drawStaticElements();
+        function drawTramsOnMap() {
+            drawBackground();
             
             if (trams.length === 0) return;
             
-            var scaleX = canvas.width / imgElement.naturalWidth;
-            var scaleY = canvas.height / imgElement.naturalHeight;
-            
             trams.forEach(function(tram) {
-                var pos = gpsToSchema(tram.lat, tram.lng);
+                var pos = findNearestStop(tram.lat, tram.lng);
                 if (!pos) return;
                 
-                var sx = pos.x * scaleX;
-                var sy = pos.y * scaleY;
                 var isMoving = tram.speed > 0;
                 var color = isMoving ? '#5A9E6F' : '#CC6B6B';
                 
-                // Кружок трамвая
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+                ctx.arc(pos.x, pos.y + 3, 8, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Белая обводка
                 ctx.strokeStyle = '#FFF';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+                ctx.arc(pos.x, pos.y + 3, 8, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Номер маршрута
                 ctx.fillStyle = '#000';
-                ctx.font = 'bold 8px sans-serif';
+                ctx.font = 'bold 9px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(tram.rnum, sx, sy + 3);
+                ctx.fillText(tram.rnum, pos.x, pos.y + 6);
             });
         }
         
-        function gpsToSchema(lat, lng) {
-            // Находим две ближайшие GPS-остановки и интерполируем
+        function findNearestStop(lat, lng) {
             var minDist = Infinity;
             var nearestIdx = 0;
             
@@ -283,7 +254,6 @@
                 }
             });
             
-            // Возвращаем координаты ближайшей остановки на схеме
             return SCHEMA_STOPS[nearestIdx];
         }
         
@@ -303,7 +273,7 @@
                         return STOP_ROUTES.includes(parseInt(v.rnum));
                     });
                     
-                    drawTrams();
+                    drawTramsOnMap();
                     renderList();
                     
                     document.getElementById('updateTime').textContent = 
@@ -323,7 +293,7 @@
             }
             
             var sorted = [...trams].sort(function(a, b) {
-                return haversine(53.3936, 58.9898, a.lat, a.lng) - haversine(53.3936, 58.9898, b.lat, b.lng);
+                return Math.abs(a.lat - 53.3936) - Math.abs(b.lat - 53.3936);
             });
             
             var html = '<div class="tram-list">';
@@ -361,13 +331,9 @@
             } catch(e) {}
         }
         
-        // Запуск, когда картинка загрузится
-        if (imgElement.complete) {
-            resizeCanvas();
-            drawStaticElements();
-            loadData();
-        }
-        
+        // Запуск
+        drawBackground();
+        loadData();
         setInterval(loadData, 15000);
     })();
     </script>
