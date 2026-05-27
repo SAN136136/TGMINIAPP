@@ -103,104 +103,50 @@ function renderTab(tab) {
     container.innerHTML = html;
 }
 
-// ==================== МУЗЫКА ====================
+// Функция для отслеживания ответа от сервера
+function checkForMusicUpdate() {
+    const log = document.getElementById('log');
+    if (!log) return;
+
+    const logText = log.innerHTML;
+    if (logText.includes('🎵')) {
+        const titleMatch = logText.match(/<b>(.+?)<\/b>/);
+        const artistMatch = logText.match(/👤 (.+?)(?:\n|$)/);
+        const timeMatch = logText.match(/⏱ (.+?)(?:\n|$)/);
+        const statusMatch = logText.match(/(▶️|⏸)/);
+
+        if (titleMatch) {
+            const title = titleMatch[1];
+            const artist = artistMatch ? artistMatch[1] : '';
+            const timeStr = timeMatch ? timeMatch[1] : '0:00 / 0:00';
+            const isPlaying = statusMatch ? statusMatch[1] === '▶️' : false;
+
+            let position = 0, duration = 0;
+            if (timeStr) {
+                const parts = timeStr.split(' / ');
+                if (parts.length === 2) {
+                    position = parseTime(parts[0]);
+                    duration = parseTime(parts[1]);
+                }
+            }
+            updateNowPlayingCard(artist, title, '', position, duration, isPlaying);
+        }
+    }
+}
+
+// Запускаем проверку каждые 3 секунды
+setInterval(checkForMusicUpdate, 3000);
+
+// Функция для принудительного обновления
 function updateMusicInfo() {
     sendCommand('трек');
 }
 
-// Обновление карточки музыки из ответа бота
-function updateNowPlayingCard(artist, title, album, position, duration, isPlaying) {
-    const card = document.getElementById('nowPlayingCard');
-    if (!card) return;
-    
-    const titleEl = document.getElementById('npTitle');
-    const artistEl = document.getElementById('npArtist');
-    const albumEl = document.getElementById('npAlbum');
-    const timeEl = document.getElementById('npTime');
-    const progressEl = document.getElementById('npProgress');
-    const artEl = document.getElementById('npArt');
-    
-    if (titleEl) titleEl.textContent = title || '—';
-    if (artistEl) artistEl.textContent = artist || '';
-    if (albumEl) albumEl.textContent = album ? '💿 ' + album : '';
-    
-    if (timeEl) {
-        if (position !== undefined && duration !== undefined && duration > 0) {
-            const fmt = (s) => { const m = Math.floor(s/60); const sec = Math.floor(s%60); return m + ':' + (sec<10?'0':'') + sec; };
-            timeEl.textContent = (isPlaying ? '▶️ ' : '⏸ ') + fmt(position) + ' / ' + fmt(duration);
-        } else {
-            timeEl.textContent = isPlaying ? '▶️ Играет' : '⏸ Пауза';
-        }
-    }
-    
-    if (progressEl && duration > 0) {
-        const pct = Math.min(100, Math.max(0, (position / duration) * 100));
-        progressEl.style.width = pct + '%';
-    }
-    
-    if (artEl) {
-        artEl.textContent = isPlaying ? '🎶' : '⏸';
-    }
+// Парсинг времени "м:сс" в секунды
+function parseTime(str) {
+    const parts = str.split(':');
+    return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : 0;
 }
-
-// ==================== ТРАМВАИ ====================
-function openTramWindow() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.style.display = 'none';
-    
-    const mainScreen = document.getElementById('mainScreen');
-    if (mainScreen) mainScreen.style.display = 'block';
-    
-    const modal = document.createElement('div');
-    modal.id = 'tramModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #0A0A14;
-        z-index: 9999;
-        overflow-y: auto;
-    `;
-    
-    const iframe = document.createElement('iframe');
-    iframe.src = 'tram/map.html';
-    iframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-    `;
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
-    closeBtn.style.cssText = `
-        position: fixed;
-        top: 12px;
-        right: 12px;
-        z-index: 10000;
-        width: 40px;
-        height: 40px;
-        background: #FF6B6B;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 18px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    `;
-    closeBtn.onclick = function() {
-        document.body.removeChild(modal);
-        document.body.removeChild(closeBtn);
-    };
-    
-    modal.appendChild(iframe);
-    document.body.appendChild(modal);
-    document.body.appendChild(closeBtn);
 }
 
 // ==================== МОДАЛЬНОЕ ОКНО С ФОТО ====================
