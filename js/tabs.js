@@ -58,7 +58,6 @@ function renderTab(tab) {
                 <button class="btn btn-tram" onclick="openTramWindow()">🚋 Трамваи</button>
                 <button class="btn btn-calc" onclick="openCalculator()">🧮 Калькулятор</button>
             </div>
-            <p class="music-hint">Скоро здесь будут:<br>калькулятор и трамваи</p>
         `;
     } else if (tab === "music") {
         html = `
@@ -68,7 +67,6 @@ function renderTab(tab) {
                 <div class="np-info">
                     <div class="np-title" id="npTitle">Нажми «Обновить»</div>
                     <div class="np-artist" id="npArtist">чтобы увидеть трек</div>
-                    <div class="np-album" id="npAlbum"></div>
                     <div class="np-time" id="npTime">—</div>
                     <div class="np-progress-bar">
                         <div class="np-progress-fill" id="npProgress" style="width:0%"></div>
@@ -81,10 +79,9 @@ function renderTab(tab) {
                 <button class="btn btn-music" onclick="sendCommand('music_play')">▶️</button>
                 <button class="btn btn-music" onclick="sendCommand('music_next')">⏭</button>
             </div>
-            <button class="btn btn-refresh-music" onclick="updateMusicInfo()" style="width:100%;margin-top:8px;background:#3A5A6B;color:#FFF;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">🔄 Обновить</button>
-            <p class="music-hint" style="margin-top:10px;">Работает с VK, Spotify, YouTube Music и другими плеерами</p>
+            <button class="btn" onclick="updateMusicInfo()" style="width:100%;margin-top:8px;background:#3A5A6B;color:#FFF;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;">🔄 Обновить</button>
+            <p class="music-hint" style="margin-top:10px;">YouTube Music • ВК • Spotify</p>
         `;
-        // Автоматически запрашиваем трек при открытии вкладки
         setTimeout(() => sendCommand('трек'), 300);
     } else if (tab === "tools") {
         html = `
@@ -95,7 +92,6 @@ function renderTab(tab) {
                 <button class="btn btn-wip" onclick="showWip('Заметки')">📋 Заметки<span class="wip-badge">WIP</span></button>
                 <button class="btn btn-calc" onclick="openCalculator()">🧮 Калькулятор</button>
             </div>
-            <p class="music-hint">Скоро: калькулятор, заметки,<br>очистка ПК и многое другое</p>
         `;
     }
     
@@ -115,24 +111,17 @@ function checkForMusicUpdate() {
     if (logText.includes('🎵')) {
         const titleMatch = logText.match(/<b>(.+?)<\/b>/);
         const artistMatch = logText.match(/👤 (.+?)(?:\n|$)/);
-        const timeMatch = logText.match(/⏱ (.+?)(?:\n|$)/);
-        const statusMatch = logText.match(/(▶️|⏸)/);
+        const timeMatch = logText.match(/🕐 (.+?)(?:\n|$)/);
 
         if (titleMatch) {
             const title = titleMatch[1];
-            const artist = artistMatch ? artistMatch[1] : '';
-            const timeStr = timeMatch ? timeMatch[1] : '0:00 / 0:00';
-            const isPlaying = statusMatch ? statusMatch[1] === '▶️' : false;
-
-            let position = 0, duration = 0;
-            if (timeStr) {
-                const parts = timeStr.split(' / ');
-                if (parts.length === 2) {
-                    position = parseTime(parts[0]);
-                    duration = parseTime(parts[1]);
-                }
+            let artist = '';
+            if (artistMatch) {
+                artist = artistMatch[1].split('•')[0].trim();
             }
-            updateNowPlayingCard(artist, title, '', position, duration, isPlaying);
+            
+            updateNowPlayingCard(artist, title, '', 0, 0, true);
+            document.getElementById('log').innerHTML = logText.replace(/🎵[\s\S]*?(?=<|$)/, '');
         }
     }
 }
@@ -147,20 +136,17 @@ function updateNowPlayingCard(artist, title, album, position, duration, isPlayin
     
     if (titleEl) titleEl.textContent = title || '—';
     if (artistEl) artistEl.textContent = artist || '';
-    if (albumEl) albumEl.textContent = album ? '💿 ' + album : '';
+    if (albumEl) albumEl.textContent = '';
     
     if (timeEl) {
-        if (position !== undefined && duration !== undefined && duration > 0) {
-            const fmt = (s) => { const m = Math.floor(s/60); const sec = Math.floor(s%60); return m + ':' + (sec<10?'0':'') + sec; };
-            timeEl.textContent = (isPlaying ? '▶️ ' : '⏸ ') + fmt(position) + ' / ' + fmt(duration);
-        } else {
-            timeEl.textContent = isPlaying ? '▶️ Играет' : '⏸ Пауза';
-        }
+        timeEl.textContent = isPlaying ? '▶️ Сейчас играет' : '⏸ Пауза';
     }
     
     if (progressEl && duration > 0) {
         const pct = Math.min(100, Math.max(0, (position / duration) * 100));
         progressEl.style.width = pct + '%';
+    } else if (progressEl) {
+        progressEl.style.width = '0%';
     }
     
     if (artEl) {
@@ -173,7 +159,6 @@ function parseTime(str) {
     return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : 0;
 }
 
-// Проверяем обновления музыки каждые 3 секунды
 setInterval(checkForMusicUpdate, 3000);
 
 // ==================== ТРАМВАИ ====================
