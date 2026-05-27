@@ -100,7 +100,23 @@ function renderTab(tab) {
 
 // ==================== МУЗЫКА ====================
 function updateMusicInfo() {
+    // Показываем, что загружаем
+    var titleEl = document.getElementById('npTitle');
+    if (titleEl) titleEl.textContent = 'Загрузка...';
+    
+    // Отправляем команду
     sendCommand('трек');
+    
+    // Ждём 3 секунды и принудительно парсим лог
+    setTimeout(function() {
+        var log = document.getElementById('log');
+        if (log) {
+            var logText = log.innerHTML;
+            if (logText.includes('🎵')) {
+                checkForMusicUpdate();
+            }
+        }
+    }, 3000);
 }
 
 function checkForMusicUpdate() {
