@@ -134,51 +134,16 @@
     </div>
     
     <script>
-        <script>
-    // НЕМЕДЛЕННО скрываем экран входа, если он есть
-    (function hideLogin() {
-        var loginEl = document.getElementById('loginScreen');
-        if (loginEl) {
-            loginEl.style.display = 'none';
-            loginEl.style.visibility = 'hidden';
-            loginEl.style.pointerEvents = 'none';
-        }
-        var mainEl = document.getElementById('mainScreen');
-        if (mainEl && mainEl.style.display === 'none') {
-            mainEl.style.display = 'block';
-        }
-    })();
-    
-    // Если открыто в iframe — скрываем авторизацию родителя
-    if (window.parent && window.parent !== window) {
+    (function() {
+        // Скрываем loginScreen родителя, если мы в iframe
         try {
-            var parentLogin = window.parent.document.getElementById('loginScreen');
-            if (parentLogin && parentLogin.style.display !== 'none') {
-                parentLogin.style.display = 'none';
-            }
-            var parentMain = window.parent.document.getElementById('mainScreen');
-            if (parentMain && parentMain.style.display === 'none') {
-                parentMain.style.display = 'block';
+            if (window.parent && window.parent !== window) {
+                var parentLogin = window.parent.document.getElementById('loginScreen');
+                if (parentLogin) parentLogin.style.display = 'none';
+                var parentMain = window.parent.document.getElementById('mainScreen');
+                if (parentMain) parentMain.style.display = 'block';
             }
         } catch(e) {}
-    }
-    
-    // ... остальной код
-</script>
-        // Если открыто в iframe — не показываем авторизацию родителя
-        if (window.parent && window.parent !== window) {
-            // Скрываем loginScreen родителя, если виден
-            try {
-                var parentLogin = window.parent.document.getElementById('loginScreen');
-                if (parentLogin && parentLogin.style.display !== 'none') {
-                    parentLogin.style.display = 'none';
-                }
-                var parentMain = window.parent.document.getElementById('mainScreen');
-                if (parentMain && parentMain.style.display === 'none') {
-                    parentMain.style.display = 'block';
-                }
-            } catch(e) {}
-        }
         
         // ==================== КОНФИГУРАЦИЯ ====================
         const STOP_GAGARINA = { lat: 53.398, lng: 58.978, name: 'Гагарина' };
@@ -201,22 +166,22 @@
         const STOP_ROUTES = [1, 5, 11, 15, 17];
         let trams = [];
         
-        // ==================== КАРТА ====================
         function drawMap() {
-            const canvas = document.getElementById('tramCanvas');
-            const ctx = canvas.getContext('2d');
-            const w = canvas.width = canvas.offsetWidth * 2;
-            const h = canvas.height = canvas.offsetHeight * 2;
+            var canvas = document.getElementById('tramCanvas');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width = canvas.offsetWidth * 2;
+            var h = canvas.height = canvas.offsetHeight * 2;
             ctx.scale(2, 2);
-            const W = w / 2;
-            const H = h / 2;
+            var W = w / 2;
+            var H = h / 2;
             
             ctx.fillStyle = '#0D0D1A';
             ctx.fillRect(0, 0, W, H);
             
-            const lineY = H * 0.5;
-            const gagarinaX = W * 0.15;
-            const yunostX = W * 0.85;
+            var lineY = H * 0.5;
+            var gagarinaX = W * 0.15;
+            var yunostX = W * 0.85;
             
             // Линия Гагарина-Юность
             ctx.strokeStyle = '#555';
@@ -227,32 +192,33 @@
             ctx.stroke();
             
             // Линия к Пл. Мира
-            const miraStartX = (gagarinaX + yunostX) / 2;
-            const miraStartY = lineY;
-            const miraEndX = miraStartX + 120;
-            const miraEndY = lineY + 100;
+            var miraStartX = (gagarinaX + yunostX) / 2;
+            var miraEndX = miraStartX + 120;
+            var miraEndY = lineY + 100;
             
             ctx.strokeStyle = '#444';
             ctx.lineWidth = 4;
             ctx.beginPath();
-            ctx.moveTo(miraStartX, miraStartY);
+            ctx.moveTo(miraStartX, lineY);
             ctx.lineTo(miraEndX, miraEndY);
             ctx.stroke();
             
+            // Остановки
             drawStop(ctx, gagarinaX, lineY, 'Гагарина');
             drawStop(ctx, yunostX, lineY, 'Юность');
             drawStop(ctx, miraEndX, miraEndY, 'Пл. Мира');
             
-            const tramsOnMain = trams.filter(t => t._onMainLine);
-            tramsOnMain.forEach(t => {
-                const x = gagarinaX + (yunostX - gagarinaX) * t._percent;
+            // Трамваи
+            var tramsOnMain = trams.filter(function(t) { return t._onMainLine; });
+            tramsOnMain.forEach(function(t) {
+                var x = gagarinaX + (yunostX - gagarinaX) * t._percent;
                 drawTram(ctx, x, lineY, t);
             });
             
-            const tramsOnMira = trams.filter(t => !t._onMainLine);
-            tramsOnMira.forEach(t => {
-                const x = miraStartX + (miraEndX - miraStartX) * Math.min(t._percent, 1);
-                const y = miraStartY + (miraEndY - miraStartY) * Math.min(t._percent, 1);
+            var tramsOnMira = trams.filter(function(t) { return !t._onMainLine; });
+            tramsOnMira.forEach(function(t) {
+                var x = miraStartX + (miraEndX - miraStartX) * Math.min(t._percent, 1);
+                var y = lineY + (miraEndY - lineY) * Math.min(t._percent, 1);
                 drawTram(ctx, x, y, t);
             });
         }
@@ -269,8 +235,8 @@
         }
         
         function drawTram(ctx, x, y, tram) {
-            const isMoving = tram.speed > 0;
-            const color = isMoving ? '#4CAF50' : '#FF6B6B';
+            var isMoving = tram.speed > 0;
+            var color = isMoving ? '#4CAF50' : '#FF6B6B';
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(x, y, 8, 0, Math.PI * 2);
@@ -286,37 +252,37 @@
             ctx.fillText(tram.rnum, x, y + 3);
         }
         
-        // ==================== ДАННЫЕ ====================
         async function loadData() {
             try {
-                const resp = await fetch(API_URL, {
+                var resp = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
                     body: JSON.stringify(PAYLOAD)
                 });
-                const data = await resp.json();
+                var data = await resp.json();
                 
                 if (data.r === 'ok') {
-                    const allVehicles = data.data.anims.filter(v => {
+                    var allVehicles = data.data.anims.filter(function(v) {
                         if (v.rtype !== 'Тм') return false;
                         return STOP_ROUTES.includes(parseInt(v.rnum));
                     });
                     
-                    trams = allVehicles.map(t => {
-                        const distToGagarina = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, t.lat, t.lng);
-                        const distToYunost = haversine(STOP_YUNOST.lat, STOP_YUNOST.lng, t.lat, t.lng);
-                        const distToMira = haversine(STOP_MIRA.lat, STOP_MIRA.lng, t.lat, t.lng);
-                        const onMainLine = distToMira > distToGagarina * 0.8 || distToMira > distToYunost * 0.8;
-                        const totalDist = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, STOP_YUNOST.lat, STOP_YUNOST.lng);
-                        const percent = Math.max(0, Math.min(1, distToGagarina / totalDist));
+                    trams = allVehicles.map(function(t) {
+                        var distToGagarina = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, t.lat, t.lng);
+                        var distToYunost = haversine(STOP_YUNOST.lat, STOP_YUNOST.lng, t.lat, t.lng);
+                        var distToMira = haversine(STOP_MIRA.lat, STOP_MIRA.lng, t.lat, t.lng);
+                        var onMainLine = distToMira > distToGagarina * 0.8 || distToMira > distToYunost * 0.8;
+                        var totalDist = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, STOP_YUNOST.lat, STOP_YUNOST.lng);
+                        var percent = Math.max(0, Math.min(1, distToGagarina / totalDist));
                         return { ...t, _onMainLine: onMainLine, _percent: percent, _distToGagarina: distToGagarina };
                     });
                     
                     drawMap();
                     renderList();
                     
-                    const now = new Date();
-                    document.getElementById('updateTime').textContent = '🕐 ' + now.toLocaleTimeString('ru-RU');
+                    var now = new Date();
+                    var timeEl = document.getElementById('updateTime');
+                    if (timeEl) timeEl.textContent = '🕐 ' + now.toLocaleTimeString('ru-RU');
                 }
             } catch (e) {
                 console.error(e);
@@ -324,48 +290,56 @@
         }
         
         function renderList() {
-            const container = document.getElementById('tramList');
+            var container = document.getElementById('tramList');
+            if (!container) return;
+            
             if (trams.length === 0) {
                 container.innerHTML = '<div class="empty">Нет трамваев на линии</div>';
                 return;
             }
-            const sorted = [...trams].sort((a, b) => a._distToGagarina - b._distToGagarina);
-            let html = '<div class="tram-list">';
-            sorted.forEach(t => {
-                const isMoving = t.speed > 0;
-                const eta = isMoving && t.speed > 0 ? `⏱ ~${Math.round(t._distToGagarina / (t.speed * 1000 / 60))} мин` : '';
-                html += `
-                    <div class="tram-row ${isMoving ? '' : 'stopped'}">
-                        <span class="tram-route-num">№${t.rnum}</span>
-                        <span>${isMoving ? t.speed + ' км/ч' : 'Стоит'}</span>
-                        <span class="tram-dist">${Math.round(t._distToGagarina)}м</span>
-                        ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
-                    </div>
-                `;
+            
+            var sorted = [...trams].sort(function(a, b) { return a._distToGagarina - b._distToGagarina; });
+            var html = '<div class="tram-list">';
+            
+            sorted.forEach(function(t) {
+                var isMoving = t.speed > 0;
+                var eta = isMoving && t.speed > 0 ? '⏱ ~' + Math.round(t._distToGagarina / (t.speed * 1000 / 60)) + ' мин' : '';
+                
+                html += '<div class="tram-row ' + (isMoving ? '' : 'stopped') + '">';
+                html += '<span class="tram-route-num">№' + t.rnum + '</span>';
+                html += '<span>' + (isMoving ? t.speed + ' км/ч' : 'Стоит') + '</span>';
+                html += '<span class="tram-dist">' + Math.round(t._distToGagarina) + 'м</span>';
+                if (eta) html += '<span class="tram-eta">' + eta + '</span>';
+                html += '</div>';
             });
+            
             html += '</div>';
             container.innerHTML = html;
         }
         
         function haversine(lat1, lng1, lat2, lng2) {
-            const R = 6371000;
-            const dlat = (lat2 - lat1) * Math.PI / 180;
-            const dlng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dlat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dlng/2)**2;
+            var R = 6371000;
+            var dlat = (lat2 - lat1) * Math.PI / 180;
+            var dlng = (lng2 - lng1) * Math.PI / 180;
+            var a = Math.sin(dlat/2)*Math.sin(dlat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dlng/2)*Math.sin(dlng/2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
         
         function closeWindow() {
-            if (window.parent && window.parent !== window) {
-                const modal = window.parent.document.getElementById('tramModal');
-                if (modal) window.parent.document.body.removeChild(modal);
-                const closeBtn = window.parent.document.querySelector('button[style*="z-index: 10000"]');
-                if (closeBtn) window.parent.document.body.removeChild(closeBtn);
-            }
+            try {
+                if (window.parent && window.parent !== window) {
+                    var modal = window.parent.document.getElementById('tramModal');
+                    if (modal) window.parent.document.body.removeChild(modal);
+                    var closeBtn = window.parent.document.querySelector('button[style*="z-index: 10000"]');
+                    if (closeBtn) window.parent.document.body.removeChild(closeBtn);
+                }
+            } catch(e) {}
         }
         
+        // Запуск
         document.addEventListener('DOMContentLoaded', loadData);
         setInterval(loadData, 15000);
+    })();
     </script>
 </body>
 </html>
