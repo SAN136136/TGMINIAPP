@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трамваи онлайн</title>
+    <style>
+        :root {
+            --bg: #0A0A14;
+            --gold: #FFD700;
+            --blue: #58A6FF;
+            --red: #FF6B6B;
+            --green: #4CAF50;
+            --text: #CCC;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px;
+            padding-bottom: 80px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .header h1 { color: var(--gold); font-size: 20px; }
+        .header .subtitle { color: #888; font-size: 12px; }
+        
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: #0D0D1A;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #2A2A4A;
+            margin-bottom: 12px;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+        .legend span { display: flex; align-items: center; gap: 4px; }
+        .legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        
+        .tram-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .tram-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #141428;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            border-left: 3px solid var(--green);
+            font-size: 14px;
+        }
+        .tram-row.stopped { border-left-color: var(--red); }
+        .tram-route-num { color: var(--gold); font-weight: bold; font-size: 18px; min-width: 28px; }
+        .tram-dist { color: var(--blue); font-weight: 600; margin-left: auto; }
+        .tram-eta { color: var(--blue); font-size: 13px; margin-left: 8px; }
+        
+        .update-time { text-align: center; font-size: 11px; color: #555; margin: 8px 0; }
+        
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            padding: 10px 16px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            background: var(--bg); border-top: 1px solid #2A2A4A;
+            display: flex; gap: 8px; z-index: 100;
+        }
+        
+        .btn {
+            padding: 12px 16px; border: none; border-radius: 10px;
+            cursor: pointer; font-size: 14px; font-weight: 600;
+            text-align: center; color: #000;
+        }
+        .btn-refresh { flex: 1; background: var(--blue); }
+        .btn-close { flex: 1; background: var(--red); color: #fff; }
+        
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .empty { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚋 Трамваи на линии</h1>
+        <div class="subtitle">Гагарина ↔ Юность</div>
+    </div>
+    
+    <div class="map-container">
+        <canvas id="tramCanvas"></canvas>
+    </div>
+    
+    <div class="legend">
+        <span><span class="dot" style="background:#4CAF50;"></span> Едет</span>
+        <span><span class="dot" style="background:#FF6B6B;"></span> Стоит</span>
+        <span><span class="dot" style="background:#FFD700;"></span> Остановка</span>
+    </div>
+    
+    <div class="update-time" id="updateTime"></div>
+    
+    <div id="tramList">
+        <div class="loading">Загружаем данные...</div>
+    </div>
+    
+    <div class="bottom-bar">
+        <button class="btn btn-refresh" onclick="loadData()">🔄 Обновить</button>
+        <button class="btn btn-close" onclick="closeWindow()">✕ Закрыть</button>
+    </div>
+    
+    <script>
+        // ==================== КОНФИГУРАЦИЯ ====================
+        // Координаты остановок
+        const STOP_GAGARINA = { lat: 53.398, lng: 58.978, name: 'Гагарина' };
+        const STOP_YUNOST = { lat: 53.416, lng: 58.985, name: 'Юность' };
+        const STOP_MIRA = { lat: 53.405, lng: 58.985, name: 'Пл. Мира' };
+        
+        // API
+        const API_URL = 'https://smarttransport.online/magnitogorsk/php/apiRequest.php?getVehiclesAnimation.php';
+        const PAYLOAD = {
+            t: '11111111-50b3-4fec-b922-8a50a1d38366',
+            ct: 26,
+            cd: 'getVehiclesAnimation.php',
+            reg: 74004,
+            data: {
+                wuid: 518062000668,
+                rids: '1,3,5,7,9,11,12,14,21,22,23,25,10001,10002,10004,10006,10007,10009,10011,10013,10017,10021,10023,10024,10026,10029,10031,10032,10035,10037,10039,10040,10041,10042,10043,10045,10046,10047,10051,10053,10055,10057,10058,10060,10061,10063,10067,10069,10070,10080,10082,10083,10091,10094,10097,10099,10100,10101,10103,10106,10107,10126',
+                curk: 0
+            }
+        };
+        
+        // Маршруты для остановок
+        const STOP_ROUTES = [1, 5, 11, 15, 17];
+        
+        let trams = [];
+        
+        // ==================== КАРТА ====================
+        function drawMap() {
+            const canvas = document.getElementById('tramCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.offsetWidth * 2;
+            const h = canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            const W = w / 2;
+            const H = h / 2;
+            
+            // Фон
+            ctx.fillStyle = '#0D0D1A';
+            ctx.fillRect(0, 0, W, H);
+            
+            // Параметры линии Гагарина-Юность
+            const lineY = H * 0.5; // Горизонтальная линия по центру
+            const gagarinaX = W * 0.15;
+            const yunostX = W * 0.85;
+            
+            // Линия Гагарина-Юность
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(10, lineY);
+            ctx.lineTo(W - 10, lineY);
+            ctx.stroke();
+            
+            // Линия к Пл. Мира (под 45 градусов от середины)
+            const miraStartX = (gagarinaX + yunostX) / 2;
+            const miraStartY = lineY;
+            const miraEndX = miraStartX + 120;
+            const miraEndY = lineY + 100;
+            
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(miraStartX, miraStartY);
+            ctx.lineTo(miraEndX, miraEndY);
+            ctx.stroke();
+            
+            // Остановка Гагарина
+            drawStop(ctx, gagarinaX, lineY, 'Гагарина');
+            
+            // Остановка Юность
+            drawStop(ctx, yunostX, lineY, 'Юность');
+            
+            // Остановка Пл. Мира
+            drawStop(ctx, miraEndX, miraEndY, 'Пл. Мира');
+            
+            // Трамваи на линии Гагарина-Юность
+            const tramsOnMain = trams.filter(t => t._onMainLine);
+            tramsOnMain.forEach(t => {
+                const x = gagarinaX + (yunostX - gagarinaX) * t._percent;
+                drawTram(ctx, x, lineY, t);
+            });
+            
+            // Трамваи на ветке к Пл. Мира
+            const tramsOnMira = trams.filter(t => !t._onMainLine);
+            tramsOnMira.forEach(t => {
+                const x = miraStartX + (miraEndX - miraStartX) * Math.min(t._percent, 1);
+                const y = miraStartY + (miraEndY - miraStartY) * Math.min(t._percent, 1);
+                drawTram(ctx, x, y, t);
+            });
+        }
+        
+        function drawStop(ctx, x, y, name) {
+            // Круг остановки
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Название
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(name, x, y - 16);
+        }
+        
+        function drawTram(ctx, x, y, tram) {
+            const isMoving = tram.speed > 0;
+            const color = isMoving ? '#4CAF50' : '#FF6B6B';
+            
+            // Круг трамвая
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Белая обводка
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Номер маршрута
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(tram.rnum, x, y + 3);
+        }
+        
+        // ==================== ДАННЫЕ ====================
+        async function loadData() {
+            try {
+                const resp = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+                    body: JSON.stringify(PAYLOAD)
+                });
+                const data = await resp.json();
+                
+                if (data.r === 'ok') {
+                    // Только трамваи нужных маршрутов
+                    const allVehicles = data.data.anims.filter(v => {
+                        if (v.rtype !== 'Тм') return false;
+                        return STOP_ROUTES.includes(parseInt(v.rnum));
+                    });
+                    
+                    // Вычисляем позицию на линии
+                    trams = allVehicles.map(t => {
+                        const distToGagarina = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, t.lat, t.lng);
+                        const distToYunost = haversine(STOP_YUNOST.lat, STOP_YUNOST.lng, t.lat, t.lng);
+                        const distToMira = haversine(STOP_MIRA.lat, STOP_MIRA.lng, t.lat, t.lng);
+                        
+                        // Определяем, на какой линии трамвай
+                        const onMainLine = distToMira > distToGagarina * 0.8 || distToMira > distToYunost * 0.8;
+                        
+                        const totalDist = haversine(STOP_GAGARINA.lat, STOP_GAGARINA.lng, STOP_YUNOST.lat, STOP_YUNOST.lng);
+                        const percent = Math.max(0, Math.min(1, distToGagarina / totalDist));
+                        
+                        return { ...t, _onMainLine: onMainLine, _percent: percent, _distToGagarina: distToGagarina };
+                    });
+                    
+                    drawMap();
+                    renderList();
+                    
+                    const now = new Date();
+                    document.getElementById('updateTime').textContent = 
+                        '🕐 ' + now.toLocaleTimeString('ru-RU');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        function renderList() {
+            const container = document.getElementById('tramList');
+            
+            if (trams.length === 0) {
+                container.innerHTML = '<div class="empty">Нет трамваев на линии</div>';
+                return;
+            }
+            
+            const sorted = [...trams].sort((a, b) => a._distToGagarina - b._distToGagarina);
+            
+            let html = '<div class="tram-list">';
+            sorted.forEach(t => {
+                const isMoving = t.speed > 0;
+                const eta = isMoving && t.speed > 0
+                    ? `⏱ ~${Math.round(t._distToGagarina / (t.speed * 1000 / 60))} мин`
+                    : '';
+                
+                html += `
+                    <div class="tram-row ${isMoving ? '' : 'stopped'}">
+                        <span class="tram-route-num">№${t.rnum}</span>
+                        <span>${isMoving ? t.speed + ' км/ч' : 'Стоит'}</span>
+                        <span class="tram-dist">${Math.round(t._distToGagarina)}м</span>
+                        ${eta ? `<span class="tram-eta">${eta}</span>` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function haversine(lat1, lng1, lat2, lng2) {
+            const R = 6371000;
+            const dlat = (lat2 - lat1) * Math.PI / 180;
+            const dlng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dlat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dlng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+        
+        function closeWindow() {
+            if (window.parent && window.parent !== window) {
+                const modal = window.parent.document.getElementById('tramModal');
+                if (modal) window.parent.document.body.removeChild(modal);
+                const closeBtn = window.parent.document.querySelector('button[style*="z-index: 10000"]');
+                if (closeBtn) window.parent.document.body.removeChild(closeBtn);
+            }
+        }
+        
+        // Запуск
+        document.addEventListener('DOMContentLoaded', loadData);
+        setInterval(loadData, 15000);
+    </script>
+</body>
+</html>
