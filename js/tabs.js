@@ -102,7 +102,7 @@ function openTramWindow() {
     `;
     
     const iframe = document.createElement('iframe');
-    iframe.src = 'tram.html';
+    iframe.src = 'tram-map.html';
     iframe.style.cssText = `
         width: 100%;
         height: 100%;
