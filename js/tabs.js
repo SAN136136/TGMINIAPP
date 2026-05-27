@@ -61,28 +61,32 @@ function renderTab(tab) {
             <p class="music-hint">Скоро здесь будут:<br>калькулятор и трамваи</p>
         `;
     } else if (tab === "music") {
-    html = `
-        <div class="section-title">🎵 СЕЙЧАС ИГРАЕТ</div>
-        <div class="now-playing-card" id="nowPlayingCard">
-            <div class="np-art" id="npArt">🎵</div>
-            <div class="np-info">
-                <div class="np-title" id="npTitle">—</div>
-                <div class="np-artist" id="npArtist">—</div>
-                <div class="np-time" id="npTime">—</div>
-                <div class="np-progress-bar">
-                    <div class="np-progress-fill" id="npProgress"></div>
+        html = `
+            <div class="section-title">🎵 СЕЙЧАС ИГРАЕТ</div>
+            <div class="now-playing-card" id="nowPlayingCard">
+                <div class="np-art" id="npArt">🎵</div>
+                <div class="np-info">
+                    <div class="np-title" id="npTitle">Нажми «Обновить»</div>
+                    <div class="np-artist" id="npArtist">чтобы увидеть трек</div>
+                    <div class="np-album" id="npAlbum"></div>
+                    <div class="np-time" id="npTime">—</div>
+                    <div class="np-progress-bar">
+                        <div class="np-progress-fill" id="npProgress" style="width:0%"></div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="section-title" style="margin-top:15px;">УПРАВЛЕНИЕ</div>
-        <div class="buttons">
-            <button class="btn btn-music" onclick="sendCommand('music_prev')">⏮</button>
-            <button class="btn btn-music" onclick="sendCommand('music_play')">▶️</button>
-            <button class="btn btn-music-next" onclick="sendCommand('music_next')">⏭</button>
-        </div>
-        <button class="btn" onclick="sendCommand('трек')" style="width:100%;margin-top:8px;">🔄 Обновить</button>
-    `;
-}
+            <div class="section-title" style="margin-top:15px;">УПРАВЛЕНИЕ</div>
+            <div class="buttons">
+                <button class="btn btn-music" onclick="sendCommand('music_prev')">⏮</button>
+                <button class="btn btn-music" onclick="sendCommand('music_play')">▶️</button>
+                <button class="btn btn-music" onclick="sendCommand('music_next')">⏭</button>
+            </div>
+            <button class="btn btn-refresh-music" onclick="updateMusicInfo()" style="width:100%;margin-top:8px;background:#3A5A6B;color:#FFF;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">🔄 Обновить информацию</button>
+            <p class="music-hint" style="margin-top:10px;">Работает с Spotify, YouTube Music, VK и другими плеерами</p>
+        `;
+        
+        // Автоматически запрашиваем трек при открытии вкладки
+        setTimeout(() => sendCommand('трек'), 300);
     } else if (tab === "tools") {
         html = `
             <div class="section-title">ИНСТРУМЕНТЫ</div>
@@ -99,13 +103,51 @@ function renderTab(tab) {
     container.innerHTML = html;
 }
 
+// ==================== МУЗЫКА ====================
+function updateMusicInfo() {
+    sendCommand('трек');
+}
+
+// Обновление карточки музыки из ответа бота
+function updateNowPlayingCard(artist, title, album, position, duration, isPlaying) {
+    const card = document.getElementById('nowPlayingCard');
+    if (!card) return;
+    
+    const titleEl = document.getElementById('npTitle');
+    const artistEl = document.getElementById('npArtist');
+    const albumEl = document.getElementById('npAlbum');
+    const timeEl = document.getElementById('npTime');
+    const progressEl = document.getElementById('npProgress');
+    const artEl = document.getElementById('npArt');
+    
+    if (titleEl) titleEl.textContent = title || '—';
+    if (artistEl) artistEl.textContent = artist || '';
+    if (albumEl) albumEl.textContent = album ? '💿 ' + album : '';
+    
+    if (timeEl) {
+        if (position !== undefined && duration !== undefined && duration > 0) {
+            const fmt = (s) => { const m = Math.floor(s/60); const sec = Math.floor(s%60); return m + ':' + (sec<10?'0':'') + sec; };
+            timeEl.textContent = (isPlaying ? '▶️ ' : '⏸ ') + fmt(position) + ' / ' + fmt(duration);
+        } else {
+            timeEl.textContent = isPlaying ? '▶️ Играет' : '⏸ Пауза';
+        }
+    }
+    
+    if (progressEl && duration > 0) {
+        const pct = Math.min(100, Math.max(0, (position / duration) * 100));
+        progressEl.style.width = pct + '%';
+    }
+    
+    if (artEl) {
+        artEl.textContent = isPlaying ? '🎶' : '⏸';
+    }
+}
+
 // ==================== ТРАМВАИ ====================
 function openTramWindow() {
-    // Скрываем экран входа, если он виден
     const loginScreen = document.getElementById('loginScreen');
     if (loginScreen) loginScreen.style.display = 'none';
     
-    // Показываем основной экран, если скрыт
     const mainScreen = document.getElementById('mainScreen');
     if (mainScreen) mainScreen.style.display = 'block';
     
