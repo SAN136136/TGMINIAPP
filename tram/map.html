@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Трамваи Магнитогорска</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
             --bg: #0A0A14;
@@ -31,12 +29,26 @@
         .header h1 { color: var(--gold); font-size: 20px; margin-bottom: 2px; }
         .header .subtitle { color: #888; font-size: 12px; }
         
-        #map {
+        #map-container {
+            position: relative;
             width: 100%;
-            height: 450px;
             border-radius: 12px;
+            overflow: hidden;
             border: 1px solid #2A2A4A;
-            z-index: 1;
+            background: #000;
+        }
+        
+        #map-container img {
+            width: 100%;
+            display: block;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
         
         .legend {
@@ -57,7 +69,6 @@
         }
         .tram-row:hover { background: #1E1E3A; }
         .tram-row.stopped { border-left-color: var(--red); }
-        .tram-row.highlight { background: #2A2A1E; border-left-color: #FFF; }
         .tram-route-num { color: var(--gold); font-weight: bold; font-size: 17px; min-width: 26px; }
         .tram-dist { color: var(--blue); font-weight: 600; margin-left: auto; }
         .tram-eta { color: var(--blue); font-size: 12px; margin-left: 6px; }
@@ -81,11 +92,6 @@
         
         .loading { text-align: center; padding: 20px; color: #888; }
         .empty { text-align: center; padding: 20px; color: #666; }
-        
-        .leaflet-popup-content-wrapper { background: #1A1A2E !important; color: #CCC !important; border-radius: 8px !important; }
-        .leaflet-popup-tip { background: #1A1A2E !important; }
-        .leaflet-popup-content { font-size: 13px; margin: 8px 12px; }
-        .leaflet-popup-content b { color: var(--gold); }
     </style>
 </head>
 <body>
@@ -94,7 +100,10 @@
         <div class="subtitle">Гагарина → Куранты → Дружбы → Юность → пл. Мира</div>
     </div>
     
-    <div id="map"></div>
+    <div id="map-container">
+        <img id="schemaImg" src="schema.png" alt="Схема">
+        <canvas id="tramCanvas"></canvas>
+    </div>
     
     <div class="legend">
         <span><span class="dot" style="background:#5A9E6F;"></span> Едет</span>
@@ -112,9 +121,7 @@
         <button class="btn btn-refresh" onclick="loadData()">🔄 Обновить</button>
         <button class="btn btn-close" onclick="closeWindow()">✕ Закрыть</button>
     </div>
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+
     <script>
     (function() {
         try {
@@ -126,31 +133,24 @@
             }
         } catch(e) {}
         
-        // ==================== ТОЧНЫЕ GPS-КООРДИНАТЫ ОСТАНОВОК ====================
-        var STOPS = [
-            { lat: 53.3936, lng: 58.9898, name: 'Гагарина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.3921, lng: 58.9937, name: 'Куранты', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.3902, lng: 58.9979, name: 'Дружбы', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.3880, lng: 59.0022, name: 'Юность', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.3858, lng: 59.0060, name: 'Пл. Мира', routes: '1, 3, 11, 14, 16, 20, 22, 33' },
-            { lat: 53.3866, lng: 59.0041, name: 'Грязнова', routes: '11, 14, 16, 22' }
+        // ==================== КООРДИНАТЫ ОСТАНОВОК НА СХЕМЕ ====================
+        var SCHEMA_STOPS = [
+            {"name": "Гагарина", "x": 191, "y": 543},
+            {"name": "Куранты", "x": 191, "y": 569},
+            {"name": "Дружбы", "x": 192, "y": 596},
+            {"name": "Юность", "x": 192, "y": 643},
+            {"name": "Грязнова", "x": 183, "y": 653},
+            {"name": "Пл. Мира", "x": 200, "y": 652}
         ];
         
-        // Основная линия: Гагарина → Юность
-        var MAIN_LINE = [
-            [53.3940, 58.9890],  // Чуть западнее Гагарина
-            [53.3936, 58.9898],  // Гагарина
-            [53.3921, 58.9937],  // Куранты
-            [53.3902, 58.9979],  // Дружбы
-            [53.3880, 59.0022],  // Юность
-            [53.3870, 59.0035]   // Чуть южнее Юности
-        ];
-        
-        // Ответвление: Юность → Грязнова → Пл. Мира
-        var BRANCH_LINE = [
-            [53.3880, 59.0022],  // Юность
-            [53.3866, 59.0041],  // Грязнова
-            [53.3858, 59.0060]   // Пл. Мира
+        // GPS координаты тех же остановок (для привязки трамваев)
+        var GPS_STOPS = [
+            { name: "Гагарина", lat: 53.3936, lng: 58.9898 },
+            { name: "Куранты", lat: 53.3921, lng: 58.9937 },
+            { name: "Дружбы", lat: 53.3902, lng: 58.9979 },
+            { name: "Юность", lat: 53.3880, lng: 59.0022 },
+            { name: "Грязнова", lat: 53.3866, lng: 59.0041 },
+            { name: "Пл. Мира", lat: 53.3858, lng: 59.0060 }
         ];
         
         var STOP_ROUTES = [1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31];
@@ -169,68 +169,125 @@
         };
         
         var trams = [];
-        var tramLayer;
-        var tramMarkers = {};
+        var canvas, ctx, imgElement;
         
-        // ==================== КАРТА ====================
-        var map = L.map('map').setView([53.3905, 58.9975], 15);
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        canvas = document.getElementById('tramCanvas');
+        ctx = canvas.getContext('2d');
+        imgElement = document.getElementById('schemaImg');
         
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© CartoDB',
-            subdomains: 'abcd',
-            maxZoom: 19
-        }).addTo(map);
+        imgElement.onload = function() {
+            resizeCanvas();
+            drawStaticElements();
+            loadData();
+        };
         
-        // Основная линия: Гагарина → Юность (приглушённый золотой)
-        L.polyline(MAIN_LINE, {
-            color: '#8B7D3C', weight: 4, opacity: 0.7
-        }).addTo(map);
-        
-        // Ответвление: Юность → Грязнова → Пл. Мира (пунктир)
-        L.polyline(BRANCH_LINE, {
-            color: '#6B5D2C', weight: 3, opacity: 0.5, dashArray: '6, 6'
-        }).addTo(map);
-        
-        // Остановки
-        STOPS.forEach(function(stop) {
-            var marker = L.circleMarker([stop.lat, stop.lng], {
-                radius: 7,
-                color: '#8B7D3C',
-                fillColor: '#5A4E2C',
-                fillOpacity: 0.8,
-                weight: 1.5
-            }).addTo(map);
-            
-            marker.bindPopup('<b>' + stop.name + '</b><br>🚋 ' + stop.routes);
-            
-            L.marker([stop.lat, stop.lng], {
-                icon: L.divIcon({
-                    className: '',
-                    html: '<div style="color:#8B7D3C;font-size:9px;font-weight:bold;text-shadow:0 0 3px #000;white-space:nowrap;transform:translate(-50%,-180%);">' + stop.name + '</div>',
-                    iconSize: [0, 0]
-                })
-            }).addTo(map);
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            drawStaticElements();
+            drawTrams();
         });
         
-        tramLayer = L.layerGroup().addTo(map);
+        function resizeCanvas() {
+            var rect = imgElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
         
-        // ==================== ФУНКЦИИ ====================
-        function getTramIcon(speed, routeNum) {
-            var color = speed > 0 ? '#5A9E6F' : '#CC6B6B';
-            return L.divIcon({
-                className: '',
-                html: '<div style="' +
-                    'width:24px;height:24px;border-radius:50%;' +
-                    'background:' + color + ';' +
-                    'display:flex;align-items:center;justify-content:center;' +
-                    'color:#000;font-weight:bold;font-size:10px;' +
-                    'border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 4px ' + color + ';' +
-                    '">' + routeNum + '</div>',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
+        // ==================== ОТРИСОВКА ====================
+        function drawStaticElements() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            var scaleX = canvas.width / imgElement.naturalWidth;
+            var scaleY = canvas.height / imgElement.naturalHeight;
+            
+            // Остановки
+            SCHEMA_STOPS.forEach(function(stop, i) {
+                var sx = stop.x * scaleX;
+                var sy = stop.y * scaleY;
+                
+                ctx.fillStyle = '#C9A84C';
+                ctx.beginPath();
+                ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#C9A84C';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(stop.name, sx, sy - 10);
+            });
+            
+            // Линии между остановками
+            ctx.strokeStyle = 'rgba(201,168,76,0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (var i = 0; i < SCHEMA_STOPS.length - 2; i++) {
+                var sx1 = SCHEMA_STOPS[i].x * scaleX;
+                var sy1 = SCHEMA_STOPS[i].y * scaleY;
+                var sx2 = SCHEMA_STOPS[i+1].x * scaleX;
+                var sy2 = SCHEMA_STOPS[i+1].y * scaleY;
+                ctx.moveTo(sx1, sy1);
+                ctx.lineTo(sx2, sy2);
+            }
+            ctx.stroke();
+        }
+        
+        function drawTrams() {
+            drawStaticElements();
+            
+            if (trams.length === 0) return;
+            
+            var scaleX = canvas.width / imgElement.naturalWidth;
+            var scaleY = canvas.height / imgElement.naturalHeight;
+            
+            trams.forEach(function(tram) {
+                var pos = gpsToSchema(tram.lat, tram.lng);
+                if (!pos) return;
+                
+                var sx = pos.x * scaleX;
+                var sy = pos.y * scaleY;
+                var isMoving = tram.speed > 0;
+                var color = isMoving ? '#5A9E6F' : '#CC6B6B';
+                
+                // Кружок трамвая
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Белая обводка
+                ctx.strokeStyle = '#FFF';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Номер маршрута
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(tram.rnum, sx, sy + 3);
             });
         }
         
+        function gpsToSchema(lat, lng) {
+            // Находим две ближайшие GPS-остановки и интерполируем
+            var minDist = Infinity;
+            var nearestIdx = 0;
+            
+            GPS_STOPS.forEach(function(stop, i) {
+                var d = Math.abs(lat - stop.lat) + Math.abs(lng - stop.lng) * 100;
+                if (d < minDist) {
+                    minDist = d;
+                    nearestIdx = i;
+                }
+            });
+            
+            // Возвращаем координаты ближайшей остановки на схеме
+            return SCHEMA_STOPS[nearestIdx];
+        }
+        
+        // ==================== ДАННЫЕ ====================
         async function loadData() {
             try {
                 var resp = await fetch(API_URL, {
@@ -246,7 +303,7 @@
                         return STOP_ROUTES.includes(parseInt(v.rnum));
                     });
                     
-                    updateTramMarkers();
+                    drawTrams();
                     renderList();
                     
                     document.getElementById('updateTime').textContent = 
@@ -254,27 +311,6 @@
                         ' | 🚋 ' + trams.length + ' ед.';
                 }
             } catch (e) { console.error(e); }
-        }
-        
-        function updateTramMarkers() {
-            tramLayer.clearLayers();
-            tramMarkers = {};
-            
-            trams.forEach(function(tram) {
-                var id = tram.deviceCode || tram.gosNum;
-                var icon = getTramIcon(tram.speed, tram.rnum);
-                var marker = L.marker([tram.lat, tram.lng], { icon: icon }).addTo(tramLayer);
-                
-                var speedText = tram.speed > 0 ? tram.speed + ' км/ч' : 'Стоит';
-                marker.bindPopup(
-                    '<b>🚋 №' + tram.rnum + '</b><br>' +
-                    '🏷️ ' + tram.gosNum + '<br>' +
-                    '⚡ ' + speedText + '<br>' +
-                    '🕐 ' + (tram.navTime || '').substr(-8)
-                );
-                
-                tramMarkers[id] = marker;
-            });
         }
         
         function renderList() {
@@ -297,8 +333,7 @@
                 var eta = '';
                 if (isMoving && t.speed > 0) eta = '⏱ ~' + Math.round(dist / (t.speed * 1000 / 60)) + ' мин';
                 
-                html += '<div class="tram-row ' + (isMoving ? '' : 'stopped') + '" ' +
-                    'onclick="focusOnTram(\'' + (t.deviceCode || t.gosNum) + '\', ' + t.lat + ', ' + t.lng + ')">' +
+                html += '<div class="tram-row ' + (isMoving ? '' : 'stopped') + '">' +
                     '<span class="tram-route-num">№' + t.rnum + '</span>' +
                     '<span>' + (isMoving ? t.speed + ' км/ч' : 'Стоит') + '</span>' +
                     '<span class="tram-dist">' + dist + 'м</span>' +
@@ -308,12 +343,6 @@
             html += '</div>';
             container.innerHTML = html;
         }
-        
-        window.focusOnTram = function(id, lat, lng) {
-            map.flyTo([lat, lng], 16, { duration: 0.8 });
-            document.querySelectorAll('.tram-row').forEach(function(r) { r.classList.remove('highlight'); });
-            if (tramMarkers[id]) tramMarkers[id].openPopup();
-        };
         
         function haversine(lat1, lng1, lat2, lng2) {
             var R = 6371000;
@@ -332,14 +361,14 @@
             } catch(e) {}
         }
         
-        document.addEventListener('DOMContentLoaded', function() {
+        // Запуск, когда картинка загрузится
+        if (imgElement.complete) {
+            resizeCanvas();
+            drawStaticElements();
             loadData();
-            setInterval(loadData, 15000);
-        });
+        }
         
-        map.on('click', function() {
-            document.querySelectorAll('.tram-row').forEach(function(r) { r.classList.remove('highlight'); });
-        });
+        setInterval(loadData, 15000);
     })();
     </script>
 </body>
