@@ -356,6 +356,15 @@
         // Запуск
         document.addEventListener('DOMContentLoaded', loadData);
         setInterval(loadData, 15000);
+<script>
+    // Скрываем экран входа, если мы в iframe
+    if (window.self !== window.top) {
+        var loginEl = document.getElementById('loginScreen');
+        if (loginEl) loginEl.style.display = 'none';
+        var mainEl = document.getElementById('mainScreen');
+        if (mainEl) mainEl.style.display = 'block';
+    }
+</script>
     </script>
 </body>
 </html>
