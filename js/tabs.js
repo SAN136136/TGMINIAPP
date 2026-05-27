@@ -21,9 +21,9 @@ function renderTab(tab) {
             <div class="buttons">
                 <button class="btn btn-ping" onclick="sendCommand('ping')">🟢 Пинг</button>
                 <button class="btn btn-status" onclick="sendCommand('status')">📊 Статус ПК</button>
+                <button class="btn btn-camera" onclick="sendCommand('снимок')">📸 Снимок</button>
                 <button class="btn btn-weather" onclick="sendCommand('weather')">🌤 Погода</button>
                 <button class="btn btn-news" onclick="sendCommand('news')">📰 Новости</button>
-                <button class="btn btn-camera" onclick="sendCommand('снимок')">📸 Снимок</button>
             </div>
             <div class="section-title" style="margin-top:15px;">ШКОЛА</div>
             <div class="buttons">
@@ -88,7 +88,6 @@ function renderTab(tab) {
 
 // ==================== ТРАМВАИ ====================
 function openTramWindow() {
-    // Создаём модальное окно
     const modal = document.createElement('div');
     modal.id = 'tramModal';
     modal.style.cssText = `
@@ -102,7 +101,6 @@ function openTramWindow() {
         overflow-y: auto;
     `;
     
-    // Ифрейм с tram.html
     const iframe = document.createElement('iframe');
     iframe.src = 'tram.html';
     iframe.style.cssText = `
@@ -111,7 +109,6 @@ function openTramWindow() {
         border: none;
     `;
     
-    // Кнопка закрытия
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
     closeBtn.style.cssText = `
@@ -142,6 +139,125 @@ function openTramWindow() {
     document.body.appendChild(modal);
     document.body.appendChild(closeBtn);
 }
+
+// ==================== МОДАЛЬНОЕ ОКНО С ФОТО ====================
+function checkForPhoto() {
+    const log = document.getElementById('log');
+    if (!log) return;
+    
+    const logText = log.innerHTML;
+    
+    if (logText.includes('/show_photo')) {
+        console.log('🔍 Найдена команда show_photo в логе!');
+        
+        let match = logText.match(/\/show_photo\s+(https?:\/\/\S+)/);
+        if (!match) {
+            match = logText.match(/\/show_photo\s+(.+)/);
+        }
+        
+        if (match) {
+            const url = match[1].trim();
+            console.log('📸 Извлечён URL:', url);
+            openPhotoModal(url);
+            document.getElementById('log').innerHTML = logText.replace(/\/show_photo\s+\S+/, '📸 Фото получено');
+        } else {
+            console.log('❌ Не удалось извлечь URL из лога');
+        }
+    }
+}
+
+function openPhotoModal(fileUrl) {
+    console.log('🖼️ Открываю модальное окно с URL:', fileUrl);
+    
+    const oldModal = document.getElementById('photoModal');
+    if (oldModal) document.body.removeChild(oldModal);
+    
+    const modal = document.createElement('div');
+    modal.id = 'photoModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    const loading = document.createElement('div');
+    loading.textContent = 'Загрузка фото...';
+    loading.style.cssText = 'color: #FFD700; font-size: 18px; margin-bottom: 16px;';
+    modal.appendChild(loading);
+    
+    const img = document.createElement('img');
+    img.style.cssText = `
+        max-width: 95%;
+        max-height: 75vh;
+        border-radius: 12px;
+        object-fit: contain;
+        display: none;
+    `;
+    
+    img.onload = function() {
+        console.log('✅ Фото загружено успешно');
+        loading.style.display = 'none';
+        img.style.display = 'block';
+    };
+    
+    img.onerror = function(e) {
+        console.error('❌ Ошибка загрузки фото:', fileUrl);
+        loading.textContent = '❌ Не удалось загрузить фото';
+        loading.style.color = '#FF6B6B';
+    };
+    
+    img.src = fileUrl;
+    
+    const caption = document.createElement('div');
+    caption.textContent = '📸 Снимок с камеры';
+    caption.style.cssText = `
+        color: #FFD700;
+        font-size: 18px;
+        margin-top: 16px;
+        font-weight: bold;
+    `;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Закрыть';
+    closeBtn.style.cssText = `
+        margin-top: 20px;
+        padding: 14px 40px;
+        background: #FF6B6B;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+    `;
+    closeBtn.onclick = function() {
+        document.body.removeChild(modal);
+    };
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    };
+    
+    modal.appendChild(img);
+    modal.appendChild(caption);
+    modal.appendChild(closeBtn);
+    document.body.appendChild(modal);
+    
+    console.log('📦 Модальное окно добавлено в DOM');
+}
+
+// Проверяем логи каждые 2 секунды
+setInterval(checkForPhoto, 2000);
 
 // ==================== МЕНЮ ШПАРГАЛОК ====================
 function openCheatsheetMenu() {
@@ -186,76 +302,4 @@ function showCheatsheetMenuModal() {
     
     document.getElementById("cheatsheetContent").innerHTML = html;
     document.getElementById("cheatsheetModal").style.display = "flex";
-}
-function openPhotoModal(fileUrl) {
-    // Удаляем старое окно, если есть
-    const oldModal = document.getElementById('photoModal');
-    if (oldModal) document.body.removeChild(oldModal);
-    
-    // Создаём модальное окно
-    const modal = document.createElement('div');
-    modal.id = 'photoModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.95);
-        z-index: 10001;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    `;
-    
-    // Картинка — прямая ссылка
-    const img = document.createElement('img');
-    img.src = fileUrl;
-    img.style.cssText = `
-        max-width: 95%;
-        max-height: 75vh;
-        border-radius: 12px;
-        object-fit: contain;
-    `;
-    
-    // Подпись
-    const caption = document.createElement('div');
-    caption.textContent = '📸 Снимок с камеры';
-    caption.style.cssText = `
-        color: #FFD700;
-        font-size: 18px;
-        margin-top: 16px;
-        font-weight: bold;
-    `;
-    
-    // Кнопка закрытия
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕ Закрыть';
-    closeBtn.style.cssText = `
-        margin-top: 20px;
-        padding: 14px 40px;
-        background: #FF6B6B;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-    `;
-    closeBtn.onclick = function() {
-        document.body.removeChild(modal);
-    };
-    
-    // Клик вне фото — закрыть
-    modal.onclick = function(e) {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    };
-    
-    modal.appendChild(img);
-    modal.appendChild(caption);
-    modal.appendChild(closeBtn);
-    document.body.appendChild(modal);
 }
