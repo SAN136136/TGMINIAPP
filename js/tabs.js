@@ -88,6 +88,14 @@ function renderTab(tab) {
 
 // ==================== ТРАМВАИ ====================
 function openTramWindow() {
+    // Скрываем экран входа, если он виден
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    
+    // Показываем основной экран, если скрыт
+    const mainScreen = document.getElementById('mainScreen');
+    if (mainScreen) mainScreen.style.display = 'block';
+    
     const modal = document.createElement('div');
     modal.id = 'tramModal';
     modal.style.cssText = `
