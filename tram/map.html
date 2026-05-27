@@ -46,7 +46,7 @@
         .legend span { display: flex; align-items: center; gap: 4px; }
         .legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         
-        .tram-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+        .tram-list { display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto; }
         
         .tram-row {
             display: flex; align-items: center; gap: 8px;
@@ -78,6 +78,25 @@
         }
         .btn-refresh { flex: 1; background: var(--blue); }
         .btn-close { flex: 1; background: var(--red); color: #fff; }
+        .btn-edit { 
+            flex: 1; background: #C9A84C; color: #000; 
+        }
+        .btn-edit.active { background: #4CAF50; color: #fff; }
+        .btn-save { flex: 1; background: #4CAF50; color: #fff; display: none; }
+        .btn-save.show { display: block; }
+        .btn-reset { flex: 1; background: #666; color: #fff; font-size: 11px; }
+        
+        .edit-hint {
+            display: none;
+            text-align: center;
+            font-size: 12px;
+            color: #4CAF50;
+            margin: 4px 0;
+            padding: 6px;
+            background: rgba(76,175,80,0.1);
+            border-radius: 6px;
+        }
+        .edit-hint.show { display: block; }
         
         .loading { text-align: center; padding: 20px; color: #888; }
         .empty { text-align: center; padding: 20px; color: #666; }
@@ -86,6 +105,11 @@
         .leaflet-popup-tip { background: #1A1A2E !important; }
         .leaflet-popup-content { font-size: 13px; margin: 8px 12px; }
         .leaflet-popup-content b { color: var(--gold); }
+        
+        /* Стиль для редактируемых маркеров */
+        .edit-marker {
+            cursor: move !important;
+        }
     </style>
 </head>
 <body>
@@ -95,6 +119,10 @@
     </div>
     
     <div id="map"></div>
+    
+    <div class="edit-hint" id="editHint">
+        ✋ Режим редактирования: перетаскивай остановки мышкой
+    </div>
     
     <div class="legend">
         <span><span class="dot" style="background:#5A9E6F;"></span> Едет</span>
@@ -109,6 +137,8 @@
     </div>
     
     <div class="bottom-bar">
+        <button class="btn btn-edit" id="btnEdit" onclick="toggleEditMode()">✏️ Править</button>
+        <button class="btn btn-save" id="btnSave" onclick="saveStops()">💾 Сохранить</button>
         <button class="btn btn-refresh" onclick="loadData()">🔄 Обновить</button>
         <button class="btn btn-close" onclick="closeWindow()">✕ Закрыть</button>
     </div>
@@ -126,45 +156,42 @@
             }
         } catch(e) {}
         
+        // ==================== ЗАГРУЗКА СОХРАНЁННЫХ ОСТАНОВОК ====================
+        function loadSavedStops() {
+            var saved = localStorage.getItem('tram_stops_v2');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch(e) {}
+            }
+            // Стандартные координаты (будут перезаписаны при редактировании)
+            return [
+                { lat: 53.4160, lng: 58.9900, name: 'Юность', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4155, lng: 58.9880, name: 'Дружбы', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4140, lng: 58.9860, name: 'Гостиный двор', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4120, lng: 58.9840, name: 'Завенягина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4090, lng: 58.9820, name: 'Политех', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4065, lng: 58.9800, name: 'Советской Армии', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4050, lng: 58.9780, name: 'Пл. Мира', routes: '1, 3, 11, 14, 16, 20, 22, 33' },
+                { lat: 53.4035, lng: 58.9760, name: 'Карла Маркса', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4005, lng: 58.9740, name: 'Центральный рынок', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.3980, lng: 58.9720, name: 'Гагарина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
+                { lat: 53.4030, lng: 58.9800, name: 'Цирк', routes: '11, 14, 16, 22' }
+            ];
+        }
+        
+        function saveStopsToStorage(stops) {
+            // Сохраняем только lat, lng, name, routes
+            var toSave = stops.map(function(s) {
+                return { lat: s.lat, lng: s.lng, name: s.name, routes: s.routes };
+            });
+            localStorage.setItem('tram_stops_v2', JSON.stringify(toSave));
+            console.log('💾 Остановки сохранены:', toSave);
+        }
+        
+        var STOPS = loadSavedStops();
+        
         // ==================== КОНФИГУРАЦИЯ ====================
-        // Остановки в правильном порядке: Юность (мост) → Гагарина (северо-запад)
-        var STOPS = [
-            { lat: 53.4160, lng: 58.9900, name: 'Юность', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4155, lng: 58.9880, name: 'Дружбы', routes: '7, 9, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4140, lng: 58.9860, name: 'Гостиный двор', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4120, lng: 58.9840, name: 'Завенягина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4090, lng: 58.9820, name: 'Политех', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4065, lng: 58.9800, name: 'Советской Армии', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4050, lng: 58.9780, name: 'Пл. Мира', routes: '1, 3, 11, 14, 16, 20, 22, 33' },
-            { lat: 53.4035, lng: 58.9760, name: 'Карла Маркса', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4005, lng: 58.9740, name: 'Центральный рынок', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.3980, lng: 58.9720, name: 'Гагарина', routes: '1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31' },
-            { lat: 53.4030, lng: 58.9800, name: 'Цирк', routes: '11, 14, 16, 22' }
-        ];
-        
-        // Основная линия: Юность → Гагарина
-        var LINE_GAGARINA_YUNOST = [
-            [53.4160, 58.9920],
-            [53.4160, 58.9900],  // Юность
-            [53.4155, 58.9880],  // Дружбы
-            [53.4140, 58.9860],  // Гостиный двор
-            [53.4120, 58.9840],  // Завенягина
-            [53.4090, 58.9820],  // Политех
-            [53.4065, 58.9800],  // Советской Армии
-            [53.4050, 58.9780],  // Пл. Мира
-            [53.4035, 58.9760],  // Карла Маркса
-            [53.4005, 58.9740],  // Центральный рынок
-            [53.3980, 58.9720],  // Гагарина
-            [53.3950, 58.9700]
-        ];
-        
-        // Ответвление: Пл. Мира → Цирк
-        var LINE_MIRA = [
-            [53.4050, 58.9780],  // Пл. Мира
-            [53.4040, 58.9790],
-            [53.4030, 58.9800]   // Цирк
-        ];
-        
         var STOP_ROUTES = [1, 5, 11, 15, 17, 20, 22, 24, 27, 29, 31];
         
         var API_URL = 'https://smarttransport.online/magnitogorsk/php/apiRequest.php?getVehiclesAnimation.php';
@@ -183,6 +210,8 @@
         var trams = [];
         var tramLayer;
         var tramMarkers = {};
+        var stopMarkers = [];
+        var isEditMode = false;
         
         // ==================== КАРТА ====================
         var map = L.map('map').setView([53.407, 58.981], 15);
@@ -193,40 +222,112 @@
             maxZoom: 19
         }).addTo(map);
         
-        // Линия Гагарина-Юность (приглушённый жёлтый)
-        L.polyline(LINE_GAGARINA_YUNOST, {
-            color: '#8B7D3C', weight: 4, opacity: 0.7
-        }).addTo(map);
-        
-        // Линия на Цирк (приглушённый серо-жёлтый, пунктир)
-        L.polyline(LINE_MIRA, {
-            color: '#6B5D2C', weight: 3, opacity: 0.5, dashArray: '6, 6'
-        }).addTo(map);
-        
-        // Остановки (приглушённые)
-        STOPS.forEach(function(stop) {
-            var marker = L.circleMarker([stop.lat, stop.lng], {
-                radius: 7,
-                color: '#8B7D3C',
-                fillColor: '#5A4E2C',
-                fillOpacity: 0.8,
-                weight: 1.5
-            }).addTo(map);
+        // Линия пути
+        function updatePathLine() {
+            // Удаляем старую линию, если есть
+            if (window._pathLine) map.removeLayer(window._pathLine);
             
-            marker.bindPopup('<b>' + stop.name + '</b><br>🚋 ' + stop.routes);
-            
-            L.marker([stop.lat, stop.lng], {
-                icon: L.divIcon({
-                    className: '',
-                    html: '<div style="color:#8B7D3C;font-size:9px;font-weight:bold;text-shadow:0 0 3px #000;white-space:nowrap;transform:translate(-50%,-160%);">' + stop.name + '</div>',
-                    iconSize: [0, 0]
-                })
+            var coords = STOPS.map(function(s) { return [s.lat, s.lng]; });
+            window._pathLine = L.polyline(coords, {
+                color: '#8B7D3C', weight: 4, opacity: 0.7
             }).addTo(map);
-        });
+        }
+        
+        // Создаём/обновляем маркеры остановок
+        function renderStopMarkers() {
+            // Удаляем старые
+            stopMarkers.forEach(function(m) { map.removeLayer(m); });
+            stopMarkers = [];
+            
+            STOPS.forEach(function(stop, index) {
+                var marker = L.marker([stop.lat, stop.lng], {
+                    draggable: isEditMode,
+                    icon: L.divIcon({
+                        className: isEditMode ? 'edit-marker' : '',
+                        html: '<div style="' +
+                            'width:14px;height:14px;border-radius:50%;' +
+                            'background:' + (isEditMode ? '#FFD700' : '#5A4E2C') + ';' +
+                            'border:2px solid ' + (isEditMode ? '#FFF' : '#8B7D3C') + ';' +
+                            'box-shadow:0 0 4px rgba(0,0,0,0.5);' +
+                            '"></div>',
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7]
+                    })
+                }).addTo(map);
+                
+                // Подпись
+                var label = L.marker([stop.lat, stop.lng], {
+                    icon: L.divIcon({
+                        className: '',
+                        html: '<div style="color:' + (isEditMode ? '#FFD700' : '#8B7D3C') + ';font-size:9px;font-weight:bold;text-shadow:0 0 3px #000;white-space:nowrap;transform:translate(-50%,-180%);">' + 
+                            (isEditMode ? '🖐 ' : '') + stop.name + '</div>',
+                        iconSize: [0, 0]
+                    })
+                }).addTo(map);
+                
+                marker.bindPopup('<b>' + stop.name + '</b><br>🚋 ' + stop.routes);
+                
+                // Обработчик перетаскивания
+                marker.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    STOPS[index].lat = pos.lat;
+                    STOPS[index].lng = pos.lng;
+                    console.log('📍 ' + STOPS[index].name + ' → ' + pos.lat.toFixed(5) + ', ' + pos.lng.toFixed(5));
+                    updatePathLine();
+                    renderStopMarkers();
+                });
+                
+                stopMarkers.push(marker);
+                stopMarkers.push(label);
+            });
+            
+            updatePathLine();
+        }
         
         tramLayer = L.layerGroup().addTo(map);
         
-        // ==================== ФУНКЦИИ ====================
+        // ==================== РЕЖИМ РЕДАКТИРОВАНИЯ ====================
+        window.toggleEditMode = function() {
+            isEditMode = !isEditMode;
+            var btnEdit = document.getElementById('btnEdit');
+            var btnSave = document.getElementById('btnSave');
+            var editHint = document.getElementById('editHint');
+            
+            if (isEditMode) {
+                btnEdit.textContent = '👁 Смотр';
+                btnEdit.classList.add('active');
+                btnSave.classList.add('show');
+                editHint.classList.add('show');
+            } else {
+                btnEdit.textContent = '✏️ Править';
+                btnEdit.classList.remove('active');
+                btnSave.classList.remove('show');
+                editHint.classList.remove('show');
+            }
+            
+            renderStopMarkers();
+        };
+        
+        window.saveStops = function() {
+            saveStopsToStorage(STOPS);
+            alert('✅ Остановки сохранены!\n\nКоординаты записаны в память браузера.\nТеперь они будут использоваться всегда.');
+            console.log('📋 Сохранённые остановки:');
+            STOPS.forEach(function(s, i) {
+                console.log((i+1) + '. ' + s.name + ': ' + s.lat + ', ' + s.lng);
+            });
+        };
+        
+        // Кнопка сброса
+        window.resetStops = function() {
+            if (confirm('Сбросить все остановки к стандартным координатам?')) {
+                localStorage.removeItem('tram_stops_v2');
+                STOPS = loadSavedStops();
+                renderStopMarkers();
+                alert('🔄 Остановки сброшены к стандартным.');
+            }
+        };
+        
+        // ==================== ФУНКЦИИ ТРАМВАЕВ ====================
         function getTramIcon(speed, routeNum) {
             var color = speed > 0 ? '#5A9E6F' : '#CC6B6B';
             return L.divIcon({
@@ -298,14 +399,18 @@
                 return;
             }
             
+            // Сортируем по расстоянию до Гагарина
+            var gagLat = STOPS[STOPS.length - 2].lat; // Гагарина — предпоследняя
+            var gagLng = STOPS[STOPS.length - 2].lng;
+            
             var sorted = [...trams].sort(function(a, b) {
-                return haversine(53.398, 58.972, a.lat, a.lng) - haversine(53.398, 58.972, b.lat, b.lng);
+                return haversine(gagLat, gagLng, a.lat, a.lng) - haversine(gagLat, gagLng, b.lat, b.lng);
             });
             
             var html = '<div class="tram-list">';
             sorted.forEach(function(t) {
                 var isMoving = t.speed > 0;
-                var dist = Math.round(haversine(53.398, 58.972, t.lat, t.lng));
+                var dist = Math.round(haversine(gagLat, gagLng, t.lat, t.lng));
                 var eta = '';
                 if (isMoving && t.speed > 0) eta = '⏱ ~' + Math.round(dist / (t.speed * 1000 / 60)) + ' мин';
                 
@@ -344,9 +449,18 @@
             } catch(e) {}
         }
         
+        // ==================== ЗАПУСК ====================
         document.addEventListener('DOMContentLoaded', function() {
+            renderStopMarkers();
             loadData();
             setInterval(loadData, 15000);
+            
+            // Добавляем кнопку сброса (маленькая, в уголке)
+            var resetBtn = document.createElement('button');
+            resetBtn.textContent = '↺ Сброс';
+            resetBtn.style.cssText = 'position:fixed;top:50px;right:8px;z-index:1000;padding:4px 8px;font-size:10px;background:#333;color:#888;border:1px solid #555;border-radius:4px;cursor:pointer;';
+            resetBtn.onclick = window.resetStops;
+            document.body.appendChild(resetBtn);
         });
         
         map.on('click', function() {
