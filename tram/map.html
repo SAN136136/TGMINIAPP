@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Трамваи Магнитогорска</title>
+    <title>Трамваи Магнитогорска - Схема</title>
     
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
     <style>
         :root {
             --bg: #0A0A14;
@@ -38,10 +36,11 @@
         
         #map {
             width: 100%;
-            height: 450px;
+            height: 500px;
             border-radius: 12px;
             border: 1px solid #2A2A4A;
             z-index: 1;
+            background: #0D0D1A;
         }
         
         .legend {
@@ -51,7 +50,6 @@
             font-size: 11px;
             color: #888;
             margin: 8px 0;
-            flex-wrap: wrap;
         }
         .legend span { display: flex; align-items: center; gap: 4px; }
         .legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -108,21 +106,11 @@
         
         .loading { text-align: center; padding: 20px; color: #888; }
         .empty { text-align: center; padding: 20px; color: #666; }
-        
-        /* Стили для popup */
-        .leaflet-popup-content-wrapper {
-            background: #1A1A2E !important;
-            color: #CCC !important;
-            border-radius: 8px !important;
-        }
-        .leaflet-popup-tip { background: #1A1A2E !important; }
-        .leaflet-popup-content { font-size: 13px; margin: 8px 12px; }
-        .leaflet-popup-content b { color: #FFD700; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🚋 Трамваи Магнитогорска</h1>
+        <h1>🚋 Трамваи на схеме</h1>
         <div class="subtitle">Гагарина ↔ Юность | Пл. Мира</div>
     </div>
     
@@ -131,8 +119,6 @@
     <div class="legend">
         <span><span class="dot" style="background:#4CAF50;"></span> Едет</span>
         <span><span class="dot" style="background:#FF6B6B;"></span> Стоит</span>
-        <span><span class="dot" style="background:#FFD700;"></span> Остановка</span>
-        <span style="font-size:10px;">📏 Линия пути</span>
     </div>
     
     <div class="update-time" id="updateTime"></div>
@@ -146,12 +132,10 @@
         <button class="btn btn-close" onclick="closeWindow()">✕ Закрыть</button>
     </div>
     
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
     (function() {
-        // Скрываем loginScreen родителя, если мы в iframe
         try {
             if (window.parent && window.parent !== window) {
                 var parentLogin = window.parent.document.getElementById('loginScreen');
@@ -160,35 +144,15 @@
                 if (parentMain) parentMain.style.display = 'block';
             }
         } catch(e) {}
-        
+
         // ==================== КОНФИГУРАЦИЯ ====================
-        var CENTER_LAT = 53.407;
-        var CENTER_LNG = 58.982;
-        var DEFAULT_ZOOM = 14;
-        
-        // Остановки с маршрутами
-        var STOPS = [
-            { lat: 53.398, lng: 58.978, name: 'Гагарина', routes: '1, 5, 11, 15, 17' },
-            { lat: 53.405, lng: 58.985, name: 'Пл. Мира', routes: '1, 3, 11, 14, 16, 33' },
-            { lat: 53.416, lng: 58.985, name: 'Юность', routes: '7, 9, 15, 17, 20' },
-            { lat: 53.407, lng: 58.983, name: 'Цирк', routes: '11, 14' },
-            { lat: 53.412, lng: 58.982, name: 'Грязнова', routes: '11, 14, 16А' }
-        ];
-        
-        // Линия пути (проспект Карла Маркса)
-        var TRAM_LINE = [
-            [53.393, 58.977],
-            [53.398, 58.978],  // Гагарина
-            [53.401, 58.980],
-            [53.405, 58.985],  // Пл. Мира
-            [53.408, 58.983],
-            [53.412, 58.982],  // Грязнова
-            [53.416, 58.985],  // Юность
-            [53.420, 58.986]
-        ];
-        
-        var STOP_ROUTES = [1, 5, 11, 15, 17];
-        
+        // Координаты на картинке схемы (пиксели)
+        // Эти значения нужно подогнать под твою картинку
+        var STOP_GAGARINA = { x: 200, y: 150, name: 'Гагарина' };
+        var STOP_MIRA = { x: 350, y: 150, name: 'Пл. Мира' };
+        var STOP_YUNOST = { x: 600, y: 150, name: 'Юность' };
+        var STOP_CIRK = { x: 350, y: 350, name: 'Цирк' };
+
         // API
         var API_URL = 'https://smarttransport.online/magnitogorsk/php/apiRequest.php?getVehiclesAnimation.php';
         var PAYLOAD = {
@@ -202,64 +166,48 @@
                 curk: 0
             }
         };
+        var STOP_ROUTES = [1, 5, 11, 15, 17];
         
+        var trams = [];
+        var tramMarkersGroup;
+
         // ==================== ИНИЦИАЛИЗАЦИЯ КАРТЫ ====================
-        var map = L.map('map').setView([CENTER_LAT, CENTER_LNG], DEFAULT_ZOOM);
-        
-        // Тёмная подложка
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap, © CartoDB',
-            subdomains: 'abcd',
-            maxZoom: 19
-        }).addTo(map);
-        
-        // Линия трамвайного пути
-        var tramLine = L.polyline(TRAM_LINE, {
-            color: '#FFD700',
-            weight: 5,
-            opacity: 0.7,
-            dashArray: '10, 10'
-        }).addTo(map);
-        
-        // Маркеры остановок
-        var stopMarkers = [];
-        STOPS.forEach(function(stop) {
-            var marker = L.circleMarker([stop.lat, stop.lng], {
-                radius: 9,
+        var map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: -2,
+            maxZoom: 5,
+            zoomControl: true,
+            attributionControl: false
+        });
+
+        // Начальные границы для схемы
+        var bounds = [[0, 0], [500, 800]];
+        map.fitBounds(bounds);
+
+        // Добавляем картинку схемы как слой
+        var imageUrl = 'schema.png'; // <-- УБЕДИСЬ, ЧТО ФАЙЛ schema.png ЛЕЖИТ В ПАПКЕ tram/
+        var imageBounds = [[0, 0], [500, 800]]; // Размеры картинки
+        L.imageOverlay(imageUrl, imageBounds).addTo(map);
+
+        // Группа для трамваев
+        tramMarkersGroup = L.layerGroup().addTo(map);
+
+        // Отрисовка остановок (уже есть на схеме, но для интерактивности)
+        var stops = [STOP_GAGARINA, STOP_MIRA, STOP_YUNOST, STOP_CIRK];
+        stops.forEach(function(stop) {
+            var marker = L.circleMarker([stop.y, stop.x], {
+                radius: 6,
                 color: '#FFD700',
                 fillColor: '#FFD700',
-                fillOpacity: 0.9,
-                weight: 2
+                fillOpacity: 0.8
             }).addTo(map);
-            
-            marker.bindPopup(
-                '<b>' + stop.name + '</b><br>' +
-                '🚋 Маршруты: ' + stop.routes
-            );
-            
-            // Подпись остановки
-            L.marker([stop.lat, stop.lng], {
-                icon: L.divIcon({
-                    className: 'stop-label',
-                    html: '<div style="color:#FFD700;font-size:10px;font-weight:bold;text-shadow:0 0 4px #000;white-space:nowrap;margin-left:-20px;margin-top:-22px;">' + stop.name + '</div>',
-                    iconSize: [0, 0]
-                })
-            }).addTo(map);
-            
-            stopMarkers.push(marker);
+            marker.bindPopup('<b>' + stop.name + '</b>');
         });
-        
-        // Группа для маркеров трамваев
-        var tramLayer = L.layerGroup().addTo(map);
-        var trams = [];
-        var tramMarkers = {};
-        
+
         // ==================== ФУНКЦИИ ====================
         function getTramIcon(speed, routeNum) {
             var isMoving = speed > 0;
             var color = isMoving ? '#4CAF50' : '#FF6B6B';
-            var arrow = isMoving ? '▲' : '■';
-            
             return L.divIcon({
                 className: 'tram-icon',
                 html: '<div style="' +
@@ -273,7 +221,52 @@
                 iconAnchor: [14, 14]
             });
         }
-        
+
+        // Функция для пересчета GPS в координаты схемы
+        function gpsToSchema(lat, lng) {
+            // Определяем, к какой линии ближе точка: Гагарина-Юность или Пл.Мира-Цирк
+            var distToGagYun = distanceToLine(lat, lng, 53.398, 58.978, 53.416, 58.985);
+            var distToMirCir = distanceToLine(lat, lng, 53.405, 58.985, 53.395, 59.000); // Примерные координаты Цирка
+            
+            if (distToMirCir < distToGagYun) {
+                // Точка ближе к линии Пл.Мира - Цирк
+                var percent = getPercentOnLine(lat, lng, 53.405, 58.985, 53.395, 59.000);
+                return {
+                    x: STOP_MIRA.x + (STOP_CIRK.x - STOP_MIRA.x) * percent,
+                    y: STOP_MIRA.y + (STOP_CIRK.y - STOP_MIRA.y) * percent
+                };
+            } else {
+                // Точка ближе к линии Гагарина - Юность
+                var percent = getPercentOnLine(lat, lng, 53.398, 58.978, 53.416, 58.985);
+                return {
+                    x: STOP_GAGARINA.x + (STOP_YUNOST.x - STOP_GAGARINA.x) * percent,
+                    y: STOP_GAGARINA.y + (STOP_YUNOST.y - STOP_GAGARINA.y) * percent
+                };
+            }
+        }
+
+        function getPercentOnLine(lat, lng, lat1, lng1, lat2, lng2) {
+            // Упрощенный расчет: сравниваем долю широты
+            var total = lat2 - lat1;
+            if (Math.abs(total) < 0.001) total = lng2 - lng1;
+            var current = lat - lat1;
+            if (Math.abs(lat2 - lat1) < 0.001) current = lng - lng1;
+            return Math.max(0, Math.min(1, current / total));
+        }
+
+        function distanceToLine(lat, lng, lat1, lng1, lat2, lng2) {
+            // Упрощенное расстояние до отрезка
+            var dlat = lat2 - lat1;
+            var dlng = lng2 - lng1;
+            var lengthSq = dlat*dlat + dlng*dlng;
+            if (lengthSq < 0.000001) return Math.sqrt((lat-lat1)*(lat-lat1) + (lng-lng1)*(lng-lng1));
+            var t = ((lat - lat1) * dlat + (lng - lng1) * dlng) / lengthSq;
+            t = Math.max(0, Math.min(1, t));
+            var projLat = lat1 + t * dlat;
+            var projLng = lng1 + t * dlng;
+            return Math.sqrt((lat-projLat)*(lat-projLat) + (lng-projLng)*(lng-projLng));
+        }
+
         async function loadData() {
             try {
                 var resp = await fetch(API_URL, {
@@ -284,7 +277,6 @@
                 var data = await resp.json();
                 
                 if (data.r === 'ok') {
-                    // Фильтруем трамваи
                     var allVehicles = data.data.anims.filter(function(v) {
                         if (v.rtype !== 'Тм') return false;
                         return STOP_ROUTES.includes(parseInt(v.rnum));
@@ -296,47 +288,29 @@
                     
                     var now = new Date();
                     document.getElementById('updateTime').textContent = 
-                        '🕐 Обновлено: ' + now.toLocaleTimeString('ru-RU') + 
-                        ' | 🚋 Трамваев: ' + trams.length;
+                        '🕐 ' + now.toLocaleTimeString('ru-RU') + 
+                        ' | 🚋 ' + trams.length + ' трамваев';
                 }
             } catch (e) {
-                console.error('Ошибка загрузки:', e);
+                console.error(e);
             }
         }
-        
+
         function updateTramMarkers() {
-            // Очищаем старые маркеры
-            tramLayer.clearLayers();
-            tramMarkers = {};
+            tramMarkersGroup.clearLayers();
             
             trams.forEach(function(tram) {
-                var id = tram.deviceCode || tram.gosNum;
+                var pos = gpsToSchema(tram.lat, tram.lng);
                 var icon = getTramIcon(tram.speed, tram.rnum);
+                var marker = L.marker([pos.y, pos.x], { icon: icon }).addTo(tramMarkersGroup);
                 
-                var marker = L.marker([tram.lat, tram.lng], { icon: icon }).addTo(tramLayer);
-                
-                // Popup с информацией
                 var speedText = tram.speed > 0 ? tram.speed + ' км/ч' : 'Стоит';
-                var dirArrow = getDirectionArrow(tram.dir);
-                marker.bindPopup(
-                    '<b>🚋 Трамвай №' + tram.rnum + '</b><br>' +
-                    '🏷️ Борт: ' + tram.gosNum + '<br>' +
-                    '⚡ ' + speedText + ' ' + dirArrow + '<br>' +
-                    '🕐 ' + (tram.navTime || '').substr(-8) + '<br>' +
-                    '<a href="https://maps.yandex.ru/?ll=' + tram.lng + ',' + tram.lat + '&z=16" target="_blank">📍 На карте</a>'
-                );
-                
-                tramMarkers[id] = marker;
+                marker.bindPopup('<b>🚋 №' + tram.rnum + '</b><br>' +
+                    '⚡ ' + speedText + '<br>' +
+                    '🕐 ' + (tram.navTime || '').substr(-8));
             });
         }
-        
-        function getDirectionArrow(dir) {
-            if (dir === undefined || dir === null) return '';
-            var arrows = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
-            var idx = Math.round(dir / 45) % 8;
-            return arrows[idx] || '';
-        }
-        
+
         function renderList() {
             var container = document.getElementById('tramList');
             if (!container) return;
@@ -346,7 +320,6 @@
                 return;
             }
             
-            // Сортируем по расстоянию до Гагарина
             var sorted = [...trams].sort(function(a, b) {
                 var distA = haversine(53.398, 58.978, a.lat, a.lng);
                 var distB = haversine(53.398, 58.978, b.lat, b.lng);
@@ -354,7 +327,6 @@
             });
             
             var html = '<div class="tram-list">';
-            
             sorted.forEach(function(t) {
                 var isMoving = t.speed > 0;
                 var distToGagarina = Math.round(haversine(53.398, 58.978, t.lat, t.lng));
@@ -364,36 +336,22 @@
                 }
                 
                 html += '<div class="tram-row ' + (isMoving ? '' : 'stopped') + '" ' +
-                    'onclick="focusOnTram(\'' + (t.deviceCode || t.gosNum) + '\', ' + t.lat + ', ' + t.lng + ')" ' +
-                    'id="tram-row-' + (t.deviceCode || t.gosNum) + '">';
+                    'onclick="focusOnTram(' + t.lat + ', ' + t.lng + ')">';
                 html += '<span class="tram-route-num">№' + t.rnum + '</span>';
                 html += '<span>' + (isMoving ? t.speed + ' км/ч' : 'Стоит') + '</span>';
                 html += '<span class="tram-dist">' + distToGagarina + 'м</span>';
                 if (eta) html += '<span class="tram-eta">' + eta + '</span>';
                 html += '</div>';
             });
-            
             html += '</div>';
             container.innerHTML = html;
         }
-        
-        // Функция для фокуса на трамвае при клике в списке
-        window.focusOnTram = function(id, lat, lng) {
-            map.flyTo([lat, lng], 16, { duration: 0.8 });
-            
-            // Подсветка строки в списке
-            var rows = document.querySelectorAll('.tram-row');
-            rows.forEach(function(r) { r.classList.remove('highlight'); });
-            var row = document.getElementById('tram-row-' + id);
-            if (row) row.classList.add('highlight');
-            
-            // Открываем popup маркера
-            var marker = tramMarkers[id];
-            if (marker) {
-                marker.openPopup();
-            }
+
+        window.focusOnTram = function(lat, lng) {
+            var pos = gpsToSchema(lat, lng);
+            map.flyTo([pos.y, pos.x], 2, { duration: 0.5 });
         };
-        
+
         function haversine(lat1, lng1, lat2, lng2) {
             var R = 6371000;
             var dlat = (lat2 - lat1) * Math.PI / 180;
@@ -403,7 +361,7 @@
                     Math.sin(dlng/2) * Math.sin(dlng/2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
-        
+
         function closeWindow() {
             try {
                 if (window.parent && window.parent !== window) {
@@ -414,20 +372,11 @@
                 }
             } catch(e) {}
         }
-        
-        // ==================== ЗАПУСК ====================
+
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
-            // Обновление каждые 15 секунд
             setInterval(loadData, 15000);
         });
-        
-        // Обработчик клика по карте — сброс подсветки
-        map.on('click', function() {
-            var rows = document.querySelectorAll('.tram-row');
-            rows.forEach(function(r) { r.classList.remove('highlight'); });
-        });
-        
     })();
     </script>
 </body>
