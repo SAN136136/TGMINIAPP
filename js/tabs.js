@@ -61,15 +61,28 @@ function renderTab(tab) {
             <p class="music-hint">Скоро здесь будут:<br>калькулятор и трамваи</p>
         `;
     } else if (tab === "music") {
-        html = `
-            <div class="section-title">УПРАВЛЕНИЕ МУЗЫКОЙ</div>
-            <div class="buttons">
-                <button class="btn btn-music" onclick="sendCommand('music_play')">▶ Плей / Пауза</button>
-                <button class="btn btn-music-next" onclick="sendCommand('music_next')">⏭ Следующий</button>
-                <button class="btn btn-music-prev" onclick="sendCommand('music_prev')">⏮ Предыдущий</button>
+    html = `
+        <div class="section-title">🎵 СЕЙЧАС ИГРАЕТ</div>
+        <div class="now-playing-card" id="nowPlayingCard">
+            <div class="np-art" id="npArt">🎵</div>
+            <div class="np-info">
+                <div class="np-title" id="npTitle">—</div>
+                <div class="np-artist" id="npArtist">—</div>
+                <div class="np-time" id="npTime">—</div>
+                <div class="np-progress-bar">
+                    <div class="np-progress-fill" id="npProgress"></div>
+                </div>
             </div>
-            <p class="music-hint">Работает с любым плеером<br>(ВК, YouTube Music, Spotify, AIMP)</p>
-        `;
+        </div>
+        <div class="section-title" style="margin-top:15px;">УПРАВЛЕНИЕ</div>
+        <div class="buttons">
+            <button class="btn btn-music" onclick="sendCommand('music_prev')">⏮</button>
+            <button class="btn btn-music" onclick="sendCommand('music_play')">▶️</button>
+            <button class="btn btn-music-next" onclick="sendCommand('music_next')">⏭</button>
+        </div>
+        <button class="btn" onclick="sendCommand('трек')" style="width:100%;margin-top:8px;">🔄 Обновить</button>
+    `;
+}
     } else if (tab === "tools") {
         html = `
             <div class="section-title">ИНСТРУМЕНТЫ</div>
