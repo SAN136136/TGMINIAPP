@@ -107,6 +107,38 @@ function updateMusicInfo() {
     // Отправляем команду
     sendCommand('трек');
     
+    // Ждём 2 секунды и принудительно парсим лог
+    setTimeout(function() {
+        var log = document.getElementById('log');
+        if (log) {
+            var logText = log.innerHTML;
+            console.log('🔍 Лог после команды трек:', logText.substring(0, 300));
+            
+            if (logText.includes('🎵')) {
+                console.log('✅ Найдена музыка в логе!');
+                checkForMusicUpdate();
+            } else {
+                console.log('❌ Музыка не найдена в логе');
+                // Пробуем ещё раз через 2 секунды
+                setTimeout(function() {
+                    var log2 = document.getElementById('log');
+                    if (log2 && log2.innerHTML.includes('🎵')) {
+                        console.log('✅ Найдена музыка при второй попытке!');
+                        checkForMusicUpdate();
+                    } else {
+                        console.log('❌ Музыка так и не появилась');
+                        if (titleEl) titleEl.textContent = 'Нет данных';
+                        var artistEl = document.getElementById('npArtist');
+                        if (artistEl) artistEl.textContent = 'Проверь, запущен ли трекер';
+                    }
+                }, 2000);
+            }
+        }
+    }, 2000);
+}
+    // Отправляем команду
+    sendCommand('трек');
+    
     // Ждём 3 секунды и принудительно парсим лог
     setTimeout(function() {
         var log = document.getElementById('log');
