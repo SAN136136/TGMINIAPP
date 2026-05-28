@@ -60,26 +60,25 @@ function renderTab(tab) {
             </div>
         `;
     } else if (tab === "music") {
-    html = `
-        <div class="music-player">
-            <div class="music-art" id="npArt" style="background-image:url('');">
-                <div class="music-controls">
-                    <button class="ctrl-btn" onclick="sendCommand('music_prev')">⏮</button>
-                    <button class="ctrl-btn ctrl-play" onclick="sendCommand('music_play')">▶</button>
-                    <button class="ctrl-btn" onclick="sendCommand('music_next')">⏭</button>
+        html = `
+            <div class="music-player">
+                <div class="music-art" id="npArt">
+                    <div class="music-controls">
+                        <button class="ctrl-btn" onclick="sendCommand('music_prev')">⏮</button>
+                        <button class="ctrl-btn ctrl-play" onclick="sendCommand('music_play')">▶</button>
+                        <button class="ctrl-btn" onclick="sendCommand('music_next')">⏭</button>
+                    </div>
                 </div>
+                <div class="music-info">
+                    <div class="np-title" id="npTitle">Нажми «Обновить»</div>
+                    <div class="np-artist" id="npArtist">чтобы увидеть трек</div>
+                    <div class="np-time" id="npTime">—</div>
+                </div>
+                <button class="btn" onclick="updateMusicInfo()" style="width:100%;margin-top:12px;background:#3A5A6B;color:#FFF;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;">🔄 Обновить</button>
+                <p class="music-hint" style="margin-top:8px;">YouTube Music • ВК • Spotify</p>
             </div>
-            <div class="music-info">
-                <div class="np-title" id="npTitle">Нажми «Обновить»</div>
-                <div class="np-artist" id="npArtist">чтобы увидеть трек</div>
-                <div class="np-time" id="npTime">—</div>
-            </div>
-            <button class="btn" onclick="updateMusicInfo()" style="width:100%;margin-top:12px;background:#3A5A6B;color:#FFF;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;">🔄 Обновить</button>
-            <p class="music-hint" style="margin-top:8px;">YouTube Music • ВК • Spotify</p>
-        </div>
-    `;
-    setTimeout(() => sendCommand('трек'), 300);
-}
+        `;
+        setTimeout(() => sendCommand('трек'), 300);
     } else if (tab === "tools") {
         html = `
             <div class="section-title">ИНСТРУМЕНТЫ</div>
@@ -99,35 +98,7 @@ function renderTab(tab) {
 function updateMusicInfo() {
     var titleEl = document.getElementById('npTitle');
     if (titleEl) titleEl.textContent = 'Загрузка...';
-    
     sendCommand('трек');
-    
-    setTimeout(function() {
-        var log = document.getElementById('log');
-        if (log) {
-            var logText = log.innerHTML;
-            console.log('Лог после команды трек:', logText.substring(0, 300));
-            
-            if (logText.includes('🎵')) {
-                console.log('Найдена музыка в логе!');
-                checkForMusicUpdate();
-            } else {
-                console.log('Музыка не найдена, пробую ещё раз...');
-                setTimeout(function() {
-                    var log2 = document.getElementById('log');
-                    if (log2 && log2.innerHTML.includes('🎵')) {
-                        console.log('Найдена при второй попытке!');
-                        checkForMusicUpdate();
-                    } else {
-                        console.log('Музыка так и не появилась');
-                        if (titleEl) titleEl.textContent = 'Нет данных';
-                        var artistEl = document.getElementById('npArtist');
-                        if (artistEl) artistEl.textContent = 'Проверь, запущен ли трекер';
-                    }
-                }, 2000);
-            }
-        }
-    }, 2000);
 }
 
 function checkForMusicUpdate() {
@@ -172,22 +143,12 @@ setInterval(checkForMusicUpdate, 3000);
 function openTramWindow() {
     const loginScreen = document.getElementById('loginScreen');
     if (loginScreen) loginScreen.style.display = 'none';
-    
     const mainScreen = document.getElementById('mainScreen');
     if (mainScreen) mainScreen.style.display = 'block';
     
     const modal = document.createElement('div');
     modal.id = 'tramModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #0A0A14;
-        z-index: 9999;
-        overflow-y: auto;
-    `;
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0A0A14;z-index:9999;overflow-y:auto;';
     
     const iframe = document.createElement('iframe');
     iframe.src = 'tram/map.html';
@@ -195,18 +156,8 @@ function openTramWindow() {
     
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
-    closeBtn.style.cssText = `
-        position:fixed;top:12px;right:12px;z-index:10000;
-        width:40px;height:40px;background:#FF6B6B;color:white;
-        border:none;border-radius:50%;cursor:pointer;
-        font-size:18px;font-weight:bold;display:flex;
-        align-items:center;justify-content:center;
-        box-shadow:0 2px 8px rgba(0,0,0,0.5);
-    `;
-    closeBtn.onclick = function() {
-        document.body.removeChild(modal);
-        document.body.removeChild(closeBtn);
-    };
+    closeBtn.style.cssText = 'position:fixed;top:12px;right:12px;z-index:10000;width:40px;height:40px;background:#FF6B6B;color:white;border:none;border-radius:50%;cursor:pointer;font-size:18px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.5);';
+    closeBtn.onclick = () => { document.body.removeChild(modal); document.body.removeChild(closeBtn); };
     
     modal.appendChild(iframe);
     document.body.appendChild(modal);
@@ -217,12 +168,10 @@ function openTramWindow() {
 function checkForPhoto() {
     const log = document.getElementById('log');
     if (!log) return;
-    
     const logText = log.innerHTML;
     if (logText.includes('/show_photo')) {
         let match = logText.match(/\/show_photo\s+(https?:\/\/\S+)/);
         if (!match) match = logText.match(/\/show_photo\s+(.+)/);
-        
         if (match) {
             openPhotoModal(match[1].trim());
             document.getElementById('log').innerHTML = logText.replace(/\/show_photo\s+\S+/, '📸 Фото получено');
@@ -236,11 +185,7 @@ function openPhotoModal(fileUrl) {
     
     const modal = document.createElement('div');
     modal.id = 'photoModal';
-    modal.style.cssText = `
-        position:fixed;top:0;left:0;width:100%;height:100%;
-        background:rgba(0,0,0,0.95);z-index:10001;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-    `;
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10001;display:flex;flex-direction:column;align-items:center;justify-content:center;';
     
     const loading = document.createElement('div');
     loading.textContent = 'Загрузка фото...';
@@ -281,9 +226,7 @@ function openCheatsheetMenu() {
                 window.cheatsheetData = data;
                 showCheatsheetMenuModal();
             })
-            .catch(() => {
-                document.getElementById("log").innerHTML = "❌ Ошибка загрузки шпаргалок";
-            });
+            .catch(() => document.getElementById("log").innerHTML = "❌ Ошибка загрузки шпаргалок");
     } else {
         showCheatsheetMenuModal();
     }
@@ -291,21 +234,13 @@ function openCheatsheetMenu() {
 
 function showCheatsheetMenuModal() {
     const data = window.cheatsheetData;
-    if (!data) {
-        document.getElementById("log").innerHTML = "❌ Шпаргалки не загружены";
-        return;
-    }
+    if (!data) { document.getElementById("log").innerHTML = "❌ Шпаргалки не загружены"; return; }
     
-    let html = `<h2>📝 Шпаргалки</h2>`;
-    html += `<p style="color:#888;font-size:12px;margin-bottom:15px;text-align:center;">Выбери предмет</p>`;
-    html += `<div class="buttons" style="grid-template-columns: 1fr 1fr;">`;
-    
+    let html = `<h2>📝 Шпаргалки</h2><p style="color:#888;font-size:12px;margin-bottom:15px;text-align:center;">Выбери предмет</p><div class="buttons" style="grid-template-columns:1fr 1fr;">`;
     for (let [key, subject] of Object.entries(data)) {
-        const hasContent = subject.sections && subject.sections.length > 0;
-        const badge = hasContent ? "" : `<span class="wip-badge">WIP</span>`;
+        const badge = subject.sections?.length ? "" : '<span class="wip-badge">WIP</span>';
         html += `<button class="btn" style="background:#3A5A6B;" onclick="openCheatsheet('${key}')">${subject.icon} ${subject.name}${badge}</button>`;
     }
-    
     html += `</div>`;
     document.getElementById("cheatsheetContent").innerHTML = html;
     document.getElementById("cheatsheetModal").style.display = "flex";
