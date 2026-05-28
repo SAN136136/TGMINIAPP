@@ -60,29 +60,26 @@ function renderTab(tab) {
             </div>
         `;
     } else if (tab === "music") {
-        html = `
-            <div class="section-title">🎵 СЕЙЧАС ИГРАЕТ</div>
-            <div class="now-playing-card" id="nowPlayingCard">
-                <div class="np-art" id="npArt">🎵</div>
-                <div class="np-info">
-                    <div class="np-title" id="npTitle">Нажми «Обновить»</div>
-                    <div class="np-artist" id="npArtist">чтобы увидеть трек</div>
-                    <div class="np-time" id="npTime">—</div>
-                    <div class="np-progress-bar">
-                        <div class="np-progress-fill" id="npProgress" style="width:0%"></div>
-                    </div>
+    html = `
+        <div class="music-player">
+            <div class="music-art" id="npArt" style="background-image:url('');">
+                <div class="music-controls">
+                    <button class="ctrl-btn" onclick="sendCommand('music_prev')">⏮</button>
+                    <button class="ctrl-btn ctrl-play" onclick="sendCommand('music_play')">▶</button>
+                    <button class="ctrl-btn" onclick="sendCommand('music_next')">⏭</button>
                 </div>
             </div>
-            <div class="section-title" style="margin-top:15px;">УПРАВЛЕНИЕ</div>
-            <div class="buttons">
-                <button class="btn btn-music" onclick="sendCommand('music_prev')">⏮</button>
-                <button class="btn btn-music" onclick="sendCommand('music_play')">▶️</button>
-                <button class="btn btn-music" onclick="sendCommand('music_next')">⏭</button>
+            <div class="music-info">
+                <div class="np-title" id="npTitle">Нажми «Обновить»</div>
+                <div class="np-artist" id="npArtist">чтобы увидеть трек</div>
+                <div class="np-time" id="npTime">—</div>
             </div>
-            <button class="btn" onclick="updateMusicInfo()" style="width:100%;margin-top:8px;background:#3A5A6B;color:#FFF;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;">🔄 Обновить</button>
-            <p class="music-hint" style="margin-top:10px;">YouTube Music • ВК • Spotify</p>
-        `;
-        setTimeout(() => sendCommand('трек'), 300);
+            <button class="btn" onclick="updateMusicInfo()" style="width:100%;margin-top:12px;background:#3A5A6B;color:#FFF;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;">🔄 Обновить</button>
+            <p class="music-hint" style="margin-top:8px;">YouTube Music • ВК • Spotify</p>
+        </div>
+    `;
+    setTimeout(() => sendCommand('трек'), 300);
+}
     } else if (tab === "tools") {
         html = `
             <div class="section-title">ИНСТРУМЕНТЫ</div>
