@@ -138,24 +138,24 @@ function checkForMusicUpdate() {
     if (!log) return;
 
     var logText = log.innerHTML;
-    // Ищем 🎵 где угодно в тексте
     if (logText.includes('🎵')) {
-        var bMatch = logText.match(/<b>(.+?)<\/b>/);
+        // Новый способ: ищем текст после 🎵 до конца строки
+        var titleMatch = logText.match(/🎵\s*(.+?)(?:\n|$|<br>|<)/);
         var artistMatch = logText.match(/👤\s*(.+?)(?:\n|$|<)/);
 
-        if (bMatch) {
-            var title = bMatch[1];
+        if (titleMatch && titleMatch[1]) {
+            var title = titleMatch[1].trim();
             var artist = '';
-            if (artistMatch) {
+            if (artistMatch && artistMatch[1]) {
                 artist = artistMatch[1].split('•')[0].trim();
             }
             
+            console.log('✅ Обновляю карточку:', title, artist);
             updateNowPlayingCard(artist, title, '', 0, 0, true);
             document.getElementById('log').innerHTML = '[Готов к работе]';
         }
     }
 }
-
 function updateNowPlayingCard(artist, title, album, position, duration, isPlaying) {
     var titleEl = document.getElementById('npTitle');
     var artistEl = document.getElementById('npArtist');
