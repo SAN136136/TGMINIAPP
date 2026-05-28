@@ -108,8 +108,8 @@ function checkForMusicUpdate() {
     if (!log) return;
     var logText = log.innerHTML;
     
-    // Проверяем, не пришёл ли новый трек
-    if (logText.includes('🎵')) {
+    // Новый трек (не ответ на команду управления)
+    if (logText.includes('🎵') && !logText.includes('🎵 OK')) {
         var titleMatch = logText.match(/🎵\s*(.+?)(?:\n|$|<br>|<)/);
         var artistMatch = logText.match(/👤\s*(.+?)(?:\n|$|<)/);
         var imgMatch = logText.match(/🖼\s*(.+?)(?:\n|$|<)/);
@@ -127,8 +127,8 @@ function checkForMusicUpdate() {
         }
     }
     
-    // Восстанавливаем карточку после команд управления
-    if (logText.includes('Выполнено') && lastTrackInfo) {
+    // Восстанавливаем карточку после команды управления
+    if (logText.includes('🎵 OK') && lastTrackInfo) {
         updateNowPlayingCardFromInfo();
         document.getElementById('log').innerHTML = '[Готов к работе]';
     }
