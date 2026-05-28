@@ -100,33 +100,29 @@ function renderTab(tab) {
 
 // ==================== МУЗЫКА ====================
 function updateMusicInfo() {
-    // Показываем, что загружаем
     var titleEl = document.getElementById('npTitle');
     if (titleEl) titleEl.textContent = 'Загрузка...';
     
-    // Отправляем команду
     sendCommand('трек');
     
-    // Ждём 2 секунды и принудительно парсим лог
     setTimeout(function() {
         var log = document.getElementById('log');
         if (log) {
             var logText = log.innerHTML;
-            console.log('🔍 Лог после команды трек:', logText.substring(0, 300));
+            console.log('Лог после команды трек:', logText.substring(0, 300));
             
             if (logText.includes('🎵')) {
-                console.log('✅ Найдена музыка в логе!');
+                console.log('Найдена музыка в логе!');
                 checkForMusicUpdate();
             } else {
-                console.log('❌ Музыка не найдена в логе');
-                // Пробуем ещё раз через 2 секунды
+                console.log('Музыка не найдена, пробую ещё раз...');
                 setTimeout(function() {
                     var log2 = document.getElementById('log');
                     if (log2 && log2.innerHTML.includes('🎵')) {
-                        console.log('✅ Найдена музыка при второй попытке!');
+                        console.log('Найдена при второй попытке!');
                         checkForMusicUpdate();
                     } else {
-                        console.log('❌ Музыка так и не появилась');
+                        console.log('Музыка так и не появилась');
                         if (titleEl) titleEl.textContent = 'Нет данных';
                         var artistEl = document.getElementById('npArtist');
                         if (artistEl) artistEl.textContent = 'Проверь, запущен ли трекер';
@@ -136,51 +132,37 @@ function updateMusicInfo() {
         }
     }, 2000);
 }
-    // Отправляем команду
-    sendCommand('трек');
-    
-    // Ждём 3 секунды и принудительно парсим лог
-    setTimeout(function() {
-        var log = document.getElementById('log');
-        if (log) {
-            var logText = log.innerHTML;
-            if (logText.includes('🎵')) {
-                checkForMusicUpdate();
-            }
-        }
-    }, 3000);
-}
 
 function checkForMusicUpdate() {
-    const log = document.getElementById('log');
+    var log = document.getElementById('log');
     if (!log) return;
 
-    const logText = log.innerHTML;
+    var logText = log.innerHTML;
     if (logText.includes('🎵')) {
-        const titleMatch = logText.match(/<b>(.+?)<\/b>/);
-        const artistMatch = logText.match(/👤 (.+?)(?:\n|$)/);
-        const timeMatch = logText.match(/🕐 (.+?)(?:\n|$)/);
+        var bMatch = logText.match(/<b>(.+?)<\/b>/);
+        var artistMatch = logText.match(/👤\s*(.+?)(?:\n|$|<)/);
+        var timeMatch = logText.match(/🕐\s*(.+?)(?:\n|$|<)/);
 
-        if (titleMatch) {
-            const title = titleMatch[1];
-            let artist = '';
+        if (bMatch) {
+            var title = bMatch[1];
+            var artist = '';
             if (artistMatch) {
                 artist = artistMatch[1].split('•')[0].trim();
             }
             
             updateNowPlayingCard(artist, title, '', 0, 0, true);
-            document.getElementById('log').innerHTML = logText.replace(/🎵[\s\S]*?(?=<|$)/, '');
+            document.getElementById('log').innerHTML = '[Готов к работе]';
         }
     }
 }
 
 function updateNowPlayingCard(artist, title, album, position, duration, isPlaying) {
-    const titleEl = document.getElementById('npTitle');
-    const artistEl = document.getElementById('npArtist');
-    const albumEl = document.getElementById('npAlbum');
-    const timeEl = document.getElementById('npTime');
-    const progressEl = document.getElementById('npProgress');
-    const artEl = document.getElementById('npArt');
+    var titleEl = document.getElementById('npTitle');
+    var artistEl = document.getElementById('npArtist');
+    var albumEl = document.getElementById('npAlbum');
+    var timeEl = document.getElementById('npTime');
+    var progressEl = document.getElementById('npProgress');
+    var artEl = document.getElementById('npArt');
     
     if (titleEl) titleEl.textContent = title || '—';
     if (artistEl) artistEl.textContent = artist || '';
@@ -190,21 +172,13 @@ function updateNowPlayingCard(artist, title, album, position, duration, isPlayin
         timeEl.textContent = isPlaying ? '▶️ Сейчас играет' : '⏸ Пауза';
     }
     
-    if (progressEl && duration > 0) {
-        const pct = Math.min(100, Math.max(0, (position / duration) * 100));
-        progressEl.style.width = pct + '%';
-    } else if (progressEl) {
-        progressEl.style.width = '0%';
+    if (progressEl) {
+        progressEl.style.width = (duration > 0 ? Math.min(100, Math.max(0, (position / duration) * 100)) : 0) + '%';
     }
     
     if (artEl) {
         artEl.textContent = isPlaying ? '🎶' : '⏸';
     }
-}
-
-function parseTime(str) {
-    const parts = str.split(':');
-    return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : 0;
 }
 
 setInterval(checkForMusicUpdate, 3000);
@@ -232,32 +206,17 @@ function openTramWindow() {
     
     const iframe = document.createElement('iframe');
     iframe.src = 'tram/map.html';
-    iframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-    `;
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
     
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
     closeBtn.style.cssText = `
-        position: fixed;
-        top: 12px;
-        right: 12px;
-        z-index: 10000;
-        width: 40px;
-        height: 40px;
-        background: #FF6B6B;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 18px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        position:fixed;top:12px;right:12px;z-index:10000;
+        width:40px;height:40px;background:#FF6B6B;color:white;
+        border:none;border-radius:50%;cursor:pointer;
+        font-size:18px;font-weight:bold;display:flex;
+        align-items:center;justify-content:center;
+        box-shadow:0 2px 8px rgba(0,0,0,0.5);
     `;
     closeBtn.onclick = function() {
         document.body.removeChild(modal);
@@ -275,16 +234,12 @@ function checkForPhoto() {
     if (!log) return;
     
     const logText = log.innerHTML;
-    
     if (logText.includes('/show_photo')) {
         let match = logText.match(/\/show_photo\s+(https?:\/\/\S+)/);
-        if (!match) {
-            match = logText.match(/\/show_photo\s+(.+)/);
-        }
+        if (!match) match = logText.match(/\/show_photo\s+(.+)/);
         
         if (match) {
-            const url = match[1].trim();
-            openPhotoModal(url);
+            openPhotoModal(match[1].trim());
             document.getElementById('log').innerHTML = logText.replace(/\/show_photo\s+\S+/, '📸 Фото получено');
         }
     }
@@ -297,76 +252,31 @@ function openPhotoModal(fileUrl) {
     const modal = document.createElement('div');
     modal.id = 'photoModal';
     modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.95);
-        z-index: 10001;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        position:fixed;top:0;left:0;width:100%;height:100%;
+        background:rgba(0,0,0,0.95);z-index:10001;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
     `;
     
     const loading = document.createElement('div');
     loading.textContent = 'Загрузка фото...';
-    loading.style.cssText = 'color: #FFD700; font-size: 18px; margin-bottom: 16px;';
+    loading.style.cssText = 'color:#FFD700;font-size:18px;margin-bottom:16px;';
     modal.appendChild(loading);
     
     const img = document.createElement('img');
-    img.style.cssText = `
-        max-width: 95%;
-        max-height: 75vh;
-        border-radius: 12px;
-        object-fit: contain;
-        display: none;
-    `;
-    
-    img.onload = function() {
-        loading.style.display = 'none';
-        img.style.display = 'block';
-    };
-    
-    img.onerror = function() {
-        loading.textContent = '❌ Не удалось загрузить фото';
-        loading.style.color = '#FF6B6B';
-    };
-    
+    img.style.cssText = 'max-width:95%;max-height:75vh;border-radius:12px;object-fit:contain;display:none;';
+    img.onload = () => { loading.style.display = 'none'; img.style.display = 'block'; };
+    img.onerror = () => { loading.textContent = '❌ Не удалось загрузить фото'; loading.style.color = '#FF6B6B'; };
     img.src = fileUrl;
     
     const caption = document.createElement('div');
     caption.textContent = '📸 Снимок с камеры';
-    caption.style.cssText = `
-        color: #FFD700;
-        font-size: 18px;
-        margin-top: 16px;
-        font-weight: bold;
-    `;
+    caption.style.cssText = 'color:#FFD700;font-size:18px;margin-top:16px;font-weight:bold;';
     
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕ Закрыть';
-    closeBtn.style.cssText = `
-        margin-top: 20px;
-        padding: 14px 40px;
-        background: #FF6B6B;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-    `;
-    closeBtn.onclick = function() {
-        document.body.removeChild(modal);
-    };
-    
-    modal.onclick = function(e) {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    };
+    closeBtn.style.cssText = 'margin-top:20px;padding:14px 40px;background:#FF6B6B;color:white;border:none;border-radius:12px;cursor:pointer;font-size:16px;font-weight:bold;';
+    closeBtn.onclick = () => document.body.removeChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) document.body.removeChild(modal); };
     
     modal.appendChild(img);
     modal.appendChild(caption);
@@ -386,7 +296,7 @@ function openCheatsheetMenu() {
                 window.cheatsheetData = data;
                 showCheatsheetMenuModal();
             })
-            .catch(err => {
+            .catch(() => {
                 document.getElementById("log").innerHTML = "❌ Ошибка загрузки шпаргалок";
             });
     } else {
@@ -402,21 +312,16 @@ function showCheatsheetMenuModal() {
     }
     
     let html = `<h2>📝 Шпаргалки</h2>`;
-    html += `<p style="color:#888; font-size:12px; margin-bottom:15px; text-align:center;">Выбери предмет</p>`;
+    html += `<p style="color:#888;font-size:12px;margin-bottom:15px;text-align:center;">Выбери предмет</p>`;
     html += `<div class="buttons" style="grid-template-columns: 1fr 1fr;">`;
     
     for (let [key, subject] of Object.entries(data)) {
         const hasContent = subject.sections && subject.sections.length > 0;
         const badge = hasContent ? "" : `<span class="wip-badge">WIP</span>`;
-        html += `
-            <button class="btn" style="background:#3A5A6B;" 
-                onclick="openCheatsheet('${key}')">
-                ${subject.icon} ${subject.name}${badge}
-            </button>`;
+        html += `<button class="btn" style="background:#3A5A6B;" onclick="openCheatsheet('${key}')">${subject.icon} ${subject.name}${badge}</button>`;
     }
     
     html += `</div>`;
-    
     document.getElementById("cheatsheetContent").innerHTML = html;
     document.getElementById("cheatsheetModal").style.display = "flex";
 }
