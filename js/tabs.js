@@ -141,7 +141,6 @@ function checkForMusicUpdate() {
     if (logText.includes('🎵')) {
         var bMatch = logText.match(/<b>(.+?)<\/b>/);
         var artistMatch = logText.match(/👤\s*(.+?)(?:\n|$|<)/);
-        var timeMatch = logText.match(/🕐\s*(.+?)(?:\n|$|<)/);
 
         if (bMatch) {
             var title = bMatch[1];
@@ -150,6 +149,7 @@ function checkForMusicUpdate() {
                 artist = artistMatch[1].split('•')[0].trim();
             }
             
+            console.log('✅ Обновляю карточку:', title, artist);
             updateNowPlayingCard(artist, title, '', 0, 0, true);
             document.getElementById('log').innerHTML = '[Готов к работе]';
         }
