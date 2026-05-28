@@ -133,48 +133,36 @@ function updateMusicInfo() {
 function checkForMusicUpdate() {
     var log = document.getElementById('log');
     if (!log) return;
-
     var logText = log.innerHTML;
     if (logText.includes('🎵')) {
-        // Новый способ: ищем текст после 🎵 до конца строки
         var titleMatch = logText.match(/🎵\s*(.+?)(?:\n|$|<br>|<)/);
         var artistMatch = logText.match(/👤\s*(.+?)(?:\n|$|<)/);
+        var imgMatch = logText.match(/🖼\s*(.+?)(?:\n|$|<)/);
+        var timeMatch = logText.match(/⏱\s*(.+?)(?:\n|$|<)/);
 
-        if (titleMatch && titleMatch[1]) {
-            var title = titleMatch[1].trim();
-            var artist = '';
-            if (artistMatch && artistMatch[1]) {
-                artist = artistMatch[1].split('•')[0].trim();
-            }
-            
-            console.log('✅ Обновляю карточку:', title, artist);
-            updateNowPlayingCard(artist, title, '', 0, 0, true);
+        if (titleMatch) {
+            updateNowPlayingCard(
+                artistMatch ? artistMatch[1].trim() : '',
+                titleMatch[1].trim(),
+                imgMatch ? imgMatch[1].trim() : '',
+                timeMatch ? timeMatch[1].trim() : ''
+            );
             document.getElementById('log').innerHTML = '[Готов к работе]';
         }
     }
 }
-function updateNowPlayingCard(artist, title, album, position, duration, isPlaying) {
+
+function updateNowPlayingCard(artist, title, imageUrl, time) {
     var titleEl = document.getElementById('npTitle');
     var artistEl = document.getElementById('npArtist');
-    var albumEl = document.getElementById('npAlbum');
     var timeEl = document.getElementById('npTime');
-    var progressEl = document.getElementById('npProgress');
     var artEl = document.getElementById('npArt');
-    
+
     if (titleEl) titleEl.textContent = title || '—';
     if (artistEl) artistEl.textContent = artist || '';
-    if (albumEl) albumEl.textContent = '';
-    
-    if (timeEl) {
-        timeEl.textContent = isPlaying ? '▶️ Сейчас играет' : '⏸ Пауза';
-    }
-    
-    if (progressEl) {
-        progressEl.style.width = (duration > 0 ? Math.min(100, Math.max(0, (position / duration) * 100)) : 0) + '%';
-    }
-    
-    if (artEl) {
-        artEl.textContent = isPlaying ? '🎶' : '⏸';
+    if (timeEl) timeEl.textContent = time || '—';
+    if (artEl && imageUrl) {
+        artEl.style.backgroundImage = `url(${imageUrl})`;
     }
 }
 
