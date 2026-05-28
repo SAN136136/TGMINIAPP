@@ -95,6 +95,8 @@ function renderTab(tab) {
 }
 
 // ==================== МУЗЫКА ====================
+var lastTrackInfo = null;
+
 function updateMusicInfo() {
     var titleEl = document.getElementById('npTitle');
     if (titleEl) titleEl.textContent = 'Загрузка...';
@@ -105,6 +107,8 @@ function checkForMusicUpdate() {
     var log = document.getElementById('log');
     if (!log) return;
     var logText = log.innerHTML;
+    
+    // Проверяем, не пришёл ли новый трек
     if (logText.includes('🎵')) {
         var titleMatch = logText.match(/🎵\s*(.+?)(?:\n|$|<br>|<)/);
         var artistMatch = logText.match(/👤\s*(.+?)(?:\n|$|<)/);
@@ -112,28 +116,36 @@ function checkForMusicUpdate() {
         var timeMatch = logText.match(/⏱\s*(.+?)(?:\n|$|<)/);
 
         if (titleMatch) {
-            updateNowPlayingCard(
-                artistMatch ? artistMatch[1].trim() : '',
-                titleMatch[1].trim(),
-                imgMatch ? imgMatch[1].trim() : '',
-                timeMatch ? timeMatch[1].trim() : ''
-            );
+            lastTrackInfo = {
+                artist: artistMatch ? artistMatch[1].trim() : '',
+                title: titleMatch[1].trim(),
+                imageUrl: imgMatch ? imgMatch[1].trim() : '',
+                time: timeMatch ? timeMatch[1].trim() : ''
+            };
+            updateNowPlayingCardFromInfo();
             document.getElementById('log').innerHTML = '[Готов к работе]';
         }
     }
+    
+    // Восстанавливаем карточку после команд управления
+    if (logText.includes('Выполнено') && lastTrackInfo) {
+        updateNowPlayingCardFromInfo();
+        document.getElementById('log').innerHTML = '[Готов к работе]';
+    }
 }
 
-function updateNowPlayingCard(artist, title, imageUrl, time) {
+function updateNowPlayingCardFromInfo() {
+    if (!lastTrackInfo) return;
     var titleEl = document.getElementById('npTitle');
     var artistEl = document.getElementById('npArtist');
     var timeEl = document.getElementById('npTime');
     var artEl = document.getElementById('npArt');
 
-    if (titleEl) titleEl.textContent = title || '—';
-    if (artistEl) artistEl.textContent = artist || '';
-    if (timeEl) timeEl.textContent = time || '—';
-    if (artEl && imageUrl) {
-        artEl.style.backgroundImage = `url(${imageUrl})`;
+    if (titleEl) titleEl.textContent = lastTrackInfo.title || '—';
+    if (artistEl) artistEl.textContent = lastTrackInfo.artist || '';
+    if (timeEl) timeEl.textContent = lastTrackInfo.time || '—';
+    if (artEl && lastTrackInfo.imageUrl) {
+        artEl.style.backgroundImage = `url(${lastTrackInfo.imageUrl})`;
     }
 }
 
